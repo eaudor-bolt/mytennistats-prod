@@ -10,7 +10,7 @@ import CourtBackground from '../components/landing/CourtBackground';
 import { trackVideoAction, trackButtonClick, trackFilterAction } from '../utils/analytics';
 import { useAlert } from '../hooks/useAlert';
 
-type ShotType = 'Forehand ' | 'Backhand' | 'Serve' | 'Volley' | 'Smash' | 'Slice' | 'Drop Shot' | 'Other';
+type ShotType = 'Forehand' | 'Backhand' | 'Serve' | 'Volley' | 'Smash' | 'Slice' | 'Drop Shot' | 'Other';
 
 interface VideoRecord {
   id: string;
