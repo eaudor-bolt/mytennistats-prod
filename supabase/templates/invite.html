@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitation</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #050d1a 0%, #071428 50%, #050d1a 100%);
+      color: #ffffff;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: rgba(10, 21, 38, 0.95);
+      border: 2px solid rgba(200, 241, 53, 0.3);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    .header {
+      background: linear-gradient(135deg, #0a1526 0%, #0d1d35 100%);
+      padding: 40px 30px;
+      text-align: center;
+      border-bottom: 2px solid rgba(200, 241, 53, 0.2);
+    }
+    .logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: #C8F135;
+      text-shadow: 0 0 20px rgba(200, 241, 53, 0.3);
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .content p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0 0 20px 0;
+    }
+    .cta-button {
+      display: inline-block;
+      padding: 16px 40px;
+      background: linear-gradient(135deg, #C8F135 0%, #a8d020 100%);
+      color: #0a1526;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 18px;
+      margin: 20px 0;
+      box-shadow: 0 4px 20px rgba(200, 241, 53, 0.4);
+      transition: all 0.3s ease;
+    }
+    .cta-button:hover {
+      background: linear-gradient(135deg, #d4f74a 0%, #b8e030 100%);
+      box-shadow: 0 6px 30px rgba(200, 241, 53, 0.6);
+      transform: translateY(-2px);
+    }
+    .button-container {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .footer {
+      padding: 30px;
+      text-align: center;
+      background: rgba(5, 13, 26, 0.8);
+      border-top: 1px solid rgba(200, 241, 53, 0.2);
+    }
+    .footer p {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      margin: 5px 0;
+    }
+    .divider {
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, rgba(200, 241, 53, 0.3) 50%, transparent 100%);
+      margin: 30px 0;
+    }
+    .info-box {
+      background: rgba(200, 241, 53, 0.05);
+      border-left: 4px solid #C8F135;
+      padding: 15px 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    .info-box p {
+      margin: 0;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://tt.com/logo.svg" alt="Logo" class="logo">
+      <h1>You're invited!</h1>
+    </div>
+
+    <div class="content">
+      <p>Hello!</p>
+
+      <p>You've been invited to join our platform. Click the button below to accept the invitation and create your account.</p>
+
+      <div class="button-container">
+        <a href="{{ .ConfirmationURL }}" class="cta-button">Accept invitation</a>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="info-box">
+        <p><strong>This invitation isn't for you?</strong><br>
+        If you weren't expecting this invitation, you can safely ignore this email.</p>
+      </div>
+
+      <p style="font-size: 14px; color: rgba(255, 255, 255, 0.6); margin-top: 30px;">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="{{ .ConfirmationURL }}" style="color: #C8F135; word-break: break-all;">{{ .ConfirmationURL }}</a>
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>This email was sent automatically, please do not reply.</p>
+      <p style="margin-top: 15px; color: rgba(200, 241, 53, 0.8);">© 2024 - All rights reserved</p>
+    </div>
+  </div>
+</body>
+</html>

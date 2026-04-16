@@ -1,0 +1,1486 @@
+{
+  "venues": [
+    {
+      "lastModified": "2026-02-11T17:17:54.833Z",
+      "clubID": "57940518",
+      "clubName": "COUNTRY SPORTS CLUB ASSOCIATION",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "CATRY",
+              "prenom": "Alice",
+              "fonctions": [
+                "Correspondant"
+              ]
+            },
+            {
+              "nom": "BOIRET",
+              "prenom": "Clovis",
+              "fonctions": [
+                "Président"
+              ]
+            },
+            {
+              "nom": "LEQUESNE",
+              "prenom": "Paulette",
+              "fonctions": [
+                "Trésorier Général"
+              ]
+            },
+            {
+              "nom": "NIEMANT",
+              "prenom": "nicolas",
+              "fonctions": [
+                "Membre"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": [
+            {
+              "nom": "RIBIER",
+              "prenom": "Antoine",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "PEREZ LE TIEC",
+              "prenom": "Pierre",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "LE DEUFF",
+              "prenom": "Arthur",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "GAUTIER",
+              "prenom": "Antoine",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "FOURMOND",
+              "prenom": "Hugo",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": [
+            {
+              "nom": "ANNEQUIT",
+              "prenom": "Jules",
+              "fonctions": [
+                "Référent PADEL"
+              ]
+            }
+          ]
+        }
+      ],
+      "installations": [
+        {
+          "nom": "94170_LE PERREUX SUR",
+          "address1": "65 quai de l'artois",
+          "address2": "65 quai de l'artois",
+          "postCode": "94170",
+          "city": "LE PERREUX SUR MARNE",
+          "country": "France",
+          "latitude": 48.830296,
+          "longitude": 2.509024,
+          "telephone": "0143242778",
+          "email": "contact@lecountrysportsclub.com",
+          "installationId": "81909057",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "B_PIL",
+              "libelle": "Terre battue traditionnelle",
+              "nbTerrains": 10,
+              "nbTerrainsCouverts": 5
+            },
+            {
+              "pratique": "PADEL",
+              "code": "GAZS ",
+              "libelle": "Gazon synthétique",
+              "nbTerrains": 2,
+              "nbTerrainsCouverts": 2
+            }
+          ],
+          "equipements": [
+            "Télévision",
+            "Wifi",
+            "Vestiaires",
+            "Douches",
+            "Parking"
+          ],
+          "accessibilite": []
+        }
+      ]
+    },
+    {
+      "lastModified": "2026-02-11T17:17:58.829Z",
+      "clubID": "57750125",
+      "clubName": "TENNIS CLUB PARISIEN DE JOINVILLE",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "MULLER",
+              "prenom": "Celine",
+              "fonctions": [
+                "Trésorier Général"
+              ]
+            },
+            {
+              "nom": "SAUVAGE",
+              "prenom": "SYLVIE",
+              "fonctions": [
+                "Président",
+                "Responsable Tennis Féminin"
+              ]
+            },
+            {
+              "nom": "MERX",
+              "prenom": "FLORENCE",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "TOMIC",
+              "prenom": "Alexandre",
+              "fonctions": [
+                "Secrétaire Général"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": [
+            {
+              "nom": "BOT",
+              "prenom": "Jean Bernard",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "BAUMER",
+              "prenom": "Nicolas",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "CHAMAK",
+              "prenom": "Agathe",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            },
+            {
+              "nom": "FOREST",
+              "prenom": "Quentin",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": [
+            {
+              "nom": "HUBERT",
+              "prenom": "Clement",
+              "fonctions": [
+                "Stagiaire"
+              ]
+            },
+            {
+              "nom": "GUYON",
+              "prenom": "Gregoire",
+              "fonctions": [
+                "Stagiaire"
+              ]
+            },
+            {
+              "nom": "MARCIANO",
+              "prenom": "Henri",
+              "fonctions": [
+                "Secrétaire"
+              ]
+            },
+            {
+              "nom": "GUYON",
+              "prenom": "Maxime",
+              "fonctions": [
+                "Bénévole administration"
+              ]
+            },
+            {
+              "nom": "HUROT",
+              "prenom": "Jessy",
+              "fonctions": [
+                "Stagiaire"
+              ]
+            }
+          ]
+        }
+      ],
+      "installations": [
+        {
+          "nom": "75012_PARIS",
+          "address1": "T.C.P.JOINVILLE",
+          "address2": "Route de la Pyramide",
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.830376,
+          "longitude": 2.450016,
+          "telephone": "0143287360",
+          "email": "tcpj@orange.fr",
+          "installationId": "7725",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "B_PIL",
+              "libelle": "Terre battue traditionnelle",
+              "nbTerrains": 4,
+              "nbTerrainsCouverts": 4
+            }
+          ],
+          "equipements": [
+            "Télévision",
+            "Wifi",
+            "Vestiaires",
+            "Douches",
+            "Parking"
+          ],
+          "accessibilite": [
+            "Terrains",
+            "Club House",
+            "Sanitaires"
+          ]
+        }
+      ]
+    },
+    {
+      "lastModified": "2026-02-11T17:18:06.248Z",
+      "clubID": "57750193",
+      "clubName": "RNS TENNIS",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "PIQUET",
+              "prenom": "Thomas",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "BOURSICOT",
+              "prenom": "Benoit",
+              "fonctions": [
+                "Trésorier Général"
+              ]
+            },
+            {
+              "nom": "THEIL",
+              "prenom": "Jean Romain",
+              "fonctions": [
+                "Membre"
+              ]
+            },
+            {
+              "nom": "LACROIX",
+              "prenom": "LAETITIA",
+              "fonctions": [
+                "Membre"
+              ]
+            },
+            {
+              "nom": "LACROIX",
+              "prenom": "BLANDINE",
+              "fonctions": [
+                "Secrétaire Général Adjoint"
+              ]
+            },
+            {
+              "nom": "LALLAU",
+              "prenom": "KARINE",
+              "fonctions": [
+                "Secrétaire Général"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": [
+            {
+              "nom": "BANE",
+              "prenom": "Karim",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "LOURS",
+              "prenom": "Emmanuel",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "BLOESS",
+              "prenom": "Jeremie",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "CASENAVE",
+              "prenom": "Cedric",
+              "fonctions": [
+                "Enseignant auprès des adultes"
+              ]
+            },
+            {
+              "nom": "SAJI",
+              "prenom": "Myriam",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "MONGAY",
+              "prenom": "Julien",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "KAMISSOKO",
+              "prenom": "BAKARY",
+              "fonctions": [
+                "Enseignant auprès des jeunes"
+              ]
+            },
+            {
+              "nom": "KAMISSOKO",
+              "prenom": "Cheick Tidiane",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            },
+            {
+              "nom": "KAMISSOKO",
+              "prenom": "KOMA",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": []
+        }
+      ],
+      "installations": [
+        {
+          "nom": "Stade Léo Lagrange",
+          "address1": "68 bd poniatowski",
+          "address2": "68 bd poniatowski",
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.832031,
+          "longitude": 2.399465,
+          "telephone": "0699861186",
+          "email": "contact@rnstennis.com",
+          "installationId": "7786",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Béton poreux",
+              "nbTerrains": 2,
+              "nbTerrainsCouverts": 0
+            }
+          ],
+          "equipements": [
+            "Wifi",
+            "Vestiaires",
+            "Douches"
+          ],
+          "accessibilite": [
+            "Terrains",
+            "Club House",
+            "Sanitaires",
+            "Douches"
+          ]
+        },
+        {
+          "nom": "Stade de la Faluère",
+          "address1": "route de la Pyramide",
+          "address2": null,
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.830376,
+          "longitude": 2.450016,
+          "telephone": null,
+          "email": null,
+          "installationId": "81905741",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Béton poreux",
+              "nbTerrains": 2,
+              "nbTerrainsCouverts": 0
+            }
+          ],
+          "equipements": [
+            "Vestiaires",
+            "Douches"
+          ],
+          "accessibilite": []
+        }
+      ]
+    },
+    {
+      "lastModified": "2026-02-11T17:18:14.203Z",
+      "clubID": "57750179",
+      "clubName": "ECOLE DE TENNIS DU 12EME",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "DUFLOUX",
+              "prenom": "Claude",
+              "fonctions": [
+                "Secrétaire Général"
+              ]
+            },
+            {
+              "nom": "FORTEL",
+              "prenom": "Olivier",
+              "fonctions": [
+                "Président"
+              ]
+            },
+            {
+              "nom": "MONTAGUT",
+              "prenom": "Jean",
+              "fonctions": [
+                "Trésorier Général"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": []
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": []
+        }
+      ],
+      "installations": [
+        {
+          "nom": "Ecole de Tennis",
+          "address1": "Stade Léo Lagrange",
+          "address2": "68 bd poniatowski",
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.832161,
+          "longitude": 2.399346,
+          "telephone": "0143764525",
+          "email": "cj.dufloux@orange.fr",
+          "installationId": "7772",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Béton poreux",
+              "nbTerrains": 9,
+              "nbTerrainsCouverts": 3
+            }
+          ],
+          "equipements": [
+            "Vestiaires"
+          ],
+          "accessibilite": []
+        }
+      ]
+    },
+    {
+      "lastModified": "2026-02-11T17:18:21.154Z",
+      "clubID": "57750086",
+      "clubName": "T.C. XII BERCY",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "ENEE",
+              "prenom": "Fabrice",
+              "fonctions": [
+                "Trésorier Général"
+              ]
+            },
+            {
+              "nom": "JEREMIASZ",
+              "prenom": "Michael",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "SEMARA",
+              "prenom": "David",
+              "fonctions": [
+                "Secrétaire Général"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": [
+            {
+              "nom": "QUINTERO",
+              "prenom": "Pierre",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "FORTEL",
+              "prenom": "Olivier",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "DUFLOUX",
+              "prenom": "Laurent",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "DUPUY",
+              "prenom": "Christian",
+              "fonctions": [
+                "Directeur Sportif"
+              ]
+            },
+            {
+              "nom": "COURT",
+              "prenom": "Christopher",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "BERNARD",
+              "prenom": "Franck",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "BAUDRY",
+              "prenom": "Julien",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "TRAORE",
+              "prenom": "Yaya",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "FROMENTIN",
+              "prenom": "Nicolas",
+              "fonctions": [
+                "Enseignant auprès des jeunes"
+              ]
+            },
+            {
+              "nom": "JABOU",
+              "prenom": "Sofiane",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "JOVANOVIC",
+              "prenom": "Nikola",
+              "fonctions": [
+                "CQP Stagiaire"
+              ]
+            },
+            {
+              "nom": "LEGRAND",
+              "prenom": "Thomas",
+              "fonctions": [
+                "CQP Stagiaire"
+              ]
+            },
+            {
+              "nom": "BENIDDIR",
+              "prenom": "Ahmed",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": [
+            {
+              "nom": "LEITE",
+              "prenom": "Paulo",
+              "fonctions": [
+                "Directeur"
+              ]
+            }
+          ]
+        }
+      ],
+      "installations": [
+        {
+          "nom": "75012_PARIS",
+          "address1": "STADE LEO LAGRANGE",
+          "address2": "68, Bd Poniatowski",
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.832161,
+          "longitude": 2.399346,
+          "telephone": "0143401776",
+          "email": "tc12bercy@fft.fr",
+          "installationId": "7693",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Béton poreux",
+              "nbTerrains": 5,
+              "nbTerrainsCouverts": 1
+            }
+          ],
+          "equipements": [
+            "Wifi",
+            "Vestiaires",
+            "Douches"
+          ],
+          "accessibilite": []
+        }
+      ]
+    },
+    {
+      "lastModified": "2026-02-11T17:18:29.105Z",
+      "clubID": "57750166",
+      "clubName": "CHANTIER/UNION ATHLETIQUE DU/",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "AUGEREAU",
+              "prenom": "Christine",
+              "fonctions": [
+                "Secrétaire Général"
+              ]
+            },
+            {
+              "nom": "MERCIER",
+              "prenom": "Thierry",
+              "fonctions": [
+                "Président"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": []
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": [
+            {
+              "nom": "SARFATI",
+              "prenom": "Fabien",
+              "fonctions": [
+                "Webmaster",
+                "Bénévole administration"
+              ]
+            }
+          ]
+        }
+      ],
+      "installations": [
+        {
+          "nom": "la faluere",
+          "address1": "la faluere",
+          "address2": "la faluere",
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.832372,
+          "longitude": 2.441871,
+          "telephone": null,
+          "email": null,
+          "installationId": "7759",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Béton poreux",
+              "nbTerrains": 3,
+              "nbTerrainsCouverts": 0
+            }
+          ],
+          "equipements": [
+            "Vestiaires",
+            "Douches"
+          ],
+          "accessibilite": []
+        }
+      ]
+    },
+    {
+      "lastModified": "2026-02-11T17:18:35.158Z",
+      "clubID": "57750283",
+      "clubName": "CA VINCENNES",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "CAVALLIN",
+              "prenom": "Hughes",
+              "fonctions": [
+                "Membre"
+              ]
+            },
+            {
+              "nom": "BERGES",
+              "prenom": "Michel",
+              "fonctions": [
+                "Président d Honneur"
+              ]
+            },
+            {
+              "nom": "DIDELOT",
+              "prenom": "Sophie",
+              "fonctions": [
+                "Vice-Président",
+                "Président"
+              ]
+            },
+            {
+              "nom": "THOMASSET",
+              "prenom": "Thierry",
+              "fonctions": [
+                "Vice-Président",
+                "Trésorier Général"
+              ]
+            },
+            {
+              "nom": "BOURGUIGNON",
+              "prenom": "Agnes",
+              "fonctions": [
+                "Vice-Président",
+                "Secrétaire Général"
+              ]
+            },
+            {
+              "nom": "LE GAL",
+              "prenom": "Albane",
+              "fonctions": [
+                "Membre",
+                "Correspondant"
+              ]
+            },
+            {
+              "nom": "BERLIN",
+              "prenom": "Ivan",
+              "fonctions": [
+                "Membre"
+              ]
+            },
+            {
+              "nom": "BAILLARD",
+              "prenom": "Patricia",
+              "fonctions": [
+                "Membre"
+              ]
+            },
+            {
+              "nom": "FUSCO",
+              "prenom": "Lionel",
+              "fonctions": [
+                "Membre"
+              ]
+            },
+            {
+              "nom": "GLAIZOT",
+              "prenom": "Agnès",
+              "fonctions": [
+                "Membre"
+              ]
+            },
+            {
+              "nom": "BARBIER",
+              "prenom": "Jean-Michel",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "LAVNER",
+              "prenom": "Bénédicte",
+              "fonctions": [
+                "Membre",
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "LAVIOLETTE",
+              "prenom": "Anabelle",
+              "fonctions": [
+                "Membre",
+                "Correspondant"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": [
+            {
+              "nom": "PINEL",
+              "prenom": "Sylvain",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            },
+            {
+              "nom": "GAUDY",
+              "prenom": "Antoine",
+              "fonctions": [
+                "Enseignant auprès des adultes"
+              ]
+            },
+            {
+              "nom": "ARCONADA",
+              "prenom": "Raphael",
+              "fonctions": [
+                "Enseignant auprès des jeunes"
+              ]
+            },
+            {
+              "nom": "MOREAU",
+              "prenom": "David",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            },
+            {
+              "nom": "RICHARD",
+              "prenom": "Laurent",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "GOULET",
+              "prenom": "Jean Francois",
+              "fonctions": [
+                "Enseignant auprès des jeunes"
+              ]
+            },
+            {
+              "nom": "PARDO",
+              "prenom": "Lionel",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "BAUMER",
+              "prenom": "Nicolas",
+              "fonctions": [
+                "Entraîneur"
+              ]
+            },
+            {
+              "nom": "ROUSTAN",
+              "prenom": "Valentin",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "MAOLE MUNOZ",
+              "prenom": "Alexandre",
+              "fonctions": [
+                "Enseignant auprès des adultes"
+              ]
+            },
+            {
+              "nom": "FLOUTTARD",
+              "prenom": "Joris",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "ROBINEAU",
+              "prenom": "Stephane",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "PORTEL",
+              "prenom": "Maxence",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "DEBLAUWE",
+              "prenom": "Quentin",
+              "fonctions": [
+                "Enseignant auprès des adultes"
+              ]
+            },
+            {
+              "nom": "DEGHAIES",
+              "prenom": "Kaies",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "NGO TRONG",
+              "prenom": "julien",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": [
+            {
+              "nom": "BERNARD",
+              "prenom": "Maxime",
+              "fonctions": [
+                "Responsable Compétition"
+              ]
+            },
+            {
+              "nom": "DUFOUR",
+              "prenom": "Jean Pierre",
+              "fonctions": [
+                "Bénévole animation"
+              ]
+            },
+            {
+              "nom": "BEAUGET",
+              "prenom": "Léa",
+              "fonctions": [
+                "Stagiaire"
+              ]
+            },
+            {
+              "nom": "ROSSO",
+              "prenom": "Cedric",
+              "fonctions": [
+                "Responsable Administratif"
+              ]
+            }
+          ]
+        }
+      ],
+      "installations": [
+        {
+          "nom": "CAV",
+          "address1": "Stade Jean Mermoz",
+          "address2": "Rte de la pyramide",
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.83762,
+          "longitude": 2.43909,
+          "telephone": "0143281815",
+          "email": "direction@cavincennes.club",
+          "installationId": "7827",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "B_PIL",
+              "libelle": "Terre battue traditionnelle",
+              "nbTerrains": 13,
+              "nbTerrainsCouverts": 7
+            }
+          ],
+          "equipements": [
+            "Télévision",
+            "Wifi",
+            "Vestiaires",
+            "Douches",
+            "Parking",
+            "Salle de sport"
+          ],
+          "accessibilite": [
+            "Club House",
+            "Sanitaires"
+          ]
+        }
+      ]
+    },
+    {
+      "lastModified": "2026-02-11T17:18:46.155Z",
+      "clubID": "57750068",
+      "clubName": "LA CAMILLIENNE SPORTS 12EME",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "DE RAUCOURT",
+              "prenom": "Philippe",
+              "fonctions": [
+                "Président"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": [
+            {
+              "nom": "QUINTERO",
+              "prenom": "Pierre",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "DELEERSNYDER",
+              "prenom": "Franck",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "RICHERT",
+              "prenom": "Valentin",
+              "fonctions": [
+                "DE stagiaire"
+              ]
+            },
+            {
+              "nom": "SECO",
+              "prenom": "Bryan",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": [
+            {
+              "nom": "PUGLIESE",
+              "prenom": "Facundo",
+              "fonctions": [
+                "Stagiaire"
+              ]
+            }
+          ]
+        }
+      ],
+      "installations": [
+        {
+          "nom": "ALIAN MIMOUN",
+          "address1": "",
+          "address2": null,
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.839138,
+          "longitude": 2.40894,
+          "telephone": null,
+          "email": null,
+          "installationId": "81905565",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Enrobé poreux",
+              "nbTerrains": 3,
+              "nbTerrainsCouverts": 0
+            }
+          ],
+          "equipements": [
+            "Wifi",
+            "Vestiaires",
+            "Douches"
+          ],
+          "accessibilite": [
+            "Terrains",
+            "Sanitaires",
+            "Douches"
+          ]
+        },
+        {
+          "nom": "CENTRE SPORTIFCARNOT",
+          "address1": "",
+          "address2": null,
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.829365,
+          "longitude": 2.426541,
+          "telephone": null,
+          "email": null,
+          "installationId": "81905567",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Béton poreux",
+              "nbTerrains": 2,
+              "nbTerrainsCouverts": 0
+            }
+          ],
+          "equipements": [
+            "Vestiaires",
+            "Douches"
+          ],
+          "accessibilite": [
+            "Terrains",
+            "Sanitaires",
+            "Douches"
+          ]
+        },
+        {
+          "nom": "LA FALUERE",
+          "address1": "",
+          "address2": null,
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.833018,
+          "longitude": 2.441406,
+          "telephone": null,
+          "email": null,
+          "installationId": "81905566",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Béton poreux",
+              "nbTerrains": 1,
+              "nbTerrainsCouverts": 0
+            }
+          ],
+          "equipements": [
+            "Vestiaires",
+            "Douches",
+            "Parking"
+          ],
+          "accessibilite": [
+            "Terrains",
+            "Sanitaires",
+            "Douches"
+          ]
+        },
+        {
+          "nom": "LEO LAGRANGE",
+          "address1": "68 bd Poniatowski",
+          "address2": "68 bd Poniatowski",
+          "postCode": "75012",
+          "city": "PARIS 12",
+          "country": "France",
+          "latitude": 48.832162,
+          "longitude": 2.399346,
+          "telephone": "0767696107",
+          "email": "tenniscamillienne@gmail.com",
+          "installationId": "7676",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "DUR  ",
+              "libelle": "Béton poreux",
+              "nbTerrains": 1,
+              "nbTerrainsCouverts": 0
+            }
+          ],
+          "equipements": [
+            "Vestiaires",
+            "Douches"
+          ],
+          "accessibilite": [
+            "Terrains",
+            "Sanitaires",
+            "Douches"
+          ]
+        }
+      ]
+    },
+    {
+      "lastModified": "2026-02-11T17:18:52.152Z",
+      "clubID": "57940223",
+      "clubName": "LAWN TENNIS DE SAINT MANDE",
+      "totalAdults": null,
+      "totalKids": null,
+      "equipes": [
+        {
+          "code": "dirigeante",
+          "description": null,
+          "membres": [
+            {
+              "nom": "SIBERCHICOT",
+              "prenom": "Laure Maia",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "MOUTON",
+              "prenom": "Jean-Christophe",
+              "fonctions": [
+                "Secrétaire Général"
+              ]
+            },
+            {
+              "nom": "ALLIANY",
+              "prenom": "Fabrice",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "GUILHOT GAUDEFFROY",
+              "prenom": "Olivier",
+              "fonctions": [
+                "Président"
+              ]
+            },
+            {
+              "nom": "LAGRANGE",
+              "prenom": "Christophe",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "AITDJOUDI",
+              "prenom": "Stéphane",
+              "fonctions": [
+                "Trésorier Général"
+              ]
+            },
+            {
+              "nom": "DEL CASTILLO PANIZO",
+              "prenom": "Francisco",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            },
+            {
+              "nom": "GUILLEMIN",
+              "prenom": "Nicolas",
+              "fonctions": [
+                "Vice-Président"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "pedagogique",
+          "description": null,
+          "membres": [
+            {
+              "nom": "PAZAT",
+              "prenom": "Arnaud",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "LABRO",
+              "prenom": "Christophe",
+              "fonctions": [
+                "DE stagiaire"
+              ]
+            },
+            {
+              "nom": "KLEIN",
+              "prenom": "Aymeric",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            },
+            {
+              "nom": "JUGUIN",
+              "prenom": "Antoine",
+              "fonctions": [
+                "Responsable Ecole de Tennis"
+              ]
+            },
+            {
+              "nom": "AMOUYAL",
+              "prenom": "Tommy",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "TOUTAIN",
+              "prenom": "Tristan",
+              "fonctions": [
+                "Enseignant tous publics"
+              ]
+            },
+            {
+              "nom": "ILIC",
+              "prenom": "Emmanuel",
+              "fonctions": [
+                "Assistant Moniteur"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "administrative",
+          "description": null,
+          "membres": [
+            {
+              "nom": "BOCQUET",
+              "prenom": "Emmanuel",
+              "fonctions": [
+                "Secrétaire"
+              ]
+            }
+          ]
+        }
+      ],
+      "installations": [
+        {
+          "nom": "94160_ST MANDE",
+          "address1": "68 av des minimes",
+          "address2": "68 av des minimes ",
+          "postCode": "94160",
+          "city": "ST MANDE",
+          "country": "France",
+          "latitude": 48.84201,
+          "longitude": 2.42624,
+          "telephone": "0143281331",
+          "email": "contact@ltsm.fr",
+          "installationId": "10340",
+          "surfaces": [
+            {
+              "pratique": "TENNIS",
+              "code": "B_PIL",
+              "libelle": "Terre battue traditionnelle",
+              "nbTerrains": 4,
+              "nbTerrainsCouverts": 3
+            }
+          ],
+          "equipements": [
+            "Télévision",
+            "Wifi",
+            "Vestiaires",
+            "Douches",
+            "Parking"
+          ],
+          "accessibilite": [
+            "Terrains",
+            "Club House"
+          ]
+        }
+      ]
+    }
+  ]
+}

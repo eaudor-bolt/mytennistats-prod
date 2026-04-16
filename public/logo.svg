@@ -1,0 +1,10 @@
+<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer yellow circle -->
+  <circle cx="14" cy="14" r="14" fill="#C8F135"/>
+
+  <!-- Inner border circle -->
+  <circle cx="14" cy="14" r="12" fill="none" stroke="rgba(4, 12, 26, 0.4)" stroke-width="2"/>
+
+  <!-- Diagonal line (tennis ball seam) -->
+  <line x1="14" y1="0" x2="14" y2="28" stroke="rgba(4, 12, 26, 0.3)" stroke-width="1" transform="rotate(45 14 14)"/>
+</svg>

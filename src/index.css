@@ -1,0 +1,100 @@
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 13px;
+  color: white;
+  background-color: #22c55e;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.category-badge-code {
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.category-badge-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.category-badge-price {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.inscription-button {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 12px;
+  border: 2px solid;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+@media (min-width: 640px) {
+  .inscription-button {
+    padding: 8px 20px;
+    font-size: 14px;
+  }
+}
+
+.inscription-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.inscription-button-ida {
+  color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.inscription-button-ida:hover {
+  background-color: #eff6ff;
+}
+
+.inscription-button-ruben {
+  color: #f97316;
+  border-color: #f97316;
+}
+
+.inscription-button-ruben:hover {
+  background-color: #fff7ed;
+}
+
+.inscription-button-papa {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.inscription-button-papa:hover {
+  background-color: #fef2f2;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.rotate-y-90 {
+  transform: rotateY(90deg);
+}
+
+.-rotate-y-90 {
+  transform: rotateY(-90deg);
+}
+
+.rotate-y-0 {
+  transform: rotateY(0deg);
+}
