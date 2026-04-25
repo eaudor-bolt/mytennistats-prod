@@ -19,7 +19,7 @@ export function TournamentCard({ tournament, isSelected, onClick, onRegistration
   const { players } = usePlayers();
   const { user } = useAuth();
   const { registrations: allRegistrations, convocations: allConvocations, refreshData } = useTournamentData();
-
+  console.log(allConvocations)
   const registrations = allRegistrations.filter(r => r.tournament_id === tournament.id);
 
   // For placeholder tournaments, try to match by event_code instead of ID

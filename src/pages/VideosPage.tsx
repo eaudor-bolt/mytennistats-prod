@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { LayoutGrid, List as ListIcon, Plus, Filter, Video as VideoIcon, AlertCircle, RefreshCw, Play, X, Camera, Upload, Loader2, CheckCircle2, Calendar, User, Activity, StopCircle, ScanFace, TrendingUp, Trash2, Pause, RotateCcw, PlayCircle, Tag as TagIcon, CreditCard as Edit, ChevronLeft, ChevronRight, BarChart3, Maximize, Minimize } from 'lucide-react';
+import { LayoutGrid, List as ListIcon, Plus, Filter, Video as VideoIcon, AlertCircle, RefreshCw, Play, X, Camera, Upload, Loader2, CheckCircle2, Calendar, User, Activity, StopCircle, ScanFace, TrendingUp, Trash2, Pause, RotateCcw, PlayCircle, Tag as TagIcon, CreditCard as Edit, ChevronLeft, ChevronRight, BarChart3, Maximize, Minimize, Star } from 'lucide-react';
 import { supabase, Tag } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlayers } from '../contexts/PlayersContext';
@@ -10,7 +10,7 @@ import CourtBackground from '../components/landing/CourtBackground';
 import { trackVideoAction, trackButtonClick, trackFilterAction } from '../utils/analytics';
 import { useAlert } from '../hooks/useAlert';
 
-type ShotType = 'Forehand' | 'Backhand' | 'Serve' | 'Volley' | 'Smash' | 'Slice' | 'Drop Shot' | 'Other';
+type ShotType = 'Forehand' | ' Backhand' | 'Serve' | 'Volley' | 'Smash' | 'Slice' | 'Drop Shot' | 'Other';
 
 interface VideoRecord {
   id: string;
@@ -21,6 +21,7 @@ interface VideoRecord {
   created_at: string;
   poster_image: string;
   status: string;
+  favorite: boolean;
   tags?: Tag[];
 }
 
@@ -30,6 +31,7 @@ interface FilterState {
   date_from: string;
   date_to: string;
   tags: string[];
+  favorite: boolean;
 }
 
 type ViewMode = 'list' | 'timeline';
@@ -131,7 +133,8 @@ export function VideosPage() {
     shot_type: '',
     date_from: '',
     date_to: '',
-    tags: []
+    tags: [],
+    favorite: false
   });
 
   const playerNames = useMemo(() => {
@@ -380,12 +383,13 @@ export function VideosPage() {
       const videoDate = new Date(video.taken_at).getTime();
       const matchesFrom = filters.date_from ? videoDate >= new Date(filters.date_from).getTime() : true;
       const matchesTo = filters.date_to ? videoDate <= new Date(filters.date_to).getTime() : true;
+      const matchesFavorite = filters.favorite ? video.favorite : true;
 
       const matchesTags = filters.tags.length === 0 || filters.tags.every(filterTag =>
         video.tags?.some(tag => tag.name === filterTag)
       );
 
-      return matchesPlayer && matchesShot && matchesFrom && matchesTo && matchesTags;
+      return matchesPlayer && matchesShot && matchesFrom && matchesTo && matchesTags && matchesFavorite;
     });
   }, [videos, filters]);
 
@@ -407,6 +411,25 @@ export function VideosPage() {
         ? prev.tags.filter(t => t !== tagName)
         : [...prev.tags, tagName]
     }));
+  };
+
+  const toggleFavorite = async (video: VideoRecord, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const newValue = !video.favorite;
+    setVideos(prev => prev.map(v => v.id === video.id ? { ...v, favorite: newValue } : v));
+    if (selectedVideo?.id === video.id) {
+      setSelectedVideo(prev => prev ? { ...prev, favorite: newValue } : prev);
+    }
+    const { error } = await supabase
+      .from('videos')
+      .update({ favorite: newValue })
+      .eq('id', video.id);
+    if (error) {
+      setVideos(prev => prev.map(v => v.id === video.id ? { ...v, favorite: !newValue } : v));
+      if (selectedVideo?.id === video.id) {
+        setSelectedVideo(prev => prev ? { ...prev, favorite: !newValue } : prev);
+      }
+    }
   };
 
   const handleDeleteVideo = async (video: VideoRecord) => {
@@ -1376,6 +1399,26 @@ export function VideosPage() {
                 </div>
               </div>
 
+              <div>
+                <label
+                  className="flex items-center gap-2.5 cursor-pointer select-none group"
+                  onClick={() => setFilters(prev => ({ ...prev, favorite: !prev.favorite }))}
+                >
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                    filters.favorite
+                      ? 'bg-[#C8F135] border-[#C8F135]'
+                      : 'border-white/20 group-hover:border-white/40'
+                  }`}>
+                    {filters.favorite && <Star size={12} className="text-black fill-current" />}
+                  </div>
+                  <span className={`text-sm font-medium transition-colors ${
+                    filters.favorite ? 'text-[#C8F135]' : 'text-white/60 group-hover:text-white/80'
+                  }`}>
+                    Favoris uniquement
+                  </span>
+                </label>
+              </div>
+
               {allTags.length > 0 && (
                 <div>
                   <label className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2 block">Tags</label>
@@ -1487,6 +1530,17 @@ export function VideosPage() {
                           {video.shot_type}
                         </div>
                         <button
+                          onClick={(e) => toggleFavorite(video, e)}
+                          className={`absolute bottom-1 left-1 sm:bottom-2 sm:left-2 p-1 sm:p-1.5 rounded-full transition-all z-10 ${
+                            video.favorite
+                              ? 'bg-[#C8F135]/90 text-black'
+                              : 'bg-black/50 text-white/70 opacity-0 group-hover:opacity-100 hover:bg-black/70'
+                          }`}
+                          title={video.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                        >
+                          <Star size={14} className={`sm:w-4 sm:h-4 ${video.favorite ? 'fill-current' : ''}`} />
+                        </button>
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteVideo(video);
@@ -1587,9 +1641,19 @@ export function VideosPage() {
                            </div>
 
                            <div className="flex justify-between items-start mb-2">
-                              <div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleFavorite(video, e); }}
+                                  className={`p-0.5 rounded transition-colors shrink-0 ${
+                                    video.favorite ? 'text-[#C8F135]' : 'text-slate-500 hover:text-white'
+                                  }`}
+                                >
+                                  <Star size={14} className={video.favorite ? 'fill-current' : ''} />
+                                </button>
+                                <div>
                                   <p className="font-bold text-white text-sm">{video.player_name}</p>
                                   <p className="text-[#C8F135] text-xs font-semibold">{video.shot_type}</p>
+                                </div>
                               </div>
                               <div className="text-right">
                                   <p className="text-xs text-slate-400">{date.toLocaleDateString()}</p>
@@ -1989,11 +2053,24 @@ export function VideosPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4" onClick={closeVideoPlayer}>
           <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] h-[90vh] border border-white/20" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/80 shrink-0">
-              <div>
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">Lecture</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold text-white">Lecture</h2>
+                {selectedVideo && (
+                  <button
+                    onClick={() => toggleFavorite(selectedVideo)}
+                    className={`p-1.5 rounded-full transition-all ${
+                      selectedVideo.favorite
+                        ? 'text-[#C8F135] bg-[#C8F135]/10'
+                        : 'text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                    title={selectedVideo.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  >
+                    <Star size={20} className={selectedVideo.favorite ? 'fill-current' : ''} />
+                  </button>
+                )}
                 {playlistMode && (
-                  <p className="text-sm text-slate-400 mt-1">
-                    Vidéo {currentPlaylistIndex + 1} sur {sortedTimelineVideos.length}
+                  <p className="text-sm text-slate-400">
+                    {currentPlaylistIndex + 1} / {sortedTimelineVideos.length}
                   </p>
                 )}
               </div>

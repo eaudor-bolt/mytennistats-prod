@@ -518,7 +518,7 @@ export function TournamentFilter({ tournaments, onFilterChange, isOpen = true, o
             <input
               type="range"
               min="0"
-              max="200"
+              max="1000"
               step="5"
               value={distance}
               onChange={(e) => onDistanceChange(parseInt(e.target.value))}
@@ -526,7 +526,7 @@ export function TournamentFilter({ tournaments, onFilterChange, isOpen = true, o
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
               <span>Toutes</span>
-              <span>200 km</span>
+              <span>1000 km</span>
             </div>
           </div>
         )}

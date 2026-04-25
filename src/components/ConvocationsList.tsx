@@ -28,6 +28,7 @@ export function ConvocationsList({ convocations, tournament, onDelete }: Convoca
 
   const createGoogleCalendarUrl = (convocation: Convocation) => {
     try {
+      console.log(convocation)
       const convDate = new Date(convocation.convocation_date + 'T' + convocation.convocation_time);
 
       const year = convDate.getFullYear();
@@ -57,7 +58,17 @@ export function ConvocationsList({ convocations, tournament, onDelete }: Convoca
         details += `\nTéléphone: ${convocation.phone}`;
       }
 
-      const location = convocation.location || tournament.venue_address || tournament.venue_city || tournament.organizer;
+      const cityLine =
+  tournament.postal_code && tournament.venue_city
+    ? `${tournament.postal_code} ${tournament.venue_city}`
+    : undefined;
+      const location =
+  convocation.location ||
+  tournament.venue_address ||
+  cityLine ||
+  tournament.organizer;
+      
+      //const location = convocation.location || tournament.venue_address || tournament.venue_city || tournament.organizer;
 
       return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDateStr}/${endDateStr}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}&ctz=Europe/Paris`;
     } catch (error) {

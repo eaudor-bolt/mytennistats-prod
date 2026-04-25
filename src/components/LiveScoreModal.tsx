@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ArrowLeft, Trophy, Share2, Lock, Unlock, Camera, StopCircle, Settings, Clock, Upload, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { X, ArrowLeft, Trophy, Share2, Lock, Unlock, Camera, StopCircle, Settings, Clock, Upload, CheckCircle, Eye, EyeOff, Play } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
 import { uploadVideoToS3 } from '../utils/s3Upload';
 import { MiniScoreboard } from './MiniScoreboard';
+import { VideoPlayerModal } from './VideoPlayerModal';
 import { useAlert } from '../hooks/useAlert';
 
 type GameScore = { adversaire: number; famille: number; totalAd?: number };
@@ -30,10 +31,9 @@ type LiveScoreModalProps = {
   }) => void;
 };
 
-// Convert stored .webm URLs to .mp4 for playback
 const getPlaybackUrl = (url: string | null): string | null => {
   if (!url) return null;
-  return url.replace(/\.webm$/, '.mp4');
+  return url;
 };
 
 export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished }: LiveScoreModalProps) {
@@ -75,6 +75,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [showCameraSelector, setShowCameraSelector] = useState(false);
+  const [videoQuality, setVideoQuality] = useState<'SD' | 'HD'>('HD');
   const [videoEnabled, setVideoEnabled] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -87,6 +88,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const pointStartTimeRef = useRef<number | null>(null);
   const [uploadingEntries, setUploadingEntries] = useState<Set<number>>(new Set());
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
   const isClosingRef = useRef(false);
 
   const saveMatchState = () => {
@@ -235,8 +237,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       }
     } else {
       if (gameScore.adversaire === 0 && gameScore.famille === 0 &&
-          (prev.adversaire !== 0 || prev.famille !== 0) &&
-          prev.adversaire !== 0) {
+          (prev.adversaire !== 0 || prev.famille !== 0)) {
         setCurrentServer(prev => prev === 'famille' ? 'adversaire' : 'famille');
       }
       tiebreakPointCountRef.current = 0;
@@ -245,10 +246,6 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     prevGameScoreRef.current = { ...gameScore };
   }, [gameScore, isTiebreak]);
 
-  // Track previous game score for state changes
-  useEffect(() => {
-    prevGameScoreRef.current = gameScore;
-  }, [gameScore]);
 
   const formatTime = (ms: number): string => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -316,13 +313,16 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       let stream: MediaStream;
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+      const qualityWidth = videoQuality === 'HD' ? 1280 : 640;
+      const qualityHeight = videoQuality === 'HD' ? 720 : 480;
+
       const getConstraints = (includeAudio: boolean): MediaStreamConstraints => {
         if (cameraId) {
           return {
             video: {
               deviceId: { exact: cameraId },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
+              width: { ideal: qualityWidth },
+              height: { ideal: qualityHeight }
             },
             audio: includeAudio
           };
@@ -330,11 +330,11 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
           return {
             video: isMobile ? {
               facingMode: { ideal: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
+              width: { ideal: qualityWidth },
+              height: { ideal: qualityHeight }
             } : {
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
+              width: { ideal: qualityWidth },
+              height: { ideal: qualityHeight }
             },
             audio: includeAudio
           };
@@ -485,8 +485,9 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
           timestamp: new Date().toISOString(),
           timestampMs: Date.now(),
           sequence: sequenceNumberRef.current,
-          setScores: setScores, // Store BEFORE scores
-          gameScore: gameScore, // Store as numbers with totalAd inside
+          setScores: { adversaire: [...setScores.adversaire], famille: [...setScores.famille] },
+          gameScore: { ...gameScore },
+          currentSet,
           videoUrl: null,
           duration: duration,
           uploading: true,
@@ -970,12 +971,13 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
         timestamp: new Date().toISOString(),
         timestampMs: Date.now(),
         sequence: sequenceNumberRef.current,
-        setScores: setScores, // Store BEFORE scores
-        gameScore: gameScore, // Store as numbers with totalAd inside
+        setScores: { adversaire: [...setScores.adversaire], famille: [...setScores.famille] },
+        gameScore: { ...gameScore },
+        currentSet,
         videoUrl: videoUrl,
         duration: duration,
         isTiebreak: isTiebreak,
-        server: currentServer, // Store current server
+        server: currentServer,
         isGamePoint: hasGamePoint,
         isBreakPoint: hasBreakPoint,
         isSetPoint: familleSetPoint || adversaireSetPoint,
@@ -1146,12 +1148,13 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
         timestamp: new Date().toISOString(),
         timestampMs: Date.now(),
         sequence: sequenceNumberRef.current,
-        setScores: setScores, // Store BEFORE scores
-        gameScore: gameScore, // Store as numbers with totalAd inside
+        setScores: { adversaire: [...setScores.adversaire], famille: [...setScores.famille] },
+        gameScore: { ...gameScore },
+        currentSet,
         videoUrl: null,
         duration: duration,
         isTiebreak: isTiebreak,
-        server: currentServer, // Store current server
+        server: currentServer,
         isGamePoint: hasGamePoint,
         isBreakPoint: hasBreakPoint,
         isSetPoint: familleSetPoint || adversaireSetPoint,
@@ -1204,12 +1207,13 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
         timestamp: new Date().toISOString(),
         timestampMs: Date.now(),
         sequence: sequenceNumberRef.current,
-        setScores: setScores, // Store BEFORE scores
-        gameScore: gameScore, // Store as numbers with totalAd inside
+        setScores: { adversaire: [...setScores.adversaire], famille: [...setScores.famille] },
+        gameScore: { ...gameScore },
+        currentSet,
         videoUrl: null,
         duration: duration,
         isTiebreak: isTiebreak,
-        server: currentServer, // Store current server
+        server: currentServer,
         isGamePoint: hasGamePoint,
         isBreakPoint: hasBreakPoint,
         isSetPoint: familleSetPoint || adversaireSetPoint,
@@ -1683,9 +1687,9 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                     </button>
 
                     {showCameraSelector && (
-                      <div className="absolute right-0 mt-2 bg-slate-800 rounded shadow-xl border border-slate-700 p-3 min-w-[200px]">
+                      <div className="absolute right-0 mt-2 bg-slate-800 rounded shadow-xl border border-slate-700 p-3 min-w-[220px] z-10">
                         <p className="text-sm font-semibold text-slate-300 mb-2">Sélectionner une caméra:</p>
-                        <div className="space-y-2">
+                        <div className="space-y-2 mb-3">
                           {availableCameras.length === 0 && (
                             <button
                               onClick={() => enumerateCameras()}
@@ -1708,6 +1712,40 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                               {camera.label || `Caméra ${index + 1}`}
                             </button>
                           ))}
+                        </div>
+                        <div className="border-t border-slate-700 pt-3">
+                          <p className="text-sm font-semibold text-slate-300 mb-2">Qualité vidéo:</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setVideoQuality('SD');
+                                if (streamRef.current) switchCamera(selectedCameraId);
+                              }}
+                              className={`flex-1 py-1.5 text-sm font-semibold rounded transition-colors ${
+                                videoQuality === 'SD'
+                                  ? 'bg-[#C8F135] text-black'
+                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                              }`}
+                            >
+                              SD
+                            </button>
+                            <button
+                              onClick={() => {
+                                setVideoQuality('HD');
+                                if (streamRef.current) switchCamera(selectedCameraId);
+                              }}
+                              className={`flex-1 py-1.5 text-sm font-semibold rounded transition-colors ${
+                                videoQuality === 'HD'
+                                  ? 'bg-[#C8F135] text-black'
+                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                              }`}
+                            >
+                              HD
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-1">
+                            {videoQuality === 'HD' ? '1280×720' : '640×480'}
+                          </p>
                         </div>
                       </div>
                     )}
@@ -1932,15 +1970,15 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                           {entry.videoUrl ? (
                             <>
                               <video src={getPlaybackUrl(entry.videoUrl) || undefined} className="w-full h-full object-cover" muted playsInline />
-                              <a
-                                href={getPlaybackUrl(entry.videoUrl) || undefined}
-                                target="_blank"
-                                rel="noreferrer"
+                              <button
                                 className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/50 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPlayingVideoUrl(getPlaybackUrl(entry.videoUrl));
+                                }}
                               >
-                                <Camera className="text-white w-8 h-8 opacity-80" />
-                              </a>
+                                <Play className="text-white w-8 h-8 opacity-80 fill-white" />
+                              </button>
                             </>
                           ) : (
                             <div className="text-gray-500">
@@ -2012,7 +2050,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                                   setScores={entry.setScores}
                                   currentSet={entry.currentSet ?? currentSet}
                                   isTiebreak={entry.isTiebreak ?? false}
-                                  currentServer={entry.currentServer}
+                                  currentServer={entry.server}
                                   gameFormat={gameFormat}
                                   tiebreakScores={tiebreakScores}
                                 />
@@ -2079,9 +2117,9 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                     </button>
 
                     {showCameraSelector && (
-                      <div className="absolute right-0 mt-2 bg-slate-800 rounded shadow-xl border border-slate-700 p-3 min-w-[200px]">
+                      <div className="absolute right-0 mt-2 bg-slate-800 rounded shadow-xl border border-slate-700 p-3 min-w-[220px] z-10">
                         <p className="text-sm font-semibold text-slate-300 mb-2">Sélectionner une caméra:</p>
-                        <div className="space-y-2">
+                        <div className="space-y-2 mb-3">
                           {availableCameras.length === 0 && (
                             <button
                               onClick={() => enumerateCameras()}
@@ -2104,6 +2142,40 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                               {camera.label || `Caméra ${index + 1}`}
                             </button>
                           ))}
+                        </div>
+                        <div className="border-t border-slate-700 pt-3">
+                          <p className="text-sm font-semibold text-slate-300 mb-2">Qualité vidéo:</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setVideoQuality('SD');
+                                if (streamRef.current) switchCamera(selectedCameraId);
+                              }}
+                              className={`flex-1 py-1.5 text-sm font-semibold rounded transition-colors ${
+                                videoQuality === 'SD'
+                                  ? 'bg-[#C8F135] text-black'
+                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                              }`}
+                            >
+                              SD
+                            </button>
+                            <button
+                              onClick={() => {
+                                setVideoQuality('HD');
+                                if (streamRef.current) switchCamera(selectedCameraId);
+                              }}
+                              className={`flex-1 py-1.5 text-sm font-semibold rounded transition-colors ${
+                                videoQuality === 'HD'
+                                  ? 'bg-[#C8F135] text-black'
+                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                              }`}
+                            >
+                              HD
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-1">
+                            {videoQuality === 'HD' ? '1280×720' : '640×480'}
+                          </p>
                         </div>
                       </div>
                     )}
@@ -2375,7 +2447,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                                 setScores={entry.setScores}
                                 currentSet={entry.currentSet ?? currentSet}
                                 isTiebreak={entry.isTiebreak ?? false}
-                                currentServer={entry.currentServer}
+                                currentServer={entry.server}
                                 gameFormat={gameFormat}
                                 tiebreakScores={tiebreakScores}
                               />
@@ -2393,6 +2465,13 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
         </div>
       </div>
     </div>
+    {playingVideoUrl && (
+      <VideoPlayerModal
+        videoUrl={playingVideoUrl}
+        onClose={() => setPlayingVideoUrl(null)}
+        title="Video du Point"
+      />
+    )}
     </>
   );
 }

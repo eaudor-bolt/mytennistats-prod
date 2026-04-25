@@ -3,6 +3,7 @@ import { X, TrendingUp, BarChart2, Radar, Medal, Zap, Video, Play, Clock, Chevro
 import { MatchResult } from '../lib/supabase';
 import { FinalScoreboard } from './FinalScoreboard';
 import { InlineScoreboard } from './InlineScoreboard';
+import { VideoPlayerModal } from './VideoPlayerModal';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Radar as RadarChart, Bar } from 'react-chartjs-2';
 
@@ -1973,9 +1974,9 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                       );
                     })()}
 
-                    <div className="space-y-3">
+                   <div class="space-y-3 pr-2">
                       {historyFilteredData.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400 text-sm italic">
+                        <div className="bg-white/5 backdrop-blur-sm rounded-lg shadow-sm border border-white/10 p-3 flex gap-3 items-start">
                           Aucun point trouvé pour ce filtre
                         </div>
                       ) : (
@@ -1989,13 +1990,13 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                                 setHighlightedBarIndex(point.index);
                                 scrollToBar(point.index);
                               }}
-                              className={`rounded-lg shadow-sm border p-3 flex gap-3 items-start cursor-pointer transition-all ${
+                              className={`bg-white/5 backdrop-blur-sm rounded-lg shadow-sm border border-white/10 p-3 flex gap-3 items-start ${
                                 isHighlighted
-                                  ? 'bg-green-50 border-green-600 ring-2 ring-green-500'
-                                  : 'bg-gray-50 border-white/20 hover:border-green-500 hover:bg-green-50/50'
+                                  ? 'bg-green-950 border-green-400 ring-2 ring-green-300 shadow-[0_0_10px_rgba(34,197,94,0.5)]'
+: 'bg-gray-900 border-gray-700 hover:border-green-400 hover:bg-gray-800'
                               }`}
                             >
-                              <div className="w-16 h-16 bg-black rounded flex items-center justify-center shrink-0 overflow-hidden relative">
+                              <div className="w-20 h-20 bg-black/30 rounded flex items-center justify-center shrink-0 overflow-hidden relative border border-white/10">
                                 {point.videoUrl ? (
                                   <>
                                     <video src={point.videoUrl} className="w-full h-full object-cover" muted playsInline />
@@ -2026,37 +2027,7 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                                     {point.player === 'famille' ? 'Point gagné' : 'Point perdu'}
                                   </span>
 
-                                  <div className="flex items-center gap-1">
-                                    {point.duration > 0 && (
-                                      <span className="flex items-center gap-1 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono border border-slate-200">
-                                        <Clock className="w-2.5 h-2.5" />
-                                        {point.duration.toFixed(0)}s
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
 
-                                <div className="mt-1">
-                                  <p className="text-xs text-gray-500 mb-0.5">
-                                    Serveur: {point.server === 'famille' ? match.player_name : 'Adversaire'}
-                                  </p>
-                                  <p className="font-semibold text-gray-800 text-sm">
-                                    Point {point.index} - {point.action}: {point.skill}
-                                  </p>
-                                  {point.gameScore && point.setScores ? (
-                                    <div className="mt-2">
-                                      <InlineScoreboard
-                                        setScores={point.setScores}
-                                        gameScore={point.gameScore}
-                                        size="small"
-                                        playerName={match.player_name}
-                                        server={point.server}
-                                      />
-                                    </div>
-                                  ) : (
-                                    <p className="text-xs text-gray-600 mt-1">N/A</p>
-                                  )}
-                                  <div className="flex flex-wrap gap-1 mt-1.5">
                                     {point.isMatchPoint && (
                                       <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] font-semibold rounded-full border border-red-300">
                                         Match Point
@@ -2087,7 +2058,38 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                                         )}
                                       </span>
                                     )}
+
+                                  <div className="flex items-center gap-1">
+                                    {point.duration > 0 && (
+                                      <span className="flex items-center gap-1 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono border border-slate-200">
+                                        <Clock className="w-2.5 h-2.5" />
+                                        {point.duration.toFixed(0)}s
+                                      </span>
+                                    )}
                                   </div>
+                                </div>
+
+                                <div className="mt-1">
+                                  <p className="text-xs text-[#C8F135] font-medium mt-0.5">
+                                    Serveur: {point.server === 'famille' ? match.player_name : 'Adversaire'}
+                                  </p>
+                                  <p className="text-xs text-gray-400 font-medium mt-0.5">
+                                    Point {point.index} - {point.action}: {point.skill}
+                                  </p>
+                                  {point.gameScore && point.setScores ? (
+                                    <div className="mt-2">
+                                      <InlineScoreboard
+                                        setScores={point.setScores}
+                                        gameScore={point.gameScore}
+                                        size="small"
+                                        playerName={match.player_name}
+                                        server={point.server}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-gray-600 mt-1">N/A</p>
+                                  )}
+                                  
                                 </div>
                               </div>
                             </div>
@@ -2111,54 +2113,12 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
       </div>
 
       {/* Video Player Modal */}
-      {videoModalOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4"
-          style={{ zIndex: 100 }}
-          onClick={() => setVideoModalOpen(false)}
-        >
-          <div
-            className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
-                  <Video className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Vidéo du Point</h3>
-              </div>
-              <button
-                onClick={() => setVideoModalOpen(false)}
-                onTouchEnd={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  setVideoModalOpen(false);
-                }}
-                className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-lg touch-manipulation cursor-pointer"
-                style={{ touchAction: 'manipulation' }}
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="p-6 bg-black">
-              <video
-                src={currentVideoUrl}
-                controls
-                autoPlay
-                className="w-full rounded-lg shadow-2xl"
-                style={{ maxHeight: '70vh' }}
-              />
-            </div>
-
-            <div className="p-4 bg-slate-800/50 border-t border-slate-700">
-              <p className="text-sm text-slate-400 text-center">
-                Cliquez en dehors de la vidéo pour fermer
-              </p>
-            </div>
-          </div>
-        </div>
+      {videoModalOpen && currentVideoUrl && (
+        <VideoPlayerModal
+          videoUrl={currentVideoUrl}
+          onClose={() => setVideoModalOpen(false)}
+          title="Video du Point"
+        />
       )}
     </div>
   );

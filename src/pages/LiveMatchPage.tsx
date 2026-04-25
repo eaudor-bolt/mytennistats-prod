@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Loader2, Trophy, RefreshCw, X } from 'lucide-react';
+import { Loader2, Trophy, RefreshCw } from 'lucide-react';
 import { MatchHistoryDisplay } from '../components/MatchHistoryDisplay';
 import { LiveMatchStats } from '../components/LiveMatchStats';
+import { VideoPlayerModal } from '../components/VideoPlayerModal';
 
 type GameScore = { adversaire: number; famille: number };
 type SetScores = { adversaire: number[]; famille: number[] };
@@ -309,30 +310,11 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
       </div>
 
       {playingVideoUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[100] p-4" onClick={() => setPlayingVideoUrl(null)}>
-          <div className="bg-gray-900 rounded-xl shadow-2xl max-w-4xl w-full p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Vidéo du point</h3>
-              <button
-                onClick={() => setPlayingVideoUrl(null)}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="bg-black rounded-lg">
-              <video
-                src={playingVideoUrl}
-                controls
-                controlsList="nodownload"
-                autoPlay
-                playsInline
-                className="w-full rounded-lg max-h-[70vh]"
-                style={{ cursor: 'pointer' }}
-              />
-            </div>
-          </div>
-        </div>
+        <VideoPlayerModal
+          videoUrl={playingVideoUrl}
+          onClose={() => setPlayingVideoUrl(null)}
+          title="Video du point"
+        />
       )}
     </div>
     </>
