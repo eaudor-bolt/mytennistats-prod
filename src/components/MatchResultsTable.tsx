@@ -347,10 +347,10 @@ export function MatchResultsTable({ matchResults, onAddMatch, onEditMatch, onDel
             {filteredAndSortedMatches.map((match) => {
               const matchResult = getMatchResult(match.score);
               const rowClass = matchResult === 'win'
-                ? 'bg-green-500/5 hover:bg-green-500/10'
+                ? 'bg-green-500/10 hover:bg-green-500/15 border-l-2 border-l-green-400'
                 : matchResult === 'loss'
-                ? 'bg-red-500/5 hover:bg-red-500/10'
-                : 'hover:bg-white/5';
+                ? 'bg-red-500/10 hover:bg-red-500/15 border-l-2 border-l-red-400'
+                : 'hover:bg-white/5 border-l-2 border-l-transparent';
 
               return (
                 <tr key={match.id} className={`${rowClass} transition-all duration-200`}>

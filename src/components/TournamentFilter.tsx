@@ -17,9 +17,11 @@ type TournamentFilterProps = {
   distance?: number;
   onDistanceChange?: (distance: number) => void;
   userLocation?: { lat: number; lng: number } | null;
+  geolocateEnabled?: boolean;
+  onGeolocateChange?: (enabled: boolean) => void;
 };
 
-export function TournamentFilter({ tournaments, onFilterChange, isOpen = true, onClose, filteredCount, distance = 0, onDistanceChange, userLocation }: TournamentFilterProps) {
+export function TournamentFilter({ tournaments, onFilterChange, isOpen = true, onClose, filteredCount, distance = 0, onDistanceChange, userLocation, geolocateEnabled = false, onGeolocateChange }: TournamentFilterProps) {
   const { players } = usePlayers();
   const { registrations } = useTournamentData();
 
@@ -256,7 +258,7 @@ export function TournamentFilter({ tournaments, onFilterChange, isOpen = true, o
         matchesInscriptionOuverte = ouvertureDate <= now;
       }
 
-      const matchesDistance = !userLocation || distance === 0 ||
+      const matchesDistance = !geolocateEnabled || !userLocation || distance === 0 ||
         ((tournament as TournamentWithDistance).calculatedDistance !== undefined &&
          (tournament as TournamentWithDistance).calculatedDistance! <= distance);
 
@@ -265,7 +267,7 @@ export function TournamentFilter({ tournaments, onFilterChange, isOpen = true, o
       return passes;
     });
     onFilterChange(filtered);
-  }, [searchTerm, selectedCategories, selectedSurfaces, statusFilter, selectedPlayers, selectedEpreuve, startDate, endDate, tmcOnly, inscriptionOuverte, tournaments, registeredTournamentIds, playerTournamentMap, onFilterChange, distance, userLocation]);
+  }, [searchTerm, selectedCategories, selectedSurfaces, statusFilter, selectedPlayers, selectedEpreuve, startDate, endDate, tmcOnly, inscriptionOuverte, tournaments, registeredTournamentIds, playerTournamentMap, onFilterChange, distance, userLocation, geolocateEnabled]);
 
   const toggleCategory = (category: string) => {
     const newCategories = selectedCategories.includes(category)
@@ -450,7 +452,7 @@ export function TournamentFilter({ tournaments, onFilterChange, isOpen = true, o
   if (!isOpen) return null;
 
   return (
-    <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl shadow-black/40 overflow-hidden h-[600px] flex flex-col">
+    <div className={`bg-white/5 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl shadow-black/40 overflow-hidden flex flex-col ${onClose ? 'h-full rounded-none border-0' : 'h-[600px]'}`}>
       <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5 flex-shrink-0">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-bold text-white">Filters</h3>
@@ -510,24 +512,39 @@ export function TournamentFilter({ tournaments, onFilterChange, isOpen = true, o
         </div>
 
         {/* Distance Filter */}
-        {userLocation && onDistanceChange && (
+        {onDistanceChange && (
           <div>
-            <label className="block text-sm font-semibold text-gray-200 mb-2">
-              Distance: {distance === 0 ? 'Toutes' : `${distance} km`}
+            <label htmlFor="geolocate-checkbox" className="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-2 rounded mb-2">
+              <input
+                id="geolocate-checkbox"
+                name="geolocate"
+                type="checkbox"
+                checked={geolocateEnabled}
+                onChange={(e) => onGeolocateChange?.(e.target.checked)}
+                className="rounded border-white/20 text-[#C8F135] bg-white/10 focus:ring-[#C8F135]"
+              />
+              <span className="text-sm font-semibold text-gray-200">Geolocate</span>
             </label>
-            <input
-              type="range"
-              min="0"
-              max="1000"
-              step="5"
-              value={distance}
-              onChange={(e) => onDistanceChange(parseInt(e.target.value))}
-              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#C8F135]"
-            />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>Toutes</span>
-              <span>1000 km</span>
-            </div>
+            {geolocateEnabled && (
+              <div className="pl-2">
+                <label className="block text-sm text-gray-300 mb-2">
+                  Distance: {distance === 0 ? 'Toutes' : `${distance} km`}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1000"
+                  step="5"
+                  value={distance}
+                  onChange={(e) => onDistanceChange(parseInt(e.target.value))}
+                  className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#C8F135]"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>Toutes</span>
+                  <span>1000 km</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

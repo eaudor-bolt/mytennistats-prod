@@ -567,8 +567,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         cta: 'Get your analysis',
         benefits: [
           { title: 'Track Progress Over Time', desc: 'Watch your performance metrics evolve across every session. Identify your strongest improvement curves.' },
-          { title: 'Early Warning System', desc: 'Receive alerts when fatigue or technique degradation patterns emerge — before injuries or slumps occur.' },
-          { title: 'Personalized Drills', desc: 'myTenniStats generates targeted practice routines based on your specific weaknesses and upcoming match schedule.' },
+          { title: 'Detect Your Mistakes', desc: 'With the radar chart of your match stats, easily visualize where your winners and errors are for each stroke.' },
+          { title: 'Share Your Performance With Coaches', desc: 'Easily share your match results and statistics with your coach to target areas of improvement together.' },
           { title: 'Improve your Technique', desc: 'By recording your tennis in video, myTenniStats can help you detect what to improve through AI analysis.' },
         ],
       },
@@ -667,8 +667,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         cta: 'Obtenir votre analyse',
         benefits: [
           { title: 'Suivre vos progrès', desc: "Observez l'évolution de vos métriques de performance à chaque séance. Identifiez vos courbes d'amélioration les plus fortes." },
-          { title: "Système d'alerte précoce", desc: "Recevez des alertes lorsque des schémas de fatigue ou de dégradation technique apparaissent — avant blessures ou baisses de niveau." },
-          { title: 'Exercices personnalisés', desc: "myTenniStats génère des routines d'entraînement ciblées selon vos faiblesses spécifiques et votre calendrier de matchs." },
+          { title: "Détectez vos erreurs", desc: "Grâce au graphique radar de vos statistiques de match, visualisez facilement où se situent vos points gagnants et vos fautes pour chaque coup." },
+          { title: 'Partagez vos performances à vos coachs', desc: "Partagez facilement vos résultats de match et statistiques avec votre coach pour cibler les axes d'amélioration ensemble." },
           { title: 'Améliorez votre technique', desc: 'En enregistrant votre tennis en vidéo, myTenniStats peut vous aider à détecter ce qu\'il faut améliorer grâce à l\'analyse IA.' },
         ],
       },

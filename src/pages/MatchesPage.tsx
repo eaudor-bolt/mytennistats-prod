@@ -4,7 +4,7 @@ import { MatchResultsTable } from '../components/MatchResultsTable';
 import { AddMatchResultModal } from '../components/AddMatchResultModal';
 import { LiveScoreModal } from '../components/LiveScoreModal';
 import { ShareMatchResultsModal } from '../components/ShareMatchResultsModal';
-import { Loader2, Trophy, Target, Share2, Video } from 'lucide-react';
+import { Loader2, Trophy, Target, Share2, Video, ChevronDown } from 'lucide-react';
 import { handleSupabaseError, retryWithBackoff } from '../utils/errorHandling';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { trackMatchAction, trackButtonClick } from '../utils/analytics';
@@ -25,6 +25,7 @@ export function MatchesPage() {
   const [editingMatch, setEditingMatch] = useState<MatchResult | null>(null);
   const [liveScoreData, setLiveScoreData] = useState<any>(null);
   const [radarDataTypes, setRadarDataTypes] = useState<Record<string, 'win' | 'loss'>>({});
+  const [expandedRadars, setExpandedRadars] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchMatchResults();
@@ -318,14 +319,33 @@ export function MatchesPage() {
             </span>
           </div>
 
-          <h1 className="text-5xl lg:text-7xl font-black text-white leading-tight tracking-tight mb-6">
-            Your Match<br />
-            <span className="text-[#C8F135]">Results</span>
-          </h1>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-5xl lg:text-7xl font-black text-white leading-tight tracking-tight mb-6">
+                Your Match<br />
+                <span className="text-[#C8F135]">Results</span>
+              </h1>
 
-          <p className="text-lg text-gray-300 max-w-2xl leading-relaxed">
-            Track your performance, share live scores, and analyze your game progression
-          </p>
+              <p className="text-lg text-gray-300 max-w-2xl leading-relaxed">
+                Track your performance, share live scores, and analyze your game progression
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                if (!canShareLive) {
+                  alert('Live game sharing is only available on Premium plan. Upgrade to Premium for unlimited features!');
+                  return;
+                }
+                trackMatchAction('share', undefined, { share_type: 'live' });
+                setIsLiveScoreModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#1A6FC4] text-white rounded-lg text-sm font-medium hover:bg-[#1A6FC4]/80 transition-all hover:scale-105 shadow-lg shadow-[#1A6FC4]/20 shrink-0"
+            >
+              <Trophy className="w-4 h-4" />
+              <span>Live Score</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -370,112 +390,124 @@ export function MatchesPage() {
                           />
                         </div>
 
-                        {/* Radar Chart with Toggle */}
+                        {/* Radar Chart - Accordion on mobile, always visible on desktop */}
                         <div className="w-full">
-                          <div className="flex justify-center gap-2 mb-4">
-                            <button
-                              onClick={() => {
-                                setRadarDataTypes(prev => ({ ...prev, [player.playerId]: 'win' }));
-                                trackButtonClick('radar_toggle_win', 'matches_page');
-                              }}
-                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                (radarDataTypes[player.playerId] || 'win') === 'win'
-                                  ? 'bg-[#C8F135] text-black'
-                                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                              }`}
-                            >
-                              Win
-                            </button>
-                            <button
-                              onClick={() => {
-                                setRadarDataTypes(prev => ({ ...prev, [player.playerId]: 'loss' }));
-                                trackButtonClick('radar_toggle_loss', 'matches_page');
-                              }}
-                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                (radarDataTypes[player.playerId] || 'win') === 'loss'
-                                  ? 'bg-red-500 text-white'
-                                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                              }`}
-                            >
-                              Loss
-                            </button>
-                          </div>
-                          <div className="w-full h-64 flex items-center justify-center">
-                            <Radar
-                              data={{
-                                labels: ['Forehand', 'Backhand', 'Service', 'Volley', 'Return', 'Opponent'],
-                                datasets: [
-                                  {
-                                    label: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'Win %' : 'Loss %',
-                                    data: (radarDataTypes[player.playerId] || 'win') === 'win' ? [
-                                      player.radarData.win.forehand,
-                                      player.radarData.win.backhand,
-                                      player.radarData.win.service,
-                                      player.radarData.win.volley,
-                                      player.radarData.win.return,
-                                      player.radarData.win.opponent,
-                                    ] : [
-                                      player.radarData.loss.forehand,
-                                      player.radarData.loss.backhand,
-                                      player.radarData.loss.service,
-                                      player.radarData.loss.volley,
-                                      player.radarData.loss.return,
-                                      player.radarData.loss.opponent,
-                                    ],
-                                    backgroundColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                    borderColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
-                                    borderWidth: 2,
-                                    pointBackgroundColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
-                                    pointBorderColor: '#fff',
-                                    pointHoverBackgroundColor: '#fff',
-                                    pointHoverBorderColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
-                                  }
-                                ]
-                              }}
-                              options={{
-                                responsive: true,
-                                maintainAspectRatio: true,
-                                scales: {
-                                  r: {
-                                    beginAtZero: true,
-                                    max: 100,
-                                    ticks: {
-                                      stepSize: 20,
-                                      color: 'rgba(255, 255, 255, 0.5)',
-                                      backdropColor: 'transparent',
-                                      font: { size: 10 }
-                                    },
-                                    grid: {
-                                      color: 'rgba(255, 255, 255, 0.1)',
-                                    },
-                                    pointLabels: {
-                                      color: 'rgba(255, 255, 255, 0.7)',
-                                      font: { size: 11, weight: '600' }
-                                    },
-                                    angleLines: {
-                                      color: 'rgba(255, 255, 255, 0.1)',
+                          {/* Mobile Accordion Toggle */}
+                          <button
+                            onClick={() => setExpandedRadars(prev => ({ ...prev, [player.playerId]: !prev[player.playerId] }))}
+                            className="lg:hidden w-full flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                          >
+                            <span className="text-xs font-medium text-gray-300">Stats Radar</span>
+                            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${expandedRadars[player.playerId] ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {/* Desktop: always visible / Mobile: collapsible */}
+                          <div className={`lg:block ${expandedRadars[player.playerId] ? 'block' : 'hidden'}`}>
+                            <div className="flex justify-center gap-2 mb-4 mt-3 lg:mt-0">
+                              <button
+                                onClick={() => {
+                                  setRadarDataTypes(prev => ({ ...prev, [player.playerId]: 'win' }));
+                                  trackButtonClick('radar_toggle_win', 'matches_page');
+                                }}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                  (radarDataTypes[player.playerId] || 'win') === 'win'
+                                    ? 'bg-[#C8F135] text-black'
+                                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                                }`}
+                              >
+                                Win
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setRadarDataTypes(prev => ({ ...prev, [player.playerId]: 'loss' }));
+                                  trackButtonClick('radar_toggle_loss', 'matches_page');
+                                }}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                  (radarDataTypes[player.playerId] || 'win') === 'loss'
+                                    ? 'bg-red-500 text-white'
+                                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                                }`}
+                              >
+                                Loss
+                              </button>
+                            </div>
+                            <div className="w-full h-64 flex items-center justify-center">
+                              <Radar
+                                data={{
+                                  labels: ['Forehand', 'Backhand', 'Service', 'Volley', 'Return', 'Opponent'],
+                                  datasets: [
+                                    {
+                                      label: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'Win %' : 'Loss %',
+                                      data: (radarDataTypes[player.playerId] || 'win') === 'win' ? [
+                                        player.radarData.win.forehand,
+                                        player.radarData.win.backhand,
+                                        player.radarData.win.service,
+                                        player.radarData.win.volley,
+                                        player.radarData.win.return,
+                                        player.radarData.win.opponent,
+                                      ] : [
+                                        player.radarData.loss.forehand,
+                                        player.radarData.loss.backhand,
+                                        player.radarData.loss.service,
+                                        player.radarData.loss.volley,
+                                        player.radarData.loss.return,
+                                        player.radarData.loss.opponent,
+                                      ],
+                                      backgroundColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                      borderColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
+                                      borderWidth: 2,
+                                      pointBackgroundColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
+                                      pointBorderColor: '#fff',
+                                      pointHoverBackgroundColor: '#fff',
+                                      pointHoverBorderColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
                                     }
-                                  }
-                                },
-                                plugins: {
-                                  legend: {
-                                    display: false
+                                  ]
+                                }}
+                                options={{
+                                  responsive: true,
+                                  maintainAspectRatio: true,
+                                  scales: {
+                                    r: {
+                                      beginAtZero: true,
+                                      max: 100,
+                                      ticks: {
+                                        stepSize: 20,
+                                        color: 'rgba(255, 255, 255, 0.5)',
+                                        backdropColor: 'transparent',
+                                        font: { size: 10 }
+                                      },
+                                      grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)',
+                                      },
+                                      pointLabels: {
+                                        color: 'rgba(255, 255, 255, 0.7)',
+                                        font: { size: 11, weight: '600' }
+                                      },
+                                      angleLines: {
+                                        color: 'rgba(255, 255, 255, 0.1)',
+                                      }
+                                    }
                                   },
-                                  tooltip: {
-                                    backgroundColor: 'rgba(5, 13, 26, 0.9)',
-                                    titleColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? '#C8F135' : '#EF4444',
-                                    bodyColor: '#fff',
-                                    borderColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 0.3)' : 'rgba(239, 68, 68, 0.3)',
-                                    borderWidth: 1,
-                                    padding: 10,
-                                    displayColors: false,
-                                    callbacks: {
-                                      label: (context) => `${context.parsed.r}% ${(radarDataTypes[player.playerId] || 'win') === 'win' ? 'Win' : 'Loss'} Rate`
+                                  plugins: {
+                                    legend: {
+                                      display: false
+                                    },
+                                    tooltip: {
+                                      backgroundColor: 'rgba(5, 13, 26, 0.9)',
+                                      titleColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? '#C8F135' : '#EF4444',
+                                      bodyColor: '#fff',
+                                      borderColor: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'rgba(200, 241, 53, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+                                      borderWidth: 1,
+                                      padding: 10,
+                                      displayColors: false,
+                                      callbacks: {
+                                        label: (context) => `${context.parsed.r}% ${(radarDataTypes[player.playerId] || 'win') === 'win' ? 'Win' : 'Loss'} Rate`
+                                      }
                                     }
                                   }
-                                }
-                              }}
-                            />
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -499,14 +531,6 @@ export function MatchesPage() {
             }}
             onEditMatch={handleEditMatch}
             onDeleteMatch={handleDeleteMatch}
-            onLiveScore={() => {
-              if (!canShareLive) {
-                alert('Live game sharing is only available on Premium plan. Upgrade to Premium for unlimited features!');
-                return;
-              }
-              trackMatchAction('share', undefined, { share_type: 'live' });
-              setIsLiveScoreModalOpen(true);
-            }}
             onShareResults={() => {
               trackMatchAction('share', undefined, { share_type: 'results' });
               setIsShareModalOpen(true);

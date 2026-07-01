@@ -158,10 +158,10 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#050d1a] flex items-center justify-center px-4 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#C8F135]/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-[#C8F135]/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#C8F135]/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-[#C8F135]/3 rounded-full blur-3xl" />
       </div>
       {onBack && (
         <button
@@ -173,7 +173,7 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
         </button>
       )}
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-gradient-to-br from-[#0a1628] to-[#050d1a] rounded-xl shadow-2xl border border-white/10 p-6 sm:p-8">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-3">
               <div className="relative w-7 h-7">
@@ -183,11 +183,11 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
                   <div className="w-px h-full bg-[#040c1a]/30 rotate-45"></div>
                 </div>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-white">
                 myTenni<span className="text-[#C8F135]">Stats</span>
               </h1>
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-400">
               {isForgotPassword
                 ? 'Reset your password'
                 : isSignUp
@@ -200,7 +200,7 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
             {isSignUp && !isForgotPassword && (
               <>
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="firstName" className="block text-sm font-semibold text-gray-300 mb-1.5">
                     First Name
                   </label>
                   <input
@@ -209,12 +209,12 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] transition"
                     placeholder="John"
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="lastName" className="block text-sm font-semibold text-gray-300 mb-1.5">
                     Last Name
                   </label>
                   <input
@@ -223,12 +223,12 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] transition"
                     placeholder="Doe"
                   />
                 </div>
                 <div>
-                  <label htmlFor="birthYear" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="birthYear" className="block text-sm font-semibold text-gray-300 mb-1.5">
                     Birth Year
                   </label>
                   <input
@@ -238,14 +238,14 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
                     onChange={(e) => setBirthYear(e.target.value)}
                     min="1900"
                     max={new Date().getFullYear()}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] transition"
                     placeholder="1990"
                   />
                 </div>
               </>
             )}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-1.5">
                 Email address
               </label>
               <input
@@ -254,14 +254,14 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-transparent outline-none transition"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] transition"
                 placeholder="you@example.com"
               />
             </div>
 
             {!isForgotPassword && (
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-300 mb-1.5">
                   Password
                 </label>
                 <div className="relative">
@@ -271,13 +271,13 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2.5 pr-10 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] transition"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -299,13 +299,13 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
             )}
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
                 {error}
               </div>
             )}
 
             {success && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+              <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-400">
                 {success}
               </div>
             )}
@@ -333,12 +333,12 @@ export function LoginPage({ initialMode = 'signin', onBack }: LoginPageProps) {
                   setError('');
                   setSuccess('');
                 }}
-                className="text-sm text-gray-600 hover:text-gray-700"
+                className="text-sm text-gray-400 hover:text-gray-300"
               >
                 Back to sign in
               </button>
             ) : (
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-400 text-sm">
                 {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
                 <button
                   type="button"

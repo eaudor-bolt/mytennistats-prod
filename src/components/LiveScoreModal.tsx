@@ -54,9 +54,12 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const [gameFormat, setGameFormat] = useState({
     threeGames: false,
     fourGames: false,
-    sixGames: false,
+    fiveGames: false,
+    sixGames: true,
     supertiebreak: true,
     noAd: false,
+    tiebreakAt: 6,
+    formatPreset: 2,
   });
   const [scoringHistory, setScoringHistory] = useState<any[]>([]);
   const [showSetupModal, setShowSetupModal] = useState(true);
@@ -138,9 +141,12 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     setGameFormat(state.gameFormat || {
       threeGames: false,
       fourGames: false,
-      sixGames: false,
+      fiveGames: false,
+      sixGames: true,
       supertiebreak: true,
       noAd: false,
+      tiebreakAt: 6,
+      formatPreset: 2,
     });
     setScoringHistory(state.scoringHistory || []);
     setShowSetupModal(state.showSetupModal !== undefined ? state.showSetupModal : true);
@@ -633,6 +639,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       currentSet,
       isTiebreak,
       tiebreakScores: { ...tiebreakScores },
+      currentServer,
     };
     setScoreHistory(prev => [...prev.slice(0, historyIndex + 1), newState]);
     setHistoryIndex(prev => prev + 1);
@@ -646,10 +653,21 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       setCurrentSet(prevState.currentSet);
       setIsTiebreak(prevState.isTiebreak);
       setTiebreakScores(prevState.tiebreakScores);
+      if (prevState.currentServer) {
+        setCurrentServer(prevState.currentServer);
+      }
+      prevGameScoreRef.current = { ...prevState.gameScore };
+      if (prevState.isTiebreak) {
+        tiebreakPointCountRef.current = prevState.gameScore.adversaire + prevState.gameScore.famille;
+      } else {
+        tiebreakPointCountRef.current = 0;
+      }
       setHistoryIndex(prev => prev - 1);
       if (scoringHistory.length > 0) {
         setScoringHistory(prev => prev.slice(0, -1));
+        sequenceNumberRef.current = Math.max(0, sequenceNumberRef.current - 1);
       }
+      setIsMatchFinished(false);
     }
   };
 
@@ -733,15 +751,23 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   };
 
   const shouldTriggerTiebreak = (playerGames: number, opponentGames: number) => {
+    if (gameFormat.tiebreakAt > 0) {
+      return playerGames === gameFormat.tiebreakAt && opponentGames === gameFormat.tiebreakAt;
+    }
     if (gameFormat.threeGames) return playerGames === 2 && opponentGames === 2;
     if (gameFormat.fourGames) return playerGames === 3 && opponentGames === 3;
+    if (gameFormat.fiveGames) return playerGames === 4 && opponentGames === 4;
     if (gameFormat.sixGames) return playerGames === 6 && opponentGames === 6;
     return playerGames === 6 && opponentGames === 6;
   };
 
   const isSetWon = (playerGames: number, opponentGames: number) => {
+    if (gameFormat.tiebreakAt > 0 && playerGames === gameFormat.tiebreakAt + 1 && opponentGames === gameFormat.tiebreakAt) {
+      return true;
+    }
     if (gameFormat.threeGames) return playerGames >= 3 && playerGames - opponentGames >= 2;
     if (gameFormat.fourGames) return playerGames >= 4 && playerGames - opponentGames >= 2;
+    if (gameFormat.fiveGames) return playerGames >= 5 && playerGames - opponentGames >= 2;
     if (gameFormat.sixGames) return playerGames >= 6 && playerGames - opponentGames >= 2;
     return playerGames >= 6 && playerGames - opponentGames >= 2;
   };
@@ -856,15 +882,20 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       // Check if this wins a set (in tiebreak)
       if (isTiebreak) {
         if (shouldStartSupertiebreak() && currentSet === 2) {
-          // Supertiebreak: store actual tiebreak score
           newSetScores[scoringPlayer][currentSet] = currentGameScore[scoringPlayer] + 1;
           newSetScores[opponent][currentSet] = currentGameScore[opponent];
+        } else if (gameFormat.tiebreakAt > 0) {
+          newSetScores[scoringPlayer][currentSet] = gameFormat.tiebreakAt + 1;
+          newSetScores[opponent][currentSet] = gameFormat.tiebreakAt;
         } else if (gameFormat.threeGames) {
           newSetScores[scoringPlayer][currentSet] = 3;
           newSetScores[opponent][currentSet] = 2;
         } else if (gameFormat.fourGames) {
           newSetScores[scoringPlayer][currentSet] = 4;
           newSetScores[opponent][currentSet] = 3;
+        } else if (gameFormat.fiveGames) {
+          newSetScores[scoringPlayer][currentSet] = 5;
+          newSetScores[opponent][currentSet] = 4;
         } else {
           newSetScores[scoringPlayer][currentSet] = 7;
           newSetScores[opponent][currentSet] = 6;
@@ -1012,15 +1043,18 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
             if (shouldStartSupertiebreak() && currentSet === 2) {
               newSets[player][currentSet] = newScore[player];
               newSets[opponent][currentSet] = newScore[opponent];
+            } else if (gameFormat.tiebreakAt > 0) {
+              newSets[player][currentSet] = gameFormat.tiebreakAt + 1;
+              newSets[opponent][currentSet] = gameFormat.tiebreakAt;
             } else if (gameFormat.threeGames) {
               newSets[player][currentSet] = 3;
               newSets[opponent][currentSet] = 2;
             } else if (gameFormat.fourGames) {
               newSets[player][currentSet] = 4;
               newSets[opponent][currentSet] = 3;
-            } else if (gameFormat.sixGames) {
-              newSets[player][currentSet] = 7;
-              newSets[opponent][currentSet] = 6;
+            } else if (gameFormat.fiveGames) {
+              newSets[player][currentSet] = 5;
+              newSets[opponent][currentSet] = 4;
             } else {
               newSets[player][currentSet] = 7;
               newSets[opponent][currentSet] = 6;
@@ -1303,7 +1337,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     const score = generateScoreString();
     const skillAnalysis = analyzeSkills();
 
-    const gamePerSet = gameFormat.threeGames ? 3 : gameFormat.fourGames ? 4 : gameFormat.sixGames ? 6 : undefined;
+    const gamePerSet = gameFormat.threeGames ? 3 : gameFormat.fourGames ? 4 : gameFormat.fiveGames ? 5 : gameFormat.sixGames ? 6 : undefined;
 
     const matchData = {
       date: new Date().toISOString().split('T')[0],
@@ -1509,35 +1543,49 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
 
             <div>
               <p className="text-sm font-semibold text-gray-300 mb-3">Format de jeu</p>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={gameFormat.threeGames}
-                    onChange={(e) => setGameFormat({ ...gameFormat, threeGames: e.target.checked, fourGames: false, sixGames: false })}
-                    className="w-4 h-4 text-[#C8F135] rounded focus:ring-[#C8F135] focus:ring-offset-0 bg-white/5 border-white/20"
-                  />
-                  <span className="text-sm text-gray-300">Set en 3 jeux</span>
-                </label>
-                <label className="flex items-center gap-2 p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={gameFormat.fourGames}
-                    onChange={(e) => setGameFormat({ ...gameFormat, fourGames: e.target.checked, threeGames: false, sixGames: false })}
-                    className="w-4 h-4 text-[#C8F135] rounded focus:ring-[#C8F135] focus:ring-offset-0 bg-white/5 border-white/20"
-                  />
-                  <span className="text-sm text-gray-300">Set en 4 jeux</span>
-                </label>
-                <label className="flex items-center gap-2 p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={gameFormat.sixGames}
-                    onChange={(e) => setGameFormat({ ...gameFormat, sixGames: e.target.checked, threeGames: false, fourGames: false })}
-                    className="w-4 h-4 text-[#C8F135] rounded focus:ring-[#C8F135] focus:ring-offset-0 bg-white/5 border-white/20"
-                  />
-                  <span className="text-sm text-gray-300">Set en 6 jeux</span>
-                </label>
-                <label className="flex items-center gap-2 p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer transition-colors">
+              <select
+                value={gameFormat.formatPreset}
+                onChange={(e) => {
+                  const preset = parseInt(e.target.value);
+                  switch (preset) {
+                    case 1:
+                      setGameFormat({ threeGames: false, fourGames: false, fiveGames: false, sixGames: true, supertiebreak: false, noAd: false, tiebreakAt: 6, formatPreset: 1 });
+                      break;
+                    case 2:
+                      setGameFormat({ threeGames: false, fourGames: false, fiveGames: false, sixGames: true, supertiebreak: true, noAd: false, tiebreakAt: 6, formatPreset: 2 });
+                      break;
+                    case 3:
+                      setGameFormat({ threeGames: false, fourGames: true, fiveGames: false, sixGames: false, supertiebreak: true, noAd: true, tiebreakAt: 4, formatPreset: 3 });
+                      break;
+                    case 4:
+                      setGameFormat({ threeGames: false, fourGames: true, fiveGames: false, sixGames: false, supertiebreak: true, noAd: true, tiebreakAt: 4, formatPreset: 4 });
+                      break;
+                    case 5:
+                      setGameFormat({ threeGames: true, fourGames: false, fiveGames: false, sixGames: false, supertiebreak: true, noAd: true, tiebreakAt: 2, formatPreset: 5 });
+                      break;
+                    case 6:
+                      setGameFormat({ threeGames: false, fourGames: true, fiveGames: false, sixGames: false, supertiebreak: true, noAd: true, tiebreakAt: 3, formatPreset: 6 });
+                      break;
+                    case 7:
+                      setGameFormat({ threeGames: false, fourGames: false, fiveGames: true, sixGames: false, supertiebreak: true, noAd: true, tiebreakAt: 4, formatPreset: 7 });
+                      break;
+                    default:
+                      setGameFormat({ threeGames: false, fourGames: false, fiveGames: false, sixGames: true, supertiebreak: true, noAd: false, tiebreakAt: 6, formatPreset: 2 });
+                  }
+                }}
+                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] text-sm"
+              >
+                <option value={1} className="bg-[#0a1628] text-white">Format 1 - 3 Sets en 6 jeux</option>
+                <option value={2} className="bg-[#0a1628] text-white">Format 2 - 2 Sets en 6 jeux + Super TB</option>
+                <option value={3} className="bg-[#0a1628] text-white">Format 3 - 2 Sets en 4 jeux (TB 4/4, No Ad)</option>
+                <option value={4} className="bg-[#0a1628] text-white">Format 4 - 2 Sets en 4 jeux (TB 4/4, No Ad)</option>
+                <option value={5} className="bg-[#0a1628] text-white">Format 5 - 2 Sets en 3 jeux (TB 2/2, No Ad)</option>
+                <option value={6} className="bg-[#0a1628] text-white">Format 6 - 2 Sets en 4 jeux (TB 3/3, No Ad)</option>
+                <option value={7} className="bg-[#0a1628] text-white">Format 7 - 2 Sets en 5 jeux (TB 4/4, No Ad)</option>
+              </select>
+
+              <div className="mt-3 space-y-2">
+                <label className="flex items-center gap-2 p-2.5 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={gameFormat.supertiebreak}
@@ -1546,7 +1594,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                   />
                   <span className="text-sm text-gray-300">Supertiebreak (3ème set)</span>
                 </label>
-                <label className="flex items-center gap-2 p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer transition-colors">
+                <label className="flex items-center gap-2 p-2.5 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={gameFormat.noAd}

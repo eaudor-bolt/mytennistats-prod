@@ -1,9 +1,9 @@
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
-import { TrendingUp, AlertCircle, Target, Video } from 'lucide-react';
+import { TrendingUp, Radar, Share2, Video } from 'lucide-react';
 import { CourtLinePattern } from './CourtBackground';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-const icons = [TrendingUp, AlertCircle, Target, Video];
+const icons = [TrendingUp, Radar, Share2, Video];
 
 export function LandingForPlayers() {
   const { ref, isVisible } = useScrollAnimation();

@@ -1,4 +1,4 @@
-import { BookOpen, Mic, Loader2, MessageCircle } from 'lucide-react';
+import { BookOpen, Mic, Loader2, MessageCircle, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { useAlert } from '../hooks/useAlert';
 
@@ -224,7 +224,7 @@ export function RulesPage() {
   return (
     <>
       <AlertComponent />
-      <div className="min-h-screen bg-gradient-to-br from-[#050d1a] via-[#071428] to-[#050d1a] relative">
+      <div className="min-h-screen bg-gradient-to-br from-[#050d1a] via-[#071428] to-[#050d1a] relative overflow-x-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#1A6FC4]/5 rounded-full blur-3xl" />
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#C8F135]/5 rounded-full blur-3xl" />
@@ -346,23 +346,201 @@ export function RulesPage() {
             </div>
             <div className="prose prose-sm max-w-none">
               <div className="mb-6">
-                <h4 className="text-lg font-bold text-white mb-3">Règles Officielles du Tennis (ITF)</h4>
-                <p className="text-sm text-gray-400 mb-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <h4 className="text-lg font-bold text-white">Règles Officielles du Tennis (ITF)</h4>
+                  <a
+                    href="https://www.itftennis.com/media/7221/2026-rules-of-tennis-english.pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#C8F135]/10 border border-[#C8F135]/30 rounded-lg text-sm text-[#C8F135] hover:bg-[#C8F135]/20 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    PDF ITF 2026 (EN)
+                  </a>
+                </div>
+                <p className="text-sm text-gray-400 mt-3 mb-4">
                   Voici un résumé des règles essentielles du tennis selon la Fédération Internationale de Tennis (ITF).
                 </p>
+
+                {/* Table of Contents */}
+                <nav className="bg-white/5 border border-white/10 rounded-xl p-4 mb-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Sommaire</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                    <a href="#section-court" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">1. Le Court</a>
+                    <a href="#section-comptage" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">2. Le Comptage des Points</a>
+                    <a href="#section-toss" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">3. Le Tirage au Sort (Toss)</a>
+                    <a href="#section-service" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">4. Le Service</a>
+                    <a href="#section-echange" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">5. L'Échange</a>
+                    <a href="#section-perte" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">6. Perte de Point</a>
+                    <a href="#section-tiebreak" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">7. Le Tie-Break</a>
+                    <a href="#section-erreurs" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">8. Correction des Erreurs</a>
+                    <a href="#section-formats" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">9. Formats de Match FFT</a>
+                    <a href="#section-classement" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">10. Classement FFT</a>
+                    <a href="#section-utr" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">11. Tableau de Conversion UTR</a>
+                  </div>
+                </nav>
               </div>
 
               <div className="space-y-6">
-                <div>
+                <div id="section-court">
                   <h5 className="font-bold text-white mb-2">1. Le Court</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
                     <li>Dimensions: 23.77m x 8.23m (simple) ou 10.97m (double)</li>
                     <li>Hauteur du filet: 0.914m au centre, 1.07m aux poteaux</li>
                     <li>Surface: Terre battue, gazon, dur ou synthétique</li>
                   </ul>
+
+                  {/* Court and Net Drawings */}
+                  <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Tennis Court Top View */}
+                    <div className="lg:col-span-2 bg-[#0a1628] border border-white/10 rounded-xl p-4">
+                      <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">Vue de dessus - Dimensions du court</p>
+                      <svg viewBox="0 0 500 260" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                        {/* Court background */}
+                        <rect x="30" y="20" width="440" height="220" fill="#1A6FC4" rx="2" />
+
+                        {/* Doubles sidelines */}
+                        <rect x="30" y="20" width="440" height="220" fill="none" stroke="white" strokeWidth="2" />
+
+                        {/* Singles sidelines */}
+                        <line x1="30" y1="45" x2="470" y2="45" stroke="white" strokeWidth="1.5" />
+                        <line x1="30" y1="215" x2="470" y2="215" stroke="white" strokeWidth="1.5" />
+
+                        {/* Center service line */}
+                        <line x1="250" y1="45" x2="250" y2="215" stroke="white" strokeWidth="1.5" />
+
+                        {/* Net line */}
+                        <line x1="250" y1="20" x2="250" y2="240" stroke="white" strokeWidth="3" strokeDasharray="4 2" />
+
+                        {/* Service lines */}
+                        <line x1="120" y1="45" x2="120" y2="215" stroke="white" strokeWidth="1.5" />
+                        <line x1="380" y1="45" x2="380" y2="215" stroke="white" strokeWidth="1.5" />
+
+                        {/* Service boxes horizontal center lines */}
+                        <line x1="120" y1="130" x2="250" y2="130" stroke="white" strokeWidth="1.5" />
+                        <line x1="250" y1="130" x2="380" y2="130" stroke="white" strokeWidth="1.5" />
+
+                        {/* Center marks on baselines */}
+                        <line x1="30" y1="126" x2="30" y2="134" stroke="white" strokeWidth="2" />
+                        <line x1="470" y1="126" x2="470" y2="134" stroke="white" strokeWidth="2" />
+
+                        {/* Dimension: Full length */}
+                        <line x1="30" y1="252" x2="470" y2="252" stroke="#C8F135" strokeWidth="1" markerEnd="url(#arrowEnd)" markerStart="url(#arrowStart)" />
+                        <text x="250" y="250" textAnchor="middle" fill="#C8F135" fontSize="10" fontWeight="bold">23.77m</text>
+
+                        {/* Dimension: Singles width */}
+                        <line x1="482" y1="45" x2="482" y2="215" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="478" y1="45" x2="486" y2="45" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="478" y1="215" x2="486" y2="215" stroke="#C8F135" strokeWidth="1" />
+                        <text x="495" y="134" textAnchor="middle" fill="#C8F135" fontSize="9" fontWeight="bold" transform="rotate(90, 495, 134)">8.23m</text>
+
+                        {/* Dimension: Doubles width */}
+                        <line x1="15" y1="20" x2="15" y2="240" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="11" y1="20" x2="19" y2="20" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="11" y1="240" x2="19" y2="240" stroke="#C8F135" strokeWidth="1" />
+                        <text x="8" y="134" textAnchor="middle" fill="#C8F135" fontSize="9" fontWeight="bold" transform="rotate(-90, 8, 134)">10.97m</text>
+
+                        {/* Dimension: Service box depth */}
+                        <line x1="120" y1="10" x2="250" y2="10" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="120" y1="6" x2="120" y2="14" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="250" y1="6" x2="250" y2="14" stroke="#C8F135" strokeWidth="1" />
+                        <text x="185" y="9" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">6.40m</text>
+
+                        {/* Net posts indicators */}
+                        <circle cx="250" cy="20" r="3" fill="#C8F135" />
+                        <circle cx="250" cy="240" r="3" fill="#C8F135" />
+
+                        {/* Labels */}
+                        <text x="185" y="90" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">Carré de</text>
+                        <text x="185" y="100" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">service</text>
+                        <text x="315" y="160" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">Carré de</text>
+                        <text x="315" y="170" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">service</text>
+                        <text x="75" y="130" textAnchor="middle" fill="white" fontSize="8" opacity="0.5">Fond</text>
+                        <text x="425" y="130" textAnchor="middle" fill="white" fontSize="8" opacity="0.5">Fond</text>
+
+                        {/* Doubles alley labels (couloirs) */}
+                        <text x="250" y="34" textAnchor="middle" fill="white" fontSize="7" opacity="0.5">Couloir (Doubles Alley)</text>
+                        <text x="250" y="232" textAnchor="middle" fill="white" fontSize="7" opacity="0.5">Couloir (Doubles Alley)</text>
+                      </svg>
+                    </div>
+
+                    {/* Net Side View */}
+                    <div className="bg-[#0a1628] border border-white/10 rounded-xl p-4">
+                      <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">Vue de côté - Le Filet</p>
+                      <svg viewBox="0 0 200 180" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                        {/* Ground line */}
+                        <line x1="10" y1="150" x2="190" y2="150" stroke="#4B5563" strokeWidth="2" />
+                        <rect x="10" y="150" width="180" height="8" fill="#1A6FC4" opacity="0.3" />
+
+                        {/* Net posts (doubles) */}
+                        <rect x="20" y="60" width="4" height="90" fill="#9CA3AF" />
+                        <rect x="176" y="60" width="4" height="90" fill="#9CA3AF" />
+
+                        {/* Post caps */}
+                        <rect x="18" y="57" width="8" height="5" fill="#D1D5DB" rx="1" />
+                        <rect x="174" y="57" width="8" height="5" fill="#D1D5DB" rx="1" />
+
+                        {/* Singles sticks - 0.914m outside singles court on each side */}
+                        <rect x="36" y="60" width="2.5" height="90" fill="#E5E7EB" />
+                        <rect x="161.5" y="60" width="2.5" height="90" fill="#E5E7EB" />
+                        {/* Singles stick caps (not more than 1 inch above net cord) */}
+                        <rect x="35" y="58" width="5" height="3" fill="#F3F4F6" rx="0.5" />
+                        <rect x="160.5" y="58" width="5" height="3" fill="#F3F4F6" rx="0.5" />
+
+                        {/* Net mesh */}
+                        <rect x="24" y="62" width="152" height="88" fill="none" stroke="white" strokeWidth="1" />
+                        {/* Horizontal net lines */}
+                        <line x1="24" y1="73" x2="176" y2="73" stroke="white" strokeWidth="0.5" opacity="0.5" />
+                        <line x1="24" y1="84" x2="176" y2="84" stroke="white" strokeWidth="0.5" opacity="0.5" />
+                        <line x1="24" y1="95" x2="176" y2="95" stroke="white" strokeWidth="0.5" opacity="0.5" />
+                        <line x1="24" y1="106" x2="176" y2="106" stroke="white" strokeWidth="0.5" opacity="0.5" />
+                        <line x1="24" y1="117" x2="176" y2="117" stroke="white" strokeWidth="0.5" opacity="0.5" />
+                        <line x1="24" y1="128" x2="176" y2="128" stroke="white" strokeWidth="0.5" opacity="0.5" />
+                        <line x1="24" y1="139" x2="176" y2="139" stroke="white" strokeWidth="0.5" opacity="0.5" />
+                        {/* Vertical net lines */}
+                        <line x1="43" y1="62" x2="43" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
+                        <line x1="62" y1="62" x2="62" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
+                        <line x1="81" y1="62" x2="81" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
+                        <line x1="100" y1="62" x2="100" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
+                        <line x1="119" y1="62" x2="119" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
+                        <line x1="138" y1="62" x2="138" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
+                        <line x1="157" y1="62" x2="157" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
+
+                        {/* Net tape (white band at top) */}
+                        <rect x="24" y="62" width="152" height="4" fill="white" opacity="0.9" />
+
+                        {/* Center strap */}
+                        <rect x="98" y="66" width="4" height="84" fill="white" opacity="0.6" />
+
+                        {/* Net sag - center is lower */}
+                        <path d="M 24 62 Q 100 70 176 62" fill="none" stroke="white" strokeWidth="1.5" />
+
+                        {/* Dimension: Post height (1.07m) */}
+                        <line x1="8" y1="60" x2="8" y2="150" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="4" y1="60" x2="12" y2="60" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="4" y1="150" x2="12" y2="150" stroke="#C8F135" strokeWidth="1" />
+                        <text x="7" y="110" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold" transform="rotate(-90, 7, 110)">1.07m</text>
+
+                        {/* Dimension: Center height (0.914m) */}
+                        <line x1="100" y1="68" x2="100" y2="150" stroke="#C8F135" strokeWidth="0.8" strokeDasharray="2 2" />
+                        <text x="100" y="170" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">0.914m (centre)</text>
+
+                        {/* Dimension: Width */}
+                        <line x1="20" y1="160" x2="180" y2="160" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="20" y1="156" x2="20" y2="164" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="180" y1="156" x2="180" y2="164" stroke="#C8F135" strokeWidth="1" />
+                        <text x="100" y="178" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">12.80m (double)</text>
+
+                        {/* Singles sticks label */}
+                        <line x1="37" y1="42" x2="37" y2="56" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1 1" />
+                        <line x1="163" y1="42" x2="163" y2="56" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1 1" />
+                        <text x="100" y="40" textAnchor="middle" fill="#C8F135" fontSize="6.5">Piquets de simple (0.914m hors court simple)</text>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
+                <div id="section-comptage">
                   <h5 className="font-bold text-white mb-2">2. Le Comptage des Points</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
                     <li><strong>Points:</strong> 0 (zéro), 15, 30, 40, Jeu</li>
@@ -373,8 +551,28 @@ export function RulesPage() {
                   </ul>
                 </div>
 
-                <div>
-                  <h5 className="font-bold text-white mb-2">3. Le Service</h5>
+                <div id="section-toss">
+                  <h5 className="font-bold text-white mb-2">3. Le Tirage au Sort (Toss)</h5>
+                  <p className="text-sm text-gray-300 mb-3">
+                    Le choix des côtés et le choix d'être serveur ou relanceur au premier jeu sont décidés par tirage au sort avant le début de l'échauffement.
+                  </p>
+                  <p className="text-sm text-gray-300 mb-2">
+                    Le joueur/l'équipe qui remporte le tirage au sort peut choisir :
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-gray-300 space-y-2 ml-2">
+                    <li><strong>a.</strong> D'être serveur ou relanceur au premier jeu du match, auquel cas l'adversaire choisit le côté du court pour le premier jeu ;</li>
+                    <li><strong>b.</strong> Le côté du court pour le premier jeu, auquel cas l'adversaire choisit d'être serveur ou relanceur au premier jeu ;</li>
+                    <li><strong>c.</strong> De demander à l'adversaire de faire l'un des choix ci-dessus.</li>
+                  </ul>
+                  <div className="mt-3 bg-[#C8F135]/5 border border-[#C8F135]/20 rounded-lg p-3">
+                    <p className="text-xs text-gray-400">
+                      <strong className="text-[#C8F135]">Case :</strong> Dans les événements en équipes, la Règle 9 s'applique au premier point de chaque match « mort » (caoutchouc) et non au début de chaque match individuel de la rencontre.
+                    </p>
+                  </div>
+                </div>
+
+                <div id="section-service">
+                  <h5 className="font-bold text-white mb-2">4. Le Service</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
                     <li>Le serveur doit se tenir derrière la ligne de fond</li>
                     <li>Le service alterne entre côté droit et gauche</li>
@@ -384,8 +582,8 @@ export function RulesPage() {
                   </ul>
                 </div>
 
-                <div>
-                  <h5 className="font-bold text-white mb-2">4. L'Échange</h5>
+                <div id="section-echange">
+                  <h5 className="font-bold text-white mb-2">5. L'Échange</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
                     <li>La balle ne peut rebondir qu'une seule fois avant d'être frappée</li>
                     <li>La balle doit passer au-dessus du filet et retomber dans les limites du court</li>
@@ -394,8 +592,8 @@ export function RulesPage() {
                   </ul>
                 </div>
 
-                <div>
-                  <h5 className="font-bold text-white mb-2">5. Perte de Point</h5>
+                <div id="section-perte">
+                  <h5 className="font-bold text-white mb-2">6. Perte de Point</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
                     <li>La balle rebondit deux fois du même côté</li>
                     <li>La balle sort des limites du court</li>
@@ -406,8 +604,8 @@ export function RulesPage() {
                   </ul>
                 </div>
 
-                <div>
-                  <h5 className="font-bold text-white mb-2">6. Le Tie-Break</h5>
+                <div id="section-tiebreak">
+                  <h5 className="font-bold text-white mb-2">7. Le Tie-Break</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
                     <li>Joué à 6 jeux partout (sauf si règles spécifiques du tournoi)</li>
                     <li>Premier à 7 points avec 2 points d'écart</li>
@@ -416,20 +614,211 @@ export function RulesPage() {
                   </ul>
                 </div>
 
-                <div>
-                  <h5 className="font-bold text-white mb-2">7. Classement FFT</h5>
-                  <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                    <li><strong>NC (Non Classé):</strong> Joueur débutant</li>
-                    <li><strong>40:</strong> Niveau intermédiaire</li>
-                    <li><strong>30/5 - 30/4 - 30/3 - 30/2 - 30/1 - 30:</strong> Niveaux progressifs</li>
-                    <li><strong>15/5 - 15/4 - 15/3 - 15/2 - 15/1 - 15:</strong> Joueurs confirmés</li>
-                    <li><strong>5/6 - 4/6 - 3/6 - 2/6 - 1/6 - 0:</strong> Joueurs de haut niveau</li>
-                    <li><strong>-2/6 - -4/6 - -15:</strong> Joueurs professionnels</li>
+                <div id="section-erreurs">
+                  <h5 className="font-bold text-white mb-2">8. Correction des Erreurs</h5>
+                  <p className="text-sm text-gray-300 mb-3">
+                    En cas d'erreur dans l'application des Règles du Tennis, les corrections suivantes s'appliquent :
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-gray-300 space-y-2">
+                    <li><strong>a.</strong> Si un joueur sert depuis le mauvais demi-court et que cela n'est pas découvert, tous les points joués comptent. Cependant, la position incorrecte doit être corrigée immédiatement après la découverte.</li>
+                    <li><strong>b.</strong> Si un joueur sert depuis le mauvais côté du court (en termes de changements de côté), l'erreur doit être corrigée dès qu'elle est découverte. Le score acquis est maintenu.</li>
+                    <li><strong>c.</strong> Si un joueur (ou une équipe) devait servir en premier dans un jeu et que le mauvais joueur a servi, le joueur qui aurait dû servir doit servir dès que l'erreur est découverte. Le score est conservé, y compris les fautes de service déjà commises. En double, si les partenaires ont servi dans le mauvais ordre, la faute de service commise avant la découverte de l'erreur ne compte pas.</li>
+                    <li><strong>d.</strong> Si un jeu est terminé et que l'ordre de service n'était pas correct, l'ordre de service reste modifié (tel qu'il a été joué) jusqu'à la fin du set.</li>
+                    <li><strong>e.</strong> Pendant un tie-break, si l'ordre de service ou de relance est incorrect, toute faute de service commise avant la découverte compte. La correction est effectuée immédiatement si un nombre pair de points a été joué ; si un nombre impair a été joué, l'erreur est maintenue.</li>
+                    <li><strong>f.</strong> Pendant un tie-break, si les joueurs n'ont pas changé de côté au bon moment, l'erreur est corrigée dès qu'un nombre pair de points a été joué depuis l'erreur. Le score acquis est conservé.</li>
+                    <li><strong>g.</strong> Si le mauvais type de set a été joué (avantage au lieu de tie-break ou vice versa), le score acquis est conservé sauf si l'erreur est découverte alors que la correction est encore possible sans recommencer le set.</li>
+                    <li><strong>h.</strong> En double, si un joueur reçoit le service dans le mauvais demi-court, l'ordre de réception reste tel quel jusqu'à la fin du set dans lequel il est découvert.</li>
+                    <li><strong>i.</strong> Si des balles ne sont pas changées au bon moment, l'erreur est corrigée au jeu suivant où le(s) joueur(s) qui aurai(en)t dû servir avec les nouvelles balles doi(ven)t servir. Le changement ne peut être fait pendant un jeu en cours.</li>
                   </ul>
                 </div>
 
-                <div>
-                  <h5 className="font-bold text-white mb-4">8. Tableau de Conversion UTR</h5>
+                <div id="section-formats">
+                  <h5 className="font-bold text-white mb-4">9. Formats de Match FFT</h5>
+                  <p className="text-sm text-gray-400 mb-4">
+                    La Fédération Française de Tennis (FFT) définit 7 formats officiels de match adaptés aux différentes catégories d'âge et niveaux.
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-[#C8F135]/10 border-b border-white/10">
+                          <th className="px-3 py-3 text-left font-semibold text-white">Format</th>
+                          <th className="px-3 py-3 text-left font-semibold text-white">Structure</th>
+                          <th className="px-3 py-3 text-center font-semibold text-white">TB</th>
+                          <th className="px-3 py-3 text-center font-semibold text-white">Super TB</th>
+                          <th className="px-3 py-3 text-center font-semibold text-white">No Ad</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-gray-300">
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 1</td>
+                          <td className="px-3 py-3">3 sets en 6 jeux</td>
+                          <td className="px-3 py-3 text-center">6/6</td>
+                          <td className="px-3 py-3 text-center text-red-400">Non</td>
+                          <td className="px-3 py-3 text-center text-red-400">Non</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 2</td>
+                          <td className="px-3 py-3">2 sets en 6 jeux</td>
+                          <td className="px-3 py-3 text-center">6/6</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
+                          <td className="px-3 py-3 text-center text-red-400">Non</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 3</td>
+                          <td className="px-3 py-3">2 sets en 4 jeux</td>
+                          <td className="px-3 py-3 text-center">4/4</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 4</td>
+                          <td className="px-3 py-3">2 sets en 4 jeux</td>
+                          <td className="px-3 py-3 text-center">4/4</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 5</td>
+                          <td className="px-3 py-3">2 sets en 3 jeux</td>
+                          <td className="px-3 py-3 text-center">2/2</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 6</td>
+                          <td className="px-3 py-3">2 sets en 4 jeux</td>
+                          <td className="px-3 py-3 text-center">3/3</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 7</td>
+                          <td className="px-3 py-3">2 sets en 5 jeux</td>
+                          <td className="px-3 py-3 text-center">4/4</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
+                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-4 space-y-2 text-xs text-gray-400">
+                    <p><strong className="text-gray-300">TB:</strong> Score auquel le tie-break est déclenché (7 points, 2 d'écart).</p>
+                    <p><strong className="text-gray-300">Super Tie-Break:</strong> Au lieu d'un 3ème set, un super tie-break en 10 points (2 d'écart) est joué.</p>
+                    <p><strong className="text-gray-300">No Ad:</strong> Pas d'avantage. A 40-40, le point suivant est décisif (le receveur choisit le côté).</p>
+                  </div>
+                  <div className="mt-4 bg-blue-500/10 border border-blue-400/30 rounded-xl p-3">
+                    <p className="text-xs text-blue-300">
+                      <strong>Source:</strong> Fédération Française de Tennis - Règlement des formats de matchs 2024-2025.
+                    </p>
+                  </div>
+                </div>
+
+                <div id="section-classement">
+                  <h5 className="font-bold text-white mb-4">10. Classement FFT</h5>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Le classement FFT est organisé en 5 séries, du niveau débutant au niveau professionnel. Il est calculé mensuellement sur les 12 derniers mois glissants.
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-[#C8F135]/10 border-b border-white/10">
+                          <th className="px-3 py-3 text-left font-semibold text-white">Série</th>
+                          <th className="px-3 py-3 text-left font-semibold text-white">Échelons</th>
+                          <th className="px-3 py-3 text-left font-semibold text-white">Niveau</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-gray-300">
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">5e série</td>
+                          <td className="px-3 py-3">NC, 40/2, 40/1</td>
+                          <td className="px-3 py-3 text-gray-400">Débutant / Initiation</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">4e série</td>
+                          <td className="px-3 py-3">40, 30/5, 30/4, 30/3, 30/2, 30/1</td>
+                          <td className="px-3 py-3 text-gray-400">Compétiteur loisir</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">3e série</td>
+                          <td className="px-3 py-3">30, 15/5, 15/4, 15/3, 15/2, 15/1</td>
+                          <td className="px-3 py-3 text-gray-400">Compétiteur confirmé</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">2e série</td>
+                          <td className="px-3 py-3">15, 5/6, 4/6, 3/6, 2/6, 1/6, 0, -2/6, -4/6, -15, -30</td>
+                          <td className="px-3 py-3 text-gray-400">Haut niveau / Semi-pro</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5">
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">1re série</td>
+                          <td className="px-3 py-3">Promotion, 1re série</td>
+                          <td className="px-3 py-3 text-gray-400">Top 30 H / Top 20 F national</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-5">
+                    <h6 className="font-semibold text-white text-sm mb-3">Points par victoire (barème)</h6>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="bg-white/5 border-b border-white/10">
+                            <th className="px-3 py-2 text-left font-semibold text-white">Adversaire</th>
+                            <th className="px-3 py-2 text-right font-semibold text-white">Points</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-gray-300">
+                          <tr className="border-b border-white/5">
+                            <td className="px-3 py-2">+2 échelons ou plus</td>
+                            <td className="px-3 py-2 text-right font-semibold text-green-400">+120</td>
+                          </tr>
+                          <tr className="border-b border-white/5">
+                            <td className="px-3 py-2">+1 échelon</td>
+                            <td className="px-3 py-2 text-right font-semibold text-green-400">+90</td>
+                          </tr>
+                          <tr className="border-b border-white/5">
+                            <td className="px-3 py-2">Échelon égal</td>
+                            <td className="px-3 py-2 text-right font-semibold text-blue-400">+60</td>
+                          </tr>
+                          <tr className="border-b border-white/5">
+                            <td className="px-3 py-2">-1 échelon</td>
+                            <td className="px-3 py-2 text-right font-semibold text-yellow-400">+30</td>
+                          </tr>
+                          <tr className="border-b border-white/5">
+                            <td className="px-3 py-2">-2 échelons</td>
+                            <td className="px-3 py-2 text-right font-semibold text-orange-400">+20</td>
+                          </tr>
+                          <tr className="border-b border-white/5">
+                            <td className="px-3 py-2">-3 échelons</td>
+                            <td className="px-3 py-2 text-right font-semibold text-orange-400">+15</td>
+                          </tr>
+                          <tr className="border-b border-white/5">
+                            <td className="px-3 py-2">-4 échelons ou plus</td>
+                            <td className="px-3 py-2 text-right font-semibold text-red-400">0</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <h6 className="font-semibold text-white text-sm mb-3">Conditions de montée (5e série)</h6>
+                    <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
+                      <li><strong className="text-white">40/2:</strong> 4 victoires minimum sur 12 mois (simple ou double, tout format)</li>
+                      <li><strong className="text-white">40/1:</strong> 8 victoires minimum sur 12 mois (hors W.O.)</li>
+                      <li><strong className="text-white">40:</strong> 12 victoires toutes conditions, ou 1 victoire en condition verte/jaune contre un 40, ou 1 victoire "en perf" en double</li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-4 bg-blue-500/10 border border-blue-400/30 rounded-xl p-3">
+                    <p className="text-xs text-blue-300">
+                      <strong>Mise à jour:</strong> Depuis le 1er juillet 2025, la FFT a créé la 5e série avec les échelons 40/2 et 40/1 pour faciliter l'accès à la compétition. Le classement est mis à jour chaque premier mardi du mois.
+                    </p>
+                  </div>
+                </div>
+
+                <div id="section-utr">
+                  <h5 className="font-bold text-white mb-4">11. Tableau de Conversion UTR</h5>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border-collapse">
                       <thead>

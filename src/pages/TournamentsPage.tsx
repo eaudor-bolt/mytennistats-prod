@@ -43,6 +43,10 @@ export function TournamentsPage() {
     const saved = localStorage.getItem('tournament_filter_distance');
     return saved ? parseInt(saved) : 50;
   });
+  const [geolocateEnabled, setGeolocateEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('tournament_filter_geolocate');
+    return saved === 'true';
+  });
 
   const handleFilterChange = useCallback((filtered: Tournament[]) => {
     setFilteredTournaments(filtered);
@@ -61,6 +65,10 @@ export function TournamentsPage() {
   useEffect(() => {
     localStorage.setItem('tournament_filter_distance', distance.toString());
   }, [distance]);
+
+  useEffect(() => {
+    localStorage.setItem('tournament_filter_geolocate', geolocateEnabled.toString());
+  }, [geolocateEnabled]);
 
   const getUserLocation = () => {
     if (navigator.geolocation) {
@@ -271,6 +279,8 @@ export function TournamentsPage() {
               distance={distance}
               onDistanceChange={setDistance}
               userLocation={userLocation}
+              geolocateEnabled={geolocateEnabled}
+              onGeolocateChange={setGeolocateEnabled}
             />
           </div>
 
@@ -343,36 +353,49 @@ export function TournamentsPage() {
           </div>
         </div>
  {/* Mobile Header with Burger Menu */}
-      <div className="lg:hidden sticky top-0 z-30 bg-[#0a1526]/95 backdrop-blur-md border-b border-white/10 px-3 py-3 shadow-lg overflow-x-hidden">
+      <div className="lg:hidden sticky top-0 z-30 bg-[#0a1526]/95 backdrop-blur-md border-b border-white/10 px-4 py-3 shadow-lg">
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="p-2 hover:bg-white/5 rounded-lg transition text-white"
+            className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition text-white"
           >
-            {isFilterOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            <Menu className="w-5 h-5" />
+            <span className="text-sm font-medium">Filters</span>
+            {filteredTournaments.length < tournaments.length && (
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold text-[#050d1a] bg-[#C8F135] rounded-full">
+                {filteredTournaments.length}
+              </span>
+            )}
           </button>
           <h2 className="text-lg font-bold text-white">{t('tournaments.headtitle')}</h2>
           <div className="w-10"></div>
         </div>
       </div>
 
-      {/* Mobile Filter Overlay */}
-      {isFilterOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={() => setIsFilterOpen(false)}>
-          <div className="bg-[#0a1526] h-full w-80 max-w-[90vw] overflow-y-auto border-r border-white/10 overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
-            <TournamentFilter
-              tournaments={tournamentsWithDistance}
-              onFilterChange={handleFilterChange}
-              isOpen={true}
-              onClose={() => setIsFilterOpen(false)}
-              filteredCount={filteredTournaments.length}
-              distance={distance}
-              onDistanceChange={setDistance}
-              userLocation={userLocation}
-            />
-          </div>
+      {/* Mobile Filter Drawer Overlay */}
+      <div
+        className={`lg:hidden fixed inset-0 z-50 transition-opacity duration-300 ${isFilterOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setIsFilterOpen(false)}
+      >
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div
+          className={`absolute top-0 left-0 h-full w-[85vw] max-w-sm bg-gradient-to-b from-[#0a1628] to-[#050d1a] border-r border-white/10 shadow-2xl transition-transform duration-300 ease-out ${isFilterOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <TournamentFilter
+            tournaments={tournamentsWithDistance}
+            onFilterChange={handleFilterChange}
+            isOpen={true}
+            onClose={() => setIsFilterOpen(false)}
+            filteredCount={filteredTournaments.length}
+            distance={distance}
+            onDistanceChange={setDistance}
+            userLocation={userLocation}
+            geolocateEnabled={geolocateEnabled}
+            onGeolocateChange={setGeolocateEnabled}
+          />
         </div>
-      )}
+      </div>
         {/* Mobile View Mode Toggle */}
         <div className="lg:hidden mb-3 px-3">
           <div className="flex justify-center gap-2">

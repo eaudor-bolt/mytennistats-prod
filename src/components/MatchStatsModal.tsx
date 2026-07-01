@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { X, TrendingUp, BarChart2, Radar, Medal, Zap, Video, Play, Clock, ChevronLeft, ChevronRight, Camera, Target, Crosshair } from 'lucide-react';
+import { X, TrendingUp, BarChart2, Radar, Medal, Zap, Video, Play, Clock, ChevronLeft, ChevronRight, Camera, Target } from 'lucide-react';
 import { MatchResult } from '../lib/supabase';
 import { FinalScoreboard } from './FinalScoreboard';
 import { InlineScoreboard } from './InlineScoreboard';
@@ -870,13 +870,6 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
 
   if (!isOpen || !match) return null;
 
-  const totalWinnersFaultsCount = stats.totalWinners + stats.totalFaults;
-  const winnersPercentage = totalWinnersFaultsCount > 0
-    ? Math.round((stats.totalWinners / totalWinnersFaultsCount) * 100)
-    : 0;
-  const faultsPercentage = totalWinnersFaultsCount > 0
-    ? Math.round((stats.totalFaults / totalWinnersFaultsCount) * 100)
-    : 0;
 
   return (
     <div
@@ -936,134 +929,253 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
             />
           )}
 
-          {/* Resume Stats Title */}
-          <h4 className="text-lg font-bold text-white">Resume stats - {match.player_name}</h4>
+          {/* Match Summary */}
+          <h4 className="text-lg font-bold text-white">Match Summary</h4>
 
-          {/* Primary Stats - Modern Badges */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className={`bg-white/5 rounded-xl shadow-md border-l-4 ${winnersPercentage >= 50 ? 'border-green-500' : 'border-red-500'} p-4 hover:bg-white/10 transition-all`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Winners</div>
-                <Zap className={`w-5 h-5 ${winnersPercentage >= 50 ? 'text-green-500' : 'text-red-500'}`} />
-              </div>
-              <div className="text-3xl font-bold text-white">{stats.totalWinners}</div>
-              <div className={`mt-1 text-sm font-medium ${winnersPercentage >= 50 ? 'text-green-400' : 'text-red-400'}`}>{winnersPercentage}%</div>
-            </div>
-
-            <div className={`bg-white/5 rounded-xl shadow-md border-l-4 ${faultsPercentage <= 50 ? 'border-green-500' : 'border-red-500'} p-4 hover:bg-white/10 transition-all`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Fautes</div>
-                <X className={`w-5 h-5 ${faultsPercentage <= 50 ? 'text-green-500' : 'text-red-500'}`} />
-              </div>
-              <div className="text-3xl font-bold text-white">{stats.totalFaults}</div>
-              <div className={`mt-1 text-sm font-medium ${faultsPercentage <= 50 ? 'text-green-400' : 'text-red-400'}`}>{faultsPercentage}%</div>
-            </div>
-
-            <div className="bg-white/5 rounded-xl shadow-md border-l-4 border-blue-500 p-4 hover:bg-white/10 transition-all">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Durée Moy.</div>
-                <Clock className="w-5 h-5 text-blue-500" />
-              </div>
-              <div className="text-3xl font-bold text-white">{stats.avgDurationPoints}s</div>
-              <div className="mt-1 text-sm text-blue-400 font-medium">Max: {stats.maxDurationPoint}s</div>
-            </div>
-
-            <div className="bg-white/5 rounded-xl shadow-md border-l-4 border-gray-500 p-4 hover:bg-white/10 transition-all">
+          {/* Primary Stats - Big Badges */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white/5 rounded-xl shadow-md border-l-4 border-[#C8F135] p-4 hover:bg-white/10 transition-all">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Points</div>
-                <TrendingUp className="w-5 h-5 text-gray-500" />
+                <TrendingUp className="w-5 h-5 text-[#C8F135]" />
               </div>
               <div className="text-3xl font-bold text-white">{stats.totalPoints}</div>
-              <div className="mt-1 text-sm text-gray-600 font-medium">&nbsp;</div>
-            </div>
-          </div>
-
-          {/* Break Point / Game Point / Set Point Badges */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Break Points */}
-            <div className="bg-white/5 rounded-xl shadow-md border-l-4 border-orange-500 p-4 hover:bg-white/10 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Break Points</div>
-                <Zap className="w-5 h-5 text-orange-500" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">BP {match.player_name}</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {stats.breakPointsConverted}/{stats.breakPointsTotal}
-                    {stats.breakPointsTotal > 0 && (
-                      <span className="ml-1 text-orange-600">({Math.round((stats.breakPointsConverted / stats.breakPointsTotal) * 100)}%)</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">BP Adversaire</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {stats.breakPointsDefendedConverted}/{stats.breakPointsDefendedTotal}
-                    {stats.breakPointsDefendedTotal > 0 && (
-                      <span className="ml-1 text-orange-600">({Math.round((stats.breakPointsDefendedConverted / stats.breakPointsDefendedTotal) * 100)}%)</span>
-                    )}
-                  </span>
-                </div>
+              <div className="mt-2 flex gap-3 text-xs">
+                <span className="text-green-400">{stats.totalWinners} Winners</span>
+                <span className="text-red-400">{stats.totalFaults} Fautes</span>
               </div>
             </div>
 
-            {/* Game Points */}
             <div className="bg-white/5 rounded-xl shadow-md border-l-4 border-blue-500 p-4 hover:bg-white/10 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Game Points</div>
-                <Crosshair className="w-5 h-5 text-blue-500" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Match Duration</div>
+                <Clock className="w-5 h-5 text-blue-500" />
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">GP {match.player_name}</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {stats.gamePointsConverted}/{stats.gamePointsTotal}
-                    {stats.gamePointsTotal > 0 && (
-                      <span className="ml-1 text-blue-400">({Math.round((stats.gamePointsConverted / stats.gamePointsTotal) * 100)}%)</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">GP Adversaire</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {stats.adversaireGamePointsConverted}/{stats.adversaireGamePointsTotal}
-                    {stats.adversaireGamePointsTotal > 0 && (
-                      <span className="ml-1 text-blue-400">({Math.round((stats.adversaireGamePointsConverted / stats.adversaireGamePointsTotal) * 100)}%)</span>
-                    )}
-                  </span>
-                </div>
+              <div className="text-3xl font-bold text-white">
+                {(() => {
+                  const history = match.scoring_history || [];
+                  if (history.length < 2) return '-';
+                  const first = history[0];
+                  const last = history[history.length - 1];
+                  let durationMs = 0;
+                  if (last.timestampMs && first.timestampMs) {
+                    durationMs = last.timestampMs - first.timestampMs;
+                  } else if (last.timestamp && first.timestamp) {
+                    durationMs = new Date(last.timestamp).getTime() - new Date(first.timestamp).getTime();
+                  } else if (last.datetime && first.datetime) {
+                    durationMs = new Date(last.datetime).getTime() - new Date(first.datetime).getTime();
+                  }
+                  if (durationMs <= 0) return '-';
+                  const mins = Math.floor(durationMs / 60000);
+                  const hrs = Math.floor(mins / 60);
+                  const remainMins = mins % 60;
+                  return hrs > 0 ? `${hrs}h${String(remainMins).padStart(2, '0')}` : `${mins}min`;
+                })()}
               </div>
+              <div className="mt-1 text-sm text-blue-400 font-medium">Max point: {stats.maxDurationPoint}s</div>
             </div>
 
-            {/* Set Points */}
-            <div className="bg-white/5 rounded-xl shadow-md border-l-4 border-teal-500 p-4 hover:bg-white/10 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Set Points</div>
-                <Target className="w-5 h-5 text-teal-500" />
+            <div className="bg-white/5 rounded-xl shadow-md border-l-4 border-cyan-500 p-4 hover:bg-white/10 transition-all">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Avg Duration</div>
+                <Clock className="w-5 h-5 text-cyan-500" />
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">SP {match.player_name}</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {stats.setPointsConverted}/{stats.setPointsTotal}
-                    {stats.setPointsTotal > 0 && (
-                      <span className="ml-1 text-teal-600">({Math.round((stats.setPointsConverted / stats.setPointsTotal) * 100)}%)</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">SP Adversaire</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    {stats.adversaireSetPointsConverted}/{stats.adversaireSetPointsTotal}
-                    {stats.adversaireSetPointsTotal > 0 && (
-                      <span className="ml-1 text-teal-600">({Math.round((stats.adversaireSetPointsConverted / stats.adversaireSetPointsTotal) * 100)}%)</span>
-                    )}
-                  </span>
-                </div>
-              </div>
+              <div className="text-3xl font-bold text-white">{stats.avgDurationPoints}s</div>
+              <div className="mt-1 text-sm text-cyan-400 font-medium">par point</div>
             </div>
           </div>
+
+          {/* Per-Set Stats Table - Broadcast Style */}
+          {(() => {
+            const history = match.scoring_history || [];
+            if (history.length === 0) return null;
+
+            // Determine current set for each point and compute per-set stats
+            const getSetIndex = (entry: any): number => {
+              if (!entry?.setScores) return 0;
+              const { adversaire, famille } = entry.setScores;
+              for (let i = 2; i >= 0; i--) {
+                if ((adversaire[i] || 0) > 0 || (famille[i] || 0) > 0) return i;
+              }
+              return 0;
+            };
+
+            // Determine total sets played
+            const lastEntry = history[history.length - 1];
+            let numSets = 1;
+            if (lastEntry?.setScores) {
+              for (let i = 2; i >= 0; i--) {
+                if ((lastEntry.setScores.adversaire[i] || 0) > 0 || (lastEntry.setScores.famille[i] || 0) > 0) {
+                  numSets = i + 1;
+                  break;
+                }
+              }
+            }
+
+            type SetStats = {
+              aces: number;
+              doubleFaults: number;
+              gamePointsWon: number;
+              gamePointsTotal: number;
+              breakPointsWon: number;
+              breakPointsTotal: number;
+              setPointsWon: number;
+              setPointsTotal: number;
+              totalWinners: number;
+              totalFaults: number;
+              forehandWon: number;
+              forehandTotal: number;
+              backhandWon: number;
+              backhandTotal: number;
+              volleyWon: number;
+              volleyTotal: number;
+              returnWon: number;
+              returnTotal: number;
+              opponentWon: number;
+              opponentTotal: number;
+            };
+
+            const emptySetStats = (): SetStats => ({
+              aces: 0, doubleFaults: 0,
+              gamePointsWon: 0, gamePointsTotal: 0,
+              breakPointsWon: 0, breakPointsTotal: 0,
+              setPointsWon: 0, setPointsTotal: 0,
+              totalWinners: 0, totalFaults: 0,
+              forehandWon: 0, forehandTotal: 0,
+              backhandWon: 0, backhandTotal: 0,
+              volleyWon: 0, volleyTotal: 0,
+              returnWon: 0, returnTotal: 0,
+              opponentWon: 0, opponentTotal: 0,
+            });
+
+            const perSet: SetStats[] = Array.from({ length: numSets }, () => emptySetStats());
+            const totals = emptySetStats();
+
+            history.forEach((entry: any) => {
+              const setIdx = Math.min(getSetIndex(entry), numSets - 1);
+              const s = perSet[setIdx];
+
+              if (entry.toggleValue && entry.toggleValue !== 'Score direct') {
+                const [skill, action] = entry.toggleValue.split(': ');
+
+                if (action === 'Gagne') {
+                  if (skill === 'service') { s.aces++; totals.aces++; }
+                  if (skill !== 'opponent') { s.totalWinners++; totals.totalWinners++; }
+                  if (skill === 'forehand') { s.forehandWon++; totals.forehandWon++; }
+                  if (skill === 'backhand') { s.backhandWon++; totals.backhandWon++; }
+                  if (skill === 'volley') { s.volleyWon++; totals.volleyWon++; }
+                  if (skill === 'return') { s.returnWon++; totals.returnWon++; }
+                  if (skill === 'opponent') { s.opponentWon++; totals.opponentWon++; }
+                } else if (action === 'Faute') {
+                  if (skill === 'service') { s.doubleFaults++; totals.doubleFaults++; }
+                  if (skill !== 'opponent') { s.totalFaults++; totals.totalFaults++; }
+                }
+
+                if (skill === 'forehand') { s.forehandTotal++; totals.forehandTotal++; }
+                if (skill === 'backhand') { s.backhandTotal++; totals.backhandTotal++; }
+                if (skill === 'volley') { s.volleyTotal++; totals.volleyTotal++; }
+                if (skill === 'return') { s.returnTotal++; totals.returnTotal++; }
+                if (skill === 'opponent') { s.opponentTotal++; totals.opponentTotal++; }
+              }
+
+              // Game points for famille
+              const gameScore = entry.gameScore || { adversaire: 0, famille: 0 };
+              const advScore = convertScoreToTennisFormat(gameScore.adversaire);
+              const famScore = convertScoreToTennisFormat(gameScore.famille);
+              const isNoAd = match?.no_ad && advScore === '40' && famScore === '40';
+              const familleHasGP = famScore === 'AD' || (famScore === '40' && advScore !== '40' && advScore !== 'AD') || isNoAd;
+
+              if (entry.isGamePoint && familleHasGP) {
+                s.gamePointsTotal++; totals.gamePointsTotal++;
+                const familleWon = entry.toggleValue && (
+                  (entry.toggleValue !== 'Score direct' && entry.toggleValue.split(': ')[1] === 'Gagne' && entry.toggleValue.split(': ')[0] !== 'opponent') ||
+                  (entry.toggleValue !== 'Score direct' && entry.toggleValue.split(': ')[1] === 'Faute' && entry.toggleValue.split(': ')[0] === 'opponent') ||
+                  entry.toggleValue === 'Score direct'
+                );
+                if (familleWon) { s.gamePointsWon++; totals.gamePointsWon++; }
+              }
+
+              // Break points for famille
+              const server = entry.server || entry.player || 'famille';
+              if (entry.isBreakPoint && server === 'adversaire') {
+                s.breakPointsTotal++; totals.breakPointsTotal++;
+                const familleWon = entry.toggleValue && (
+                  (entry.toggleValue !== 'Score direct' && entry.toggleValue.split(': ')[1] === 'Gagne' && entry.toggleValue.split(': ')[0] !== 'opponent') ||
+                  (entry.toggleValue !== 'Score direct' && entry.toggleValue.split(': ')[1] === 'Faute' && entry.toggleValue.split(': ')[0] === 'opponent') ||
+                  entry.toggleValue === 'Score direct'
+                );
+                if (familleWon) { s.breakPointsWon++; totals.breakPointsWon++; }
+              }
+
+              // Set points for famille
+              if (entry.isSetPoint && familleHasGP) {
+                s.setPointsTotal++; totals.setPointsTotal++;
+                const familleWon = entry.toggleValue && (
+                  (entry.toggleValue !== 'Score direct' && entry.toggleValue.split(': ')[1] === 'Gagne' && entry.toggleValue.split(': ')[0] !== 'opponent') ||
+                  (entry.toggleValue !== 'Score direct' && entry.toggleValue.split(': ')[1] === 'Faute' && entry.toggleValue.split(': ')[0] === 'opponent') ||
+                  entry.toggleValue === 'Score direct'
+                );
+                if (familleWon) { s.setPointsWon++; totals.setPointsWon++; }
+              }
+            });
+
+            const statRows: { label: string; getValue: (s: SetStats) => string }[] = [
+              { label: 'Aces', getValue: (s) => String(s.aces) },
+              { label: 'Double Fautes', getValue: (s) => String(s.doubleFaults) },
+              { label: 'Game Points Won', getValue: (s) => `${s.gamePointsWon}/${s.gamePointsTotal}` },
+              { label: 'Break Points', getValue: (s) => `${s.breakPointsWon}/${s.breakPointsTotal}` },
+              { label: 'Set Points', getValue: (s) => `${s.setPointsWon}/${s.setPointsTotal}` },
+              { label: 'Total Winners', getValue: (s) => String(s.totalWinners) },
+              { label: 'Total Fautes', getValue: (s) => String(s.totalFaults) },
+              { label: 'Forehand', getValue: (s) => `${s.forehandWon}/${s.forehandTotal}` },
+              { label: 'Backhand', getValue: (s) => `${s.backhandWon}/${s.backhandTotal}` },
+              { label: 'Volley', getValue: (s) => `${s.volleyWon}/${s.volleyTotal}` },
+              { label: 'Return', getValue: (s) => `${s.returnWon}/${s.returnTotal}` },
+              { label: 'Opponent', getValue: (s) => `${s.opponentWon}/${s.opponentTotal}` },
+            ];
+
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-[#C8F135]/10 border-b border-[#C8F135]/30">
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-[#C8F135] uppercase tracking-wider">
+                        Statistique
+                      </th>
+                      {Array.from({ length: numSets }).map((_, i) => (
+                        <th key={i} className="px-3 py-2.5 text-center text-xs font-bold text-[#C8F135] uppercase tracking-wider">
+                          Set {i + 1}
+                        </th>
+                      ))}
+                      <th className="px-3 py-2.5 text-center text-xs font-bold text-white uppercase tracking-wider bg-white/5">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {statRows.map((row, rowIdx) => (
+                      <tr
+                        key={row.label}
+                        className={`border-b border-white/5 ${rowIdx % 2 === 0 ? 'bg-white/[0.02]' : ''} hover:bg-white/5 transition-colors`}
+                      >
+                        <td className="px-3 py-2 text-sm font-medium text-gray-300">
+                          {row.label}
+                        </td>
+                        {perSet.map((setData, i) => (
+                          <td key={i} className="px-3 py-2 text-center text-sm font-semibold text-white">
+                            {row.getValue(setData)}
+                          </td>
+                        ))}
+                        <td className="px-3 py-2 text-center text-sm font-bold text-[#C8F135] bg-white/5">
+                          {row.getValue(totals)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
 
 
           {/* Skill Stats */}

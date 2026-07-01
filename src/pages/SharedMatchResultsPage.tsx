@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase, MatchResult } from '../lib/supabase';
 import { Loader2, Share2, BarChart3 } from 'lucide-react';
 import { MatchStatsModal } from '../components/MatchStatsModal';
+import { MiniMatchScoreboard } from '../components/MiniMatchScoreboard';
 
 type SharedMatchResultsPageProps = {
   shareId: string;
@@ -166,43 +167,6 @@ export function SharedMatchResultsPage({ shareId }: SharedMatchResultsPageProps)
     return 'unknown';
   };
 
-  const renderScoreWithTiebreak = (score: string) => {
-    if (!score) return <span>-</span>;
-
-    const sets = score.split(' - ');
-
-    return (
-      <div className="flex items-center gap-1">
-        {sets.map((set, index) => {
-          // Check if this is a super tiebreak (just parentheses with score, e.g., "(6/10)")
-          if (set.match(/^\(\d+\/\d+\)$/)) {
-            return (
-              <span key={index} className="inline-flex items-center">
-                {set}
-                {index < sets.length - 1 && <span className="mx-1">-</span>}
-              </span>
-            );
-          }
-
-          // Extract tiebreak score if present (e.g., "6/7 (5)" or "7/6 (3)")
-          const tiebreakMatch = set.match(/\((\d+)\/(\d+)\)/);
-          const tiebreakScore = tiebreakMatch ? tiebreakMatch[1] : null;
-          const cleanSet = set.replace(/\s*\(.*?\)\s*/g, '').trim();
-
-          return (
-            <span key={index} className="inline-flex items-center">
-              {cleanSet}
-              {tiebreakScore && (
-                <sup className="text-[10px] ml-0.5">{tiebreakScore}</sup>
-              )}
-              {index < sets.length - 1 && <span className="mx-1">-</span>}
-            </span>
-          );
-        })}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#050d1a] via-[#071428] to-[#050d1a] flex items-center justify-center">
@@ -359,8 +323,13 @@ export function SharedMatchResultsPage({ shareId }: SharedMatchResultsPageProps)
                         <td className="px-4 py-3 text-sm text-gray-300">
                           {match.tournament_name}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-white">
-                          {renderScoreWithTiebreak(match.score)}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <MiniMatchScoreboard
+                            score={match.score}
+                            playerName={match.player_name}
+                            opponentName="Adversaire"
+                            isWinner={matchResult === 'win'}
+                          />
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-center font-semibold text-white">
                           {match.classement}

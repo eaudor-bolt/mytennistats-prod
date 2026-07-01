@@ -7,46 +7,71 @@ type FinalScoreboardProps = {
   showWinnerIcon?: boolean;
 };
 
-export function FinalScoreboard({ score, playerName, isWin, showWinnerIcon = false }: FinalScoreboardProps) {
-  const parseScore = (scoreString: string) => {
-    const sets = scoreString.split(' - ');
-    const playerSets: number[] = [];
-    const opponentSets: number[] = [];
+type ParsedSet = {
+  playerGames: number;
+  opponentGames: number;
+  playerTB: string | null;
+  opponentTB: string | null;
+};
 
-    sets.forEach(set => {
-      // Handle super tiebreak format (10/5)
+export function FinalScoreboard({ score, playerName, isWin, showWinnerIcon = false }: FinalScoreboardProps) {
+  const parseScore = (scoreString: string): { sets: ParsedSet[]; playerSetsWon: number; opponentSetsWon: number } => {
+    const rawSets = scoreString.split(' - ');
+    const sets: ParsedSet[] = [];
+    let playerSetsWon = 0;
+    let opponentSetsWon = 0;
+
+    rawSets.forEach(set => {
       const superTiebreakMatch = set.match(/^\((\d+)\/(\d+)\)$/);
       if (superTiebreakMatch) {
         const player = parseInt(superTiebreakMatch[1]);
         const opponent = parseInt(superTiebreakMatch[2]);
-        playerSets.push(player);
-        opponentSets.push(opponent);
+        sets.push({ playerGames: player, opponentGames: opponent, playerTB: null, opponentTB: null });
+        if (player > opponent) playerSetsWon++;
+        else opponentSetsWon++;
         return;
       }
 
-      // Handle regular set format, removing tiebreak notation
-      const cleanSet = set.replace(/\s*\(.*?\)\s*/g, '');
-      const scores = cleanSet.split('/').map(s => parseInt(s.trim()));
-      if (scores.length === 2) {
-        playerSets.push(scores[0]);
-        opponentSets.push(scores[1]);
+      const tiebreakMatch = set.match(/\((\d+)(?:\/(\d+))?\)/);
+      const cleanSet = set.replace(/\s*\(.*?\)\s*/g, '').trim();
+      const [playerGames, opponentGames] = cleanSet.split('/').map(s => parseInt(s.trim()));
+
+      if (isNaN(playerGames) || isNaN(opponentGames)) return;
+
+      let playerTB: string | null = null;
+      let opponentTB: string | null = null;
+
+      if (tiebreakMatch) {
+        if (tiebreakMatch[2] !== undefined) {
+          playerTB = tiebreakMatch[1];
+          opponentTB = tiebreakMatch[2];
+        } else {
+          const loserTB = parseInt(tiebreakMatch[1]);
+          const winnerTB = Math.max(loserTB + 2, 7);
+          if (playerGames > opponentGames) {
+            playerTB = String(winnerTB);
+            opponentTB = tiebreakMatch[1];
+          } else {
+            playerTB = tiebreakMatch[1];
+            opponentTB = String(winnerTB);
+          }
+        }
       }
+
+      if (playerGames > opponentGames) playerSetsWon++;
+      else if (opponentGames > playerGames) opponentSetsWon++;
+
+      sets.push({ playerGames, opponentGames, playerTB, opponentTB });
     });
 
-    // Fill missing sets with 0
-    while (playerSets.length < 3) {
-      playerSets.push(0);
-      opponentSets.push(0);
+    while (sets.length < 3) {
+      sets.push({ playerGames: 0, opponentGames: 0, playerTB: null, opponentTB: null });
     }
 
-    return { playerSets, opponentSets };
+    return { sets, playerSetsWon, opponentSetsWon };
   };
 
-  const { playerSets, opponentSets } = parseScore(score);
-  const playerSetsWon = playerSets.filter((s, i) => s > opponentSets[i]).length;
-  const opponentSetsWon = opponentSets.filter((s, i) => s > playerSets[i]).length;
-
-  // Determine winner by counting sets won (more sets = winner)
+  const { sets, playerSetsWon, opponentSetsWon } = parseScore(score);
   const playerWon = playerSetsWon > opponentSetsWon;
   const opponentWon = opponentSetsWon > playerSetsWon;
 
@@ -58,21 +83,24 @@ export function FinalScoreboard({ score, playerName, isWin, showWinnerIcon = fal
             <tbody>
               <tr className="border-b border-white/10">
                 <td className="px-1.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-200 bg-white/5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
-                      <span className="truncate">Adversaire</span>
-                      {showWinnerIcon && opponentWon && (
-                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#C8F135]" />
-                      )}
-                    </div>
+                  <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                    <span className="truncate">Adversaire</span>
+                    {showWinnerIcon && opponentWon && (
+                      <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#C8F135]" />
+                    )}
                   </div>
                 </td>
-                {[0, 1, 2].map(i => (
+                {sets.map((s, i) => (
                   <td
                     key={i}
-                    className="px-1.5 sm:px-3 py-1.5 sm:py-2 text-center text-sm sm:text-base font-bold text-gray-300"
+                    className={`px-1.5 sm:px-3 py-1.5 sm:py-2 text-center text-sm sm:text-base font-bold ${s.opponentGames > s.playerGames ? 'text-white' : 'text-gray-400'}`}
                   >
-                    {opponentSets[i]}
+                    <span>
+                      {s.opponentGames}
+                      {s.opponentTB && (
+                        <sup className="text-[9px] sm:text-[10px] text-gray-500 ml-px">{s.opponentTB}</sup>
+                      )}
+                    </span>
                   </td>
                 ))}
                 <td className="px-1.5 sm:px-3 py-1.5 sm:py-2 text-center font-bold text-lg sm:text-2xl bg-[#C8F135]/20 text-[#C8F135]">
@@ -81,21 +109,24 @@ export function FinalScoreboard({ score, playerName, isWin, showWinnerIcon = fal
               </tr>
               <tr>
                 <td className="px-1.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-200 bg-white/5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
-                      <span className="truncate">{playerName}</span>
-                      {showWinnerIcon && playerWon && (
-                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#C8F135]" />
-                      )}
-                    </div>
+                  <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                    <span className="truncate">{playerName}</span>
+                    {showWinnerIcon && playerWon && (
+                      <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#C8F135]" />
+                    )}
                   </div>
                 </td>
-                {[0, 1, 2].map(i => (
+                {sets.map((s, i) => (
                   <td
                     key={i}
-                    className="px-1.5 sm:px-3 py-1.5 sm:py-2 text-center text-sm sm:text-base font-bold text-gray-300"
+                    className={`px-1.5 sm:px-3 py-1.5 sm:py-2 text-center text-sm sm:text-base font-bold ${s.playerGames > s.opponentGames ? 'text-white' : 'text-gray-400'}`}
                   >
-                    {playerSets[i]}
+                    <span>
+                      {s.playerGames}
+                      {s.playerTB && (
+                        <sup className="text-[9px] sm:text-[10px] text-gray-500 ml-px">{s.playerTB}</sup>
+                      )}
+                    </span>
                   </td>
                 ))}
                 <td className="px-1.5 sm:px-3 py-1.5 sm:py-2 text-center font-bold text-lg sm:text-2xl bg-[#C8F135]/20 text-[#C8F135]">

@@ -415,6 +415,7 @@ export function VideosPage() {
 
   const toggleFavorite = async (video: VideoRecord, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (!user) return;
     const newValue = !video.favorite;
     setVideos(prev => prev.map(v => v.id === video.id ? { ...v, favorite: newValue } : v));
     if (selectedVideo?.id === video.id) {
@@ -423,12 +424,14 @@ export function VideosPage() {
     const { error } = await supabase
       .from('videos')
       .update({ favorite: newValue })
-      .eq('id', video.id);
+      .eq('id', video.id)
+      .eq('user_id', user.id);
     if (error) {
       setVideos(prev => prev.map(v => v.id === video.id ? { ...v, favorite: !newValue } : v));
       if (selectedVideo?.id === video.id) {
         setSelectedVideo(prev => prev ? { ...prev, favorite: !newValue } : prev);
       }
+      showAlert('Erreur lors de la mise à jour du favori', { type: 'error' });
     }
   };
 
@@ -1323,22 +1326,27 @@ export function VideosPage() {
 
             <button
               onClick={() => window.location.href = '/video-editor'}
-              className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-lg font-medium transition-all border border-white/10"
+              disabled
+              className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-white/5 text-white/30 rounded-lg font-medium border border-white/5 cursor-not-allowed opacity-50"
             >
               <Edit size={20} />
               <span className="hidden lg:inline">Video Editor</span>
             </button>
 
             <button
-              onClick={() => setShowMatchAnalysis(!showMatchAnalysis)}
-              className={`hidden md:flex items-center gap-2 px-4 py-2.5 text-white rounded-lg font-medium transition-all border ${
+              onClick={() => {
+                const next = !showMatchAnalysis;
+                setShowMatchAnalysis(next);
+                if (!next) { setHasMore(true); loadVideos(false); }
+              }}
+              className={`flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 text-white rounded-lg font-medium transition-all border ${
                 showMatchAnalysis
                   ? 'bg-[#C8F135] text-black border-[#C8F135] shadow-lg shadow-[#C8F135]/30 scale-95'
                   : 'bg-white/5 hover:bg-white/10 border-white/10'
               }`}
             >
-              <BarChart3 size={20} />
-              <span className="hidden lg:inline">Match Analysis</span>
+              <BarChart3 size={18} className="md:w-5 md:h-5" />
+              <span className="hidden sm:inline">Match Analysis</span>
             </button>
 
             <button
@@ -1446,7 +1454,7 @@ export function VideosPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-6 relative z-10">
         {showMatchAnalysis ? (
-          <MatchAnalysisPage onClose={() => setShowMatchAnalysis(false)} inline={true} />
+          <MatchAnalysisPage onClose={() => { setShowMatchAnalysis(false); setHasMore(true); loadVideos(false); }} inline={true} />
         ) : loading ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
             <div className="w-8 h-8 border-4 border-[#C8F135] border-t-transparent rounded-full animate-spin"></div>
@@ -2050,8 +2058,8 @@ export function VideosPage() {
       )}
 
       {selectedVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4" onClick={closeVideoPlayer}>
-          <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] h-[90vh] border border-white/20" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 sm:p-6" onClick={closeVideoPlayer}>
+          <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] border border-white/20" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/80 shrink-0">
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-white">Lecture</h2>

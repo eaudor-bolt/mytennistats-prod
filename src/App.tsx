@@ -50,6 +50,10 @@ function App() {
 
     checkAndClearBadSession();
 
+    const loadingTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     const handleRouting = () => {
       const hash = window.location.hash.slice(1);
       const pathname = window.location.pathname;
@@ -139,6 +143,7 @@ function App() {
     return () => {
       subscription?.unsubscribe();
       window.removeEventListener('hashchange', handleRouting);
+      clearTimeout(loadingTimeout);
     };
   }, []);
 
@@ -213,8 +218,8 @@ function App() {
   return (
     <LanguageProvider>
       {loading && (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="w-12 h-12 text-green-500 animate-spin" />
+        <div className="flex items-center justify-center min-h-screen bg-[#040c1a]">
+          <Loader2 className="w-12 h-12 text-[#C8F135] animate-spin" />
         </div>
       )}
 
