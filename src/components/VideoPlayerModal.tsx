@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Play, Pause, ScanFace, AlertCircle, ChevronLeft, ChevronRight, TrendingUp, Activity, Trash2, RotateCcw, Maximize, Minimize, Star, User, Calendar, Tag as TagIcon } from 'lucide-react';
 
 declare global {
@@ -353,6 +354,38 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
+
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  const pushedHistoryRef = useRef(false);
+  useEffect(() => {
+    window.history.pushState({ videoModal: true }, '');
+    pushedHistoryRef.current = true;
+
+    const handlePopState = () => {
+      pushedHistoryRef.current = false;
+      onCloseRef.current();
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (pushedHistoryRef.current) {
+      pushedHistoryRef.current = false;
+      window.history.back();
+    } else {
+      onCloseRef.current();
+    }
+  }, []);
+
   const handleSeek = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = Number(e.target.value);
     if (videoRef.current) {
@@ -442,15 +475,15 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') { e.preventDefault(); frameStep('backward'); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); frameStep('forward'); }
-      else if (e.key === 'Escape') { onClose(); }
+      else if (e.key === 'Escape') { handleClose(); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [duration, isAnalyzing]);
+  }, [duration, isAnalyzing, handleClose]);
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] h-[90vh] border border-white/20" onClick={(e) => e.stopPropagation()}>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4" onClick={handleClose}>
+      <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95dvh] h-[90dvh] border border-white/20" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/80 shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-white">{title}</h2>
@@ -494,7 +527,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
               )}
               {poseError && <AlertCircle size={16} className="text-red-400" />}
             </label>
-            <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white">
+            <button onClick={handleClose} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white">
               <X size={24} />
             </button>
           </div>
@@ -523,7 +556,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
             />
 
             {metadata && (
-              <div className="absolute top-4 left-4 z-30 bg-slate-900/90 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-slate-700 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute top-4 left-4 z-30 bg-slate-900/90 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-slate-700 shadow-2xl opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-300">
                 <div className="grid grid-cols-1 gap-2 sm:gap-3">
                   {metadata.playerName && (
                     <div className="flex flex-col gap-1">
@@ -587,7 +620,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
 
             <button
               onClick={(e) => { e.stopPropagation(); frameStep('backward'); }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-sm text-white rounded-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110 border border-slate-700"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-sm text-white rounded-lg transition-all opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 hover:scale-110 border border-slate-700"
               title="Previous Frame"
             >
               <ChevronLeft size={28} strokeWidth={2.5} />
@@ -595,7 +628,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
 
             <button
               onClick={(e) => { e.stopPropagation(); frameStep('forward'); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-sm text-white rounded-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110 border border-slate-700"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-sm text-white rounded-lg transition-all opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 hover:scale-110 border border-slate-700"
               title="Next Frame"
             >
               <ChevronRight size={28} strokeWidth={2.5} />
@@ -742,7 +775,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
             )}
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent z-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent z-40 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-300">
             <div className="flex flex-col gap-2">
               <input
                 type="range"
@@ -782,6 +815,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

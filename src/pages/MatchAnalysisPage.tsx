@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Play, ChevronLeft, Loader2, AlertCircle, Camera, Clock, CheckCircle, Star, Pause, RotateCcw, Maximize, Minimize } from 'lucide-react';
+import { X, Play, ChevronLeft, Loader2, AlertCircle, Camera, Clock, CheckCircle, Star } from 'lucide-react';
 import { Bar, Radar as RadarChart } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, RadialLinearScale, Filler } from 'chart.js';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { InlineScoreboard } from '../components/InlineScoreboard';
+import { VideoPlayerModal } from '../components/VideoPlayerModal';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, RadialLinearScale, Filler);
 
@@ -39,15 +40,9 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
   const [pointImportanceFilter, setPointImportanceFilter] = useState<'breakPoints' | 'gamePoints' | 'setPoints' | null>(null);
   const [highlightedPointIndex, setHighlightedPointIndex] = useState<number | null>(null);
   const [favoriteVideos, setFavoriteVideos] = useState<Set<string>>(new Set());
-  const [isVideoPlaying, setIsVideoPlaying] = useState(true);
-  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
-  const [videoDuration, setVideoDuration] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const historyContainerRef = useRef<HTMLDivElement>(null);
   const pointRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadMatches();
@@ -124,31 +119,6 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
           favorite: true,
         });
       }
-    }
-  };
-
-  const formatVideoTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const toggleVideoPlay = () => {
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play().then(() => setIsVideoPlaying(true)).catch(() => {});
-    } else {
-      videoRef.current.pause();
-      setIsVideoPlaying(false);
-    }
-  };
-
-  const toggleFullscreen = () => {
-    if (!videoContainerRef.current) return;
-    if (!document.fullscreenElement) {
-      videoContainerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
-    } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
     }
   };
 
@@ -790,98 +760,18 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
     </div>
 
     {playingPoint?.videoUrl && (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 sm:p-6" onClick={() => setPlayingPoint(null)}>
-        <div
-          ref={videoContainerRef}
-          className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] border border-white/20"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between px-3 py-2 sm:p-4 border-b border-white/10 bg-black/80 shrink-0">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <h2 className="text-base sm:text-lg font-semibold text-white">Lecture</h2>
-              <button
-                onClick={() => toggleFavorite(playingPoint.videoUrl!, playingPoint)}
-                className={`p-1.5 rounded-full transition-all ${
-                  favoriteVideos.has(playingPoint.videoUrl!)
-                    ? 'text-[#C8F135] bg-[#C8F135]/10'
-                    : 'text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-                title={favoriteVideos.has(playingPoint.videoUrl!) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-              >
-                <Star size={20} className={favoriteVideos.has(playingPoint.videoUrl!) ? 'fill-current' : ''} />
-              </button>
-            </div>
-            <button onClick={() => setPlayingPoint(null)} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-white bg-white/10">
-              <X size={22} />
-            </button>
-          </div>
-
-          <div className="flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden relative group">
-            <video
-              ref={videoRef}
-              src={playingPoint.videoUrl}
-              autoPlay
-              playsInline
-              onClick={toggleVideoPlay}
-              onTimeUpdate={() => { if (videoRef.current) setVideoCurrentTime(videoRef.current.currentTime); }}
-              onLoadedMetadata={() => { if (videoRef.current) setVideoDuration(videoRef.current.duration); }}
-              onEnded={() => setIsVideoPlaying(false)}
-              onPlay={() => setIsVideoPlaying(true)}
-              className="max-w-full max-h-full w-full h-auto object-contain"
-              style={{ backgroundColor: '#000' }}
-            />
-
-            <div className="absolute top-4 left-4 z-30 bg-slate-900/90 backdrop-blur-md rounded-lg p-3 border border-slate-700 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <p className="text-white font-medium text-sm">{selectedMatch?.player_name}</p>
-              {playingPoint.toggleValue && (
-                <p className="text-slate-400 text-xs mt-1">{playingPoint.toggleValue}</p>
-              )}
-              <p className="text-slate-500 text-xs mt-1">
-                {selectedMatch?.date ? new Date(selectedMatch.date).toLocaleDateString('fr-FR') : ''}
-              </p>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent z-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="flex flex-col gap-2">
-                <input
-                  type="range"
-                  min={0}
-                  max={videoDuration || 100}
-                  value={videoCurrentTime}
-                  onChange={(e) => { if (videoRef.current) { videoRef.current.currentTime = Number(e.target.value); setVideoCurrentTime(Number(e.target.value)); } }}
-                  className="w-full h-1.5 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-green-600 hover:h-2 transition-all"
-                />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <button onClick={toggleVideoPlay} className="text-white hover:text-green-600 transition-colors">
-                      {isVideoPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
-                    </button>
-                    <span className="text-sm font-medium text-white font-mono">
-                      {formatVideoTime(videoCurrentTime)} / {formatVideoTime(videoDuration)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => { if (videoRef.current) videoRef.current.currentTime = 0; }}
-                      className="text-slate-400 hover:text-white transition-colors"
-                      title="Restart"
-                    >
-                      <RotateCcw size={20} />
-                    </button>
-                    <button
-                      onClick={toggleFullscreen}
-                      className="text-slate-400 hover:text-white transition-colors"
-                      title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                    >
-                      {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <VideoPlayerModal
+        videoUrl={playingPoint.videoUrl}
+        onClose={() => setPlayingPoint(null)}
+        title="Lecture"
+        favorite={favoriteVideos.has(playingPoint.videoUrl)}
+        onToggleFavorite={() => toggleFavorite(playingPoint.videoUrl!, playingPoint)}
+        metadata={{
+          playerName: selectedMatch?.player_name,
+          shotType: playingPoint.toggleValue,
+          date: selectedMatch?.date,
+        }}
+      />
     )}
     </>
   );
