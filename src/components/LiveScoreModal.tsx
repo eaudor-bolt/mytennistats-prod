@@ -70,6 +70,9 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const [isLocked, setIsLocked] = useState(true);
   const prevGameScoreRef = useRef<GameScore>({ adversaire: 0, famille: 0 });
   const tiebreakPointCountRef = useRef(0);
+  const wasTiebreakRef = useRef(false);
+  const tiebreakFirstServerRef = useRef<'famille' | 'adversaire' | null>(null);
+  const currentServerRef = useRef<'famille' | 'adversaire'>('famille');
   const sequenceNumberRef = useRef(0);
   const [totalAdInGame, setTotalAdInGame] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -229,26 +232,57 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
 
 
   useEffect(() => {
+    currentServerRef.current = currentServer;
+  }, [currentServer]);
+
+  useEffect(() => {
     const prev = prevGameScoreRef.current;
+    const wasTiebreak = wasTiebreakRef.current;
 
     if (isTiebreak) {
       const totalPoints = gameScore.adversaire + gameScore.famille;
-      const prevTotalPoints = tiebreakPointCountRef.current;
 
-      if (totalPoints > prevTotalPoints) {
-        if (totalPoints === 1 || (totalPoints > 1 && totalPoints % 2 === 1)) {
-          setCurrentServer(prev => prev === 'famille' ? 'adversaire' : 'famille');
+      if (!wasTiebreak) {
+        if (prev.adversaire !== 0 || prev.famille !== 0) {
+          // Tiebreak starts at 6-6: the game-score reset arrives in the same
+          // render as isTiebreak, so the normal game-end rotation below never
+          // ran. Rotate here: the next player in the order serves TB point 1.
+          setCurrentServer(prevServer => {
+            const first = prevServer === 'famille' ? 'adversaire' : 'famille';
+            tiebreakFirstServerRef.current = first;
+            return first;
+          });
+        } else {
+          // Score was already 0-0 (super tiebreak entry, or state restored
+          // mid-tiebreak): derive the TB's first server from how many serve
+          // changes have occurred (after point 1, then every 2 points).
+          const serveChanges = Math.ceil(totalPoints / 2);
+          tiebreakFirstServerRef.current = serveChanges % 2 === 0
+            ? currentServerRef.current
+            : (currentServerRef.current === 'famille' ? 'adversaire' : 'famille');
         }
-        tiebreakPointCountRef.current = totalPoints;
+      } else if (totalPoints > tiebreakPointCountRef.current && totalPoints % 2 === 1) {
+        // Serve alternates after the 1st point, then every 2 points
+        setCurrentServer(prevServer => prevServer === 'famille' ? 'adversaire' : 'famille');
       }
+      tiebreakPointCountRef.current = totalPoints;
     } else {
-      if (gameScore.adversaire === 0 && gameScore.famille === 0 &&
+      if (wasTiebreak) {
+        // Set decided by a tiebreak: whoever served first in the tiebreak
+        // receives first in the next set, so the other player serves.
+        const first = tiebreakFirstServerRef.current;
+        if (first) {
+          setCurrentServer(first === 'famille' ? 'adversaire' : 'famille');
+        }
+        tiebreakFirstServerRef.current = null;
+      } else if (gameScore.adversaire === 0 && gameScore.famille === 0 &&
           (prev.adversaire !== 0 || prev.famille !== 0)) {
-        setCurrentServer(prev => prev === 'famille' ? 'adversaire' : 'famille');
+        setCurrentServer(prevServer => prevServer === 'famille' ? 'adversaire' : 'famille');
       }
       tiebreakPointCountRef.current = 0;
     }
 
+    wasTiebreakRef.current = isTiebreak;
     prevGameScoreRef.current = { ...gameScore };
   }, [gameScore, isTiebreak]);
 
@@ -280,6 +314,10 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     setTotalAdInGame(0);
     sequenceNumberRef.current = 0;
     pointStartTimeRef.current = null;
+    prevGameScoreRef.current = { adversaire: 0, famille: 0 };
+    tiebreakPointCountRef.current = 0;
+    wasTiebreakRef.current = false;
+    tiebreakFirstServerRef.current = null;
     setMatchStartTime(null);
     setElapsedTime(0);
     setShowRestorePrompt(false);
@@ -657,10 +695,21 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
         setCurrentServer(prevState.currentServer);
       }
       prevGameScoreRef.current = { ...prevState.gameScore };
+      wasTiebreakRef.current = prevState.isTiebreak;
       if (prevState.isTiebreak) {
-        tiebreakPointCountRef.current = prevState.gameScore.adversaire + prevState.gameScore.famille;
+        const totalPoints = prevState.gameScore.adversaire + prevState.gameScore.famille;
+        tiebreakPointCountRef.current = totalPoints;
+        if (prevState.currentServer) {
+          // Rebuild who served first in the tiebreak from the restored server
+          // and the number of serve changes (after point 1, then every 2 points)
+          const serveChanges = Math.ceil(totalPoints / 2);
+          tiebreakFirstServerRef.current = serveChanges % 2 === 0
+            ? prevState.currentServer
+            : (prevState.currentServer === 'famille' ? 'adversaire' : 'famille');
+        }
       } else {
         tiebreakPointCountRef.current = 0;
+        tiebreakFirstServerRef.current = null;
       }
       setHistoryIndex(prev => prev - 1);
       if (scoringHistory.length > 0) {
@@ -1558,7 +1607,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                       setGameFormat({ threeGames: false, fourGames: true, fiveGames: false, sixGames: false, supertiebreak: true, noAd: true, tiebreakAt: 4, formatPreset: 3 });
                       break;
                     case 4:
-                      setGameFormat({ threeGames: false, fourGames: true, fiveGames: false, sixGames: false, supertiebreak: true, noAd: true, tiebreakAt: 4, formatPreset: 4 });
+                      setGameFormat({ threeGames: false, fourGames: false, fiveGames: false, sixGames: true, supertiebreak: true, noAd: true, tiebreakAt: 6, formatPreset: 4 });
                       break;
                     case 5:
                       setGameFormat({ threeGames: true, fourGames: false, fiveGames: false, sixGames: false, supertiebreak: true, noAd: true, tiebreakAt: 2, formatPreset: 5 });
@@ -1575,13 +1624,13 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                 }}
                 className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] text-sm"
               >
-                <option value={1} className="bg-[#0a1628] text-white">Format 1 - 3 Sets en 6 jeux</option>
-                <option value={2} className="bg-[#0a1628] text-white">Format 2 - 2 Sets en 6 jeux + Super TB</option>
-                <option value={3} className="bg-[#0a1628] text-white">Format 3 - 2 Sets en 4 jeux (TB 4/4, No Ad)</option>
-                <option value={4} className="bg-[#0a1628] text-white">Format 4 - 2 Sets en 4 jeux (TB 4/4, No Ad)</option>
-                <option value={5} className="bg-[#0a1628] text-white">Format 5 - 2 Sets en 3 jeux (TB 2/2, No Ad)</option>
-                <option value={6} className="bg-[#0a1628] text-white">Format 6 - 2 Sets en 4 jeux (TB 3/3, No Ad)</option>
-                <option value={7} className="bg-[#0a1628] text-white">Format 7 - 2 Sets en 5 jeux (TB 4/4, No Ad)</option>
+                <option value={1} className="bg-[#0a1628] text-white">Format 1 - 3 Sets en 6 jeux (TB 6/6, Ad)</option>
+                <option value={2} className="bg-[#0a1628] text-white">Format 2 - 2 Sets en 6 jeux (TB 6/6, Ad) + Super TB</option>
+                <option value={3} className="bg-[#0a1628] text-white">Format 3 - 2 Sets en 4 jeux (TB 4/4, No Ad) + Super TB</option>
+                <option value={4} className="bg-[#0a1628] text-white">Format 4 - 2 Sets en 6 jeux (TB 6/6, No Ad) + Super TB</option>
+                <option value={5} className="bg-[#0a1628] text-white">Format 5 - 2 Sets en 3 jeux (TB 2/2, No Ad) + Super TB</option>
+                <option value={6} className="bg-[#0a1628] text-white">Format 6 - 2 Sets en 4 jeux (TB 3/3, No Ad) + Super TB</option>
+                <option value={7} className="bg-[#0a1628] text-white">Format 7 - 2 Sets en 5 jeux (TB 4/4, No Ad) + Super TB</option>
               </select>
 
               <div className="mt-3 space-y-2">

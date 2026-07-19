@@ -673,7 +673,7 @@ export function RulesPage() {
                         <tr className="border-b border-white/5 hover:bg-white/5">
                           <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 4</td>
                           <td className="px-3 py-3">2 sets en 4 jeux</td>
-                          <td className="px-3 py-3 text-center">4/4</td>
+                          <td className="px-3 py-3 text-center">6/6</td>
                           <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
                           <td className="px-3 py-3 text-center text-green-400">Oui</td>
                         </tr>
