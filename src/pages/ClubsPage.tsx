@@ -6,6 +6,7 @@ import { ClubList } from '../components/ClubList';
 import { loadAndSeedClubs, getClubsWithMetadata, getClubsByBounds } from '../utils/loadClubs';
 import { trackClubAction } from '../utils/analytics';
 import { useAlert } from '../hooks/useAlert';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type FilterState = {
   minCourts: number;
@@ -19,6 +20,7 @@ type FilterState = {
 };
 
 export function ClubsPage() {
+  const { t } = useLanguage();
   const { showAlert, AlertComponent } = useAlert();
   const [clubs, setClubs] = useState<Club[]>([]);
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
@@ -108,7 +110,7 @@ export function ClubsPage() {
   const handleInterestedChange = async (clubId: string, isInterested: boolean) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      showAlert('Vous devez être connecté pour marquer un club comme intéressant', { type: 'warning' });
+      showAlert(t('clubs.page.mustBeLoggedIn'), { type: 'warning' });
       return;
     }
 
@@ -201,7 +203,7 @@ export function ClubsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 bg-[#050d1a]">
         <Loader2 className="w-12 h-12 text-[#C8F135] animate-spin" />
-        <p className="text-gray-300">Chargement des clubs à proximité...</p>
+        <p className="text-gray-300">{t('clubs.page.loadingNearby')}</p>
       </div>
     );
   }
@@ -226,17 +228,17 @@ export function ClubsPage() {
             <div className="flex items-center gap-2 mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin w-5 h-5 text-[#C8F135]"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
               <span className="text-[#C8F135] text-sm font-medium tracking-widest uppercase">
-                Clubs & Courts
+                {t('clubs.page.hero.eyebrow')}
               </span>
             </div>
 
             <h1 className="text-5xl lg:text-7xl font-black text-white leading-tight tracking-tight mb-6">
-              Find Your<br />
-              <span className="text-[#C8F135]">Tennis Club</span>
+              {t('clubs.page.hero.title1')}<br />
+              <span className="text-[#C8F135]">{t('clubs.page.hero.title2')}</span>
             </h1>
 
             <p className="text-lg text-gray-300 max-w-2xl leading-relaxed">
-              Discover tennis clubs near you, view facilities, and find the perfect place to play
+              {t('clubs.page.hero.subtitle')}
             </p>
           </div>
         </section>

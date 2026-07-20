@@ -1,6 +1,7 @@
 import { BookOpen, Mic, Loader2, MessageCircle, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { useAlert } from '../hooks/useAlert';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -8,6 +9,7 @@ interface Message {
 }
 
 export function RulesPage() {
+  const { t } = useLanguage();
   const { showAlert, AlertComponent } = useAlert();
   const [question, setQuestion] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -66,7 +68,7 @@ export function RulesPage() {
       setIsRecording(true);
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      showAlert('Impossible d\'accéder au microphone. Veuillez vérifier les permissions.', { type: 'error' });
+      showAlert(t('rules.chat.errors.micPermission'), { type: 'error' });
     }
   };
 
@@ -105,7 +107,7 @@ export function RulesPage() {
       const transcribedText = transcribeData.text;
 
       if (!transcribedText || transcribedText.trim().length === 0) {
-        throw new Error('Aucune parole détectée. Veuillez réessayer.');
+        throw new Error(t('rules.chat.errors.noSpeechDetected'));
       }
 
       setIsTranscribing(false);
@@ -145,7 +147,7 @@ export function RulesPage() {
       const chatData = await chatResponse.json();
       const assistantMessage: Message = {
         role: 'assistant',
-        content: chatData.reply || 'Désolé, je n\'ai pas pu générer une réponse.'
+        content: chatData.reply || t('rules.chat.errors.noReplyFallback')
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -154,8 +156,8 @@ export function RulesPage() {
       const errorMessage: Message = {
         role: 'assistant',
         content: error instanceof Error
-          ? `Erreur: ${error.message}`
-          : 'Désolé, une erreur s\'est produite lors du traitement audio. Veuillez réessayer.'
+          ? `${t('rules.chat.errors.errorPrefix')}${error.message}`
+          : t('rules.chat.errors.audioProcessingFailed')
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -205,7 +207,7 @@ export function RulesPage() {
       const data = await response.json();
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.reply || 'Désolé, je n\'ai pas pu générer une réponse.'
+        content: data.reply || t('rules.chat.errors.noReplyFallback')
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -213,7 +215,7 @@ export function RulesPage() {
       console.error('Error submitting question:', error);
       const errorMessage: Message = {
         role: 'assistant',
-        content: 'Désolé, une erreur s\'est produite. Veuillez réessayer.'
+        content: t('rules.chat.errors.genericRetry')
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -235,15 +237,15 @@ export function RulesPage() {
           <div className="flex items-center gap-2 mb-6">
             <BookOpen className="w-5 h-5 text-[#C8F135]" />
             <span className="text-[#C8F135] text-sm font-medium tracking-widest uppercase">
-              Tennis Rules
+              {t('rules.chat.hero.eyebrow')}
             </span>
           </div>
           <h1 className="text-5xl lg:text-7xl font-black text-white leading-tight tracking-tight mb-6">
-            Master the<br />
-            <span className="text-[#C8F135]">Rules</span>
+            {t('rules.chat.hero.title1')}<br />
+            <span className="text-[#C8F135]">{t('rules.chat.hero.title2')}</span>
           </h1>
           <p className="text-lg text-gray-300 max-w-2xl leading-relaxed">
-            Learn and understand official tennis rules with AI-powered assistance
+            {t('rules.chat.hero.subtitle')}
           </p>
         </div>
 
@@ -255,7 +257,7 @@ export function RulesPage() {
                 <MessageCircle className="w-5 h-5 text-[#C8F135]" />
               </div>
               <h3 className="text-lg font-semibold text-white">
-                Explication d'une règle
+                {t('rules.chat.title')}
               </h3>
             </div>
             <form onSubmit={handleTextSubmit} className="space-y-4">
@@ -264,7 +266,7 @@ export function RulesPage() {
                   type="text"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Posez votre question sur les règles du tennis..."
+                  placeholder={t('rules.chat.placeholder')}
                   className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] outline-none transition-all bg-white/5 border-white/10 text-white hover:border-white/20 placeholder:text-gray-500"
                   disabled={isSubmitting || isRecording || isTranscribing}
                 />
@@ -277,7 +279,7 @@ export function RulesPage() {
                       ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
                       : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  title={isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer une question vocale'}
+                  title={isRecording ? t('rules.chat.micStop') : t('rules.chat.micStart')}
                 >
                   <Mic className="w-5 h-5" />
                 </button>
@@ -290,15 +292,15 @@ export function RulesPage() {
                 {isTranscribing ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Transcription en cours...
+                    {t('rules.chat.transcribing')}
                   </>
                 ) : isSubmitting ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Traitement en cours...
+                    {t('rules.chat.processing')}
                   </>
                 ) : (
-                  'Soumettre'
+                  t('rules.chat.submit')
                 )}
               </button>
             </form>
@@ -320,7 +322,7 @@ export function RulesPage() {
                       )}
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-white mb-1">
-                          {message.role === 'user' ? 'Vous' : 'Assistant Tennis'}
+                          {message.role === 'user' ? t('rules.chat.roleUser') : t('rules.chat.roleAssistant')}
                         </p>
                         <p className="text-sm text-gray-300 whitespace-pre-wrap">
                           {message.content}
@@ -341,13 +343,13 @@ export function RulesPage() {
                 <BookOpen className="w-5 h-5 text-[#C8F135]" />
               </div>
               <h3 className="text-lg font-semibold text-white">
-                Règles du Tennis
+                {t('rules.reference.title')}
               </h3>
             </div>
             <div className="prose prose-sm max-w-none">
               <div className="mb-6">
                 <div className="flex items-center justify-between flex-wrap gap-3">
-                  <h4 className="text-lg font-bold text-white">Règles Officielles du Tennis (ITF)</h4>
+                  <h4 className="text-lg font-bold text-white">{t('rules.reference.officialTitle')}</h4>
                   <a
                     href="https://www.itftennis.com/media/7221/2026-rules-of-tennis-english.pdf"
                     target="_blank"
@@ -359,42 +361,40 @@ export function RulesPage() {
                   </a>
                 </div>
                 <p className="text-sm text-gray-400 mt-3 mb-4">
-                  Voici un résumé des règles essentielles du tennis selon la Fédération Internationale de Tennis (ITF).
+                  {t('rules.reference.intro')}
                 </p>
 
                 {/* Table of Contents */}
                 <nav className="bg-white/5 border border-white/10 rounded-xl p-4 mb-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Sommaire</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('rules.reference.tocTitle')}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                    <a href="#section-court" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">1. Le Court</a>
-                    <a href="#section-comptage" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">2. Le Comptage des Points</a>
-                    <a href="#section-toss" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">3. Le Tirage au Sort (Toss)</a>
-                    <a href="#section-service" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">4. Le Service</a>
-                    <a href="#section-echange" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">5. L'Échange</a>
-                    <a href="#section-perte" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">6. Perte de Point</a>
-                    <a href="#section-tiebreak" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">7. Le Tie-Break</a>
-                    <a href="#section-erreurs" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">8. Correction des Erreurs</a>
-                    <a href="#section-formats" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">9. Formats de Match FFT</a>
-                    <a href="#section-classement" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">10. Classement FFT</a>
-                    <a href="#section-utr" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">11. Tableau de Conversion UTR</a>
+                    <a href="#section-court" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.court.title')}</a>
+                    <a href="#section-comptage" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.comptage.title')}</a>
+                    <a href="#section-toss" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.toss.title')}</a>
+                    <a href="#section-service" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.service.title')}</a>
+                    <a href="#section-echange" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.echange.title')}</a>
+                    <a href="#section-perte" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.perte.title')}</a>
+                    <a href="#section-tiebreak" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.tiebreak.title')}</a>
+                    <a href="#section-erreurs" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.erreurs.title')}</a>
+                    <a href="#section-formats" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.formats.title')}</a>
+                    <a href="#section-classement" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.classement.title')}</a>
+                    <a href="#section-utr" className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5">{t('rules.reference.utr.title')}</a>
                   </div>
                 </nav>
               </div>
 
               <div className="space-y-6">
                 <div id="section-court">
-                  <h5 className="font-bold text-white mb-2">1. Le Court</h5>
+                  <h5 className="font-bold text-white mb-2">{t('rules.reference.court.title')}</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                    <li>Dimensions: 23.77m x 8.23m (simple) ou 10.97m (double)</li>
-                    <li>Hauteur du filet: 0.914m au centre, 1.07m aux poteaux</li>
-                    <li>Surface: Terre battue, gazon, dur ou synthétique</li>
+                    {t('rules.reference.court.items').split('\n').map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
 
                   {/* Court and Net Drawings */}
                   <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Tennis Court Top View */}
                     <div className="lg:col-span-2 bg-[#0a1628] border border-white/10 rounded-xl p-4">
-                      <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">Vue de dessus - Dimensions du court</p>
+                      <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">{t('rules.reference.svg.courtTopViewCaption')}</p>
                       <svg viewBox="0 0 500 260" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
                         {/* Court background */}
                         <rect x="30" y="20" width="440" height="220" fill="#1A6FC4" rx="2" />
@@ -451,22 +451,22 @@ export function RulesPage() {
                         <circle cx="250" cy="240" r="3" fill="#C8F135" />
 
                         {/* Labels */}
-                        <text x="185" y="90" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">Carré de</text>
-                        <text x="185" y="100" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">service</text>
-                        <text x="315" y="160" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">Carré de</text>
-                        <text x="315" y="170" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">service</text>
-                        <text x="75" y="130" textAnchor="middle" fill="white" fontSize="8" opacity="0.5">Fond</text>
-                        <text x="425" y="130" textAnchor="middle" fill="white" fontSize="8" opacity="0.5">Fond</text>
+                        <text x="185" y="90" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">{t('rules.reference.svg.serviceBoxWord1')}</text>
+                        <text x="185" y="100" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">{t('rules.reference.svg.serviceBoxWord2')}</text>
+                        <text x="315" y="160" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">{t('rules.reference.svg.serviceBoxWord1')}</text>
+                        <text x="315" y="170" textAnchor="middle" fill="white" fontSize="8" opacity="0.7">{t('rules.reference.svg.serviceBoxWord2')}</text>
+                        <text x="75" y="130" textAnchor="middle" fill="white" fontSize="8" opacity="0.5">{t('rules.reference.svg.baseline')}</text>
+                        <text x="425" y="130" textAnchor="middle" fill="white" fontSize="8" opacity="0.5">{t('rules.reference.svg.baseline')}</text>
 
                         {/* Doubles alley labels (couloirs) */}
-                        <text x="250" y="34" textAnchor="middle" fill="white" fontSize="7" opacity="0.5">Couloir (Doubles Alley)</text>
-                        <text x="250" y="232" textAnchor="middle" fill="white" fontSize="7" opacity="0.5">Couloir (Doubles Alley)</text>
+                        <text x="250" y="34" textAnchor="middle" fill="white" fontSize="7" opacity="0.5">{t('rules.reference.svg.doublesAlley')}</text>
+                        <text x="250" y="232" textAnchor="middle" fill="white" fontSize="7" opacity="0.5">{t('rules.reference.svg.doublesAlley')}</text>
                       </svg>
                     </div>
 
                     {/* Net Side View */}
                     <div className="bg-[#0a1628] border border-white/10 rounded-xl p-4">
-                      <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">Vue de côté - Le Filet</p>
+                      <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">{t('rules.reference.svg.netSideViewCaption')}</p>
                       <svg viewBox="0 0 200 180" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
                         {/* Ground line */}
                         <line x1="10" y1="150" x2="190" y2="150" stroke="#4B5563" strokeWidth="2" />
@@ -523,277 +523,248 @@ export function RulesPage() {
 
                         {/* Dimension: Center height (0.914m) */}
                         <line x1="100" y1="68" x2="100" y2="150" stroke="#C8F135" strokeWidth="0.8" strokeDasharray="2 2" />
-                        <text x="100" y="170" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">0.914m (centre)</text>
+                        <text x="100" y="170" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.centerHeightLabel')}</text>
 
                         {/* Dimension: Width */}
                         <line x1="20" y1="160" x2="180" y2="160" stroke="#C8F135" strokeWidth="1" />
                         <line x1="20" y1="156" x2="20" y2="164" stroke="#C8F135" strokeWidth="1" />
                         <line x1="180" y1="156" x2="180" y2="164" stroke="#C8F135" strokeWidth="1" />
-                        <text x="100" y="178" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">12.80m (double)</text>
+                        <text x="100" y="178" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.doubleWidthLabel')}</text>
 
                         {/* Singles sticks label */}
                         <line x1="37" y1="42" x2="37" y2="56" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1 1" />
                         <line x1="163" y1="42" x2="163" y2="56" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1 1" />
-                        <text x="100" y="40" textAnchor="middle" fill="#C8F135" fontSize="6.5">Piquets de simple (0.914m hors court simple)</text>
+                        <text x="100" y="40" textAnchor="middle" fill="#C8F135" fontSize="6.5">{t('rules.reference.svg.singlesSticksLabel')}</text>
                       </svg>
                     </div>
                   </div>
                 </div>
 
                 <div id="section-comptage">
-                  <h5 className="font-bold text-white mb-2">2. Le Comptage des Points</h5>
+                  <h5 className="font-bold text-white mb-2">{t('rules.reference.comptage.title')}</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                    <li><strong>Points:</strong> 0 (zéro), 15, 30, 40, Jeu</li>
-                    <li><strong>Égalité:</strong> À 40-40 (deuce), il faut gagner 2 points consécutifs</li>
-                    <li><strong>Jeu:</strong> Le premier à 4 points avec 2 points d'écart</li>
-                    <li><strong>Set:</strong> Le premier à 6 jeux avec 2 jeux d'écart (ou tie-break à 6-6)</li>
-                    <li><strong>Match:</strong> Généralement le meilleur de 3 sets (ou 5 sets en Grand Chelem hommes)</li>
+                    {t('rules.reference.comptage.items').split('\n').map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
                 </div>
 
                 <div id="section-toss">
-                  <h5 className="font-bold text-white mb-2">3. Le Tirage au Sort (Toss)</h5>
+                  <h5 className="font-bold text-white mb-2">{t('rules.reference.toss.title')}</h5>
                   <p className="text-sm text-gray-300 mb-3">
-                    Le choix des côtés et le choix d'être serveur ou relanceur au premier jeu sont décidés par tirage au sort avant le début de l'échauffement.
+                    {t('rules.reference.toss.intro')}
                   </p>
                   <p className="text-sm text-gray-300 mb-2">
-                    Le joueur/l'équipe qui remporte le tirage au sort peut choisir :
+                    {t('rules.reference.toss.choicesIntro')}
                   </p>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-2 ml-2">
-                    <li><strong>a.</strong> D'être serveur ou relanceur au premier jeu du match, auquel cas l'adversaire choisit le côté du court pour le premier jeu ;</li>
-                    <li><strong>b.</strong> Le côté du court pour le premier jeu, auquel cas l'adversaire choisit d'être serveur ou relanceur au premier jeu ;</li>
-                    <li><strong>c.</strong> De demander à l'adversaire de faire l'un des choix ci-dessus.</li>
+                    {t('rules.reference.toss.choices').split('\n').map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
                   <div className="mt-3 bg-[#C8F135]/5 border border-[#C8F135]/20 rounded-lg p-3">
                     <p className="text-xs text-gray-400">
-                      <strong className="text-[#C8F135]">Case :</strong> Dans les événements en équipes, la Règle 9 s'applique au premier point de chaque match « mort » (caoutchouc) et non au début de chaque match individuel de la rencontre.
+                      <strong className="text-[#C8F135]">{t('rules.reference.toss.noteLabel')}</strong> {t('rules.reference.toss.note')}
                     </p>
                   </div>
                 </div>
 
                 <div id="section-service">
-                  <h5 className="font-bold text-white mb-2">4. Le Service</h5>
+                  <h5 className="font-bold text-white mb-2">{t('rules.reference.service.title')}</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                    <li>Le serveur doit se tenir derrière la ligne de fond</li>
-                    <li>Le service alterne entre côté droit et gauche</li>
-                    <li>La balle doit passer au-dessus du filet et atterrir dans le carré de service diagonal</li>
-                    <li>Deux tentatives sont autorisées (premier et deuxième service)</li>
-                    <li>Une double faute donne le point à l'adversaire</li>
+                    {t('rules.reference.service.items').split('\n').map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
                 </div>
 
                 <div id="section-echange">
-                  <h5 className="font-bold text-white mb-2">5. L'Échange</h5>
+                  <h5 className="font-bold text-white mb-2">{t('rules.reference.echange.title')}</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                    <li>La balle ne peut rebondir qu'une seule fois avant d'être frappée</li>
-                    <li>La balle doit passer au-dessus du filet et retomber dans les limites du court</li>
-                    <li>Les joueurs alternent les frappes jusqu'à ce qu'un point soit marqué</li>
-                    <li>Un let (balle qui touche le filet au service) permet de rejouer le point</li>
+                    {t('rules.reference.echange.items').split('\n').map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
                 </div>
 
                 <div id="section-perte">
-                  <h5 className="font-bold text-white mb-2">6. Perte de Point</h5>
+                  <h5 className="font-bold text-white mb-2">{t('rules.reference.perte.title')}</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                    <li>La balle rebondit deux fois du même côté</li>
-                    <li>La balle sort des limites du court</li>
-                    <li>Le joueur touche le filet avec sa raquette ou son corps pendant le jeu</li>
-                    <li>La balle touche le joueur ou ses vêtements</li>
-                    <li>Le joueur frappe la balle avant qu'elle ait traversé le filet</li>
-                    <li>Double faute au service</li>
+                    {t('rules.reference.perte.items').split('\n').map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
                 </div>
 
                 <div id="section-tiebreak">
-                  <h5 className="font-bold text-white mb-2">7. Le Tie-Break</h5>
+                  <h5 className="font-bold text-white mb-2">{t('rules.reference.tiebreak.title')}</h5>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                    <li>Joué à 6 jeux partout (sauf si règles spécifiques du tournoi)</li>
-                    <li>Premier à 7 points avec 2 points d'écart</li>
-                    <li>Le service alterne tous les 2 points</li>
-                    <li>Changement de côté tous les 6 points</li>
+                    {t('rules.reference.tiebreak.items').split('\n').map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
                 </div>
 
                 <div id="section-erreurs">
-                  <h5 className="font-bold text-white mb-2">8. Correction des Erreurs</h5>
+                  <h5 className="font-bold text-white mb-2">{t('rules.reference.erreurs.title')}</h5>
                   <p className="text-sm text-gray-300 mb-3">
-                    En cas d'erreur dans l'application des Règles du Tennis, les corrections suivantes s'appliquent :
+                    {t('rules.reference.erreurs.intro')}
                   </p>
                   <ul className="list-disc list-inside text-sm text-gray-300 space-y-2">
-                    <li><strong>a.</strong> Si un joueur sert depuis le mauvais demi-court et que cela n'est pas découvert, tous les points joués comptent. Cependant, la position incorrecte doit être corrigée immédiatement après la découverte.</li>
-                    <li><strong>b.</strong> Si un joueur sert depuis le mauvais côté du court (en termes de changements de côté), l'erreur doit être corrigée dès qu'elle est découverte. Le score acquis est maintenu.</li>
-                    <li><strong>c.</strong> Si un joueur (ou une équipe) devait servir en premier dans un jeu et que le mauvais joueur a servi, le joueur qui aurait dû servir doit servir dès que l'erreur est découverte. Le score est conservé, y compris les fautes de service déjà commises. En double, si les partenaires ont servi dans le mauvais ordre, la faute de service commise avant la découverte de l'erreur ne compte pas.</li>
-                    <li><strong>d.</strong> Si un jeu est terminé et que l'ordre de service n'était pas correct, l'ordre de service reste modifié (tel qu'il a été joué) jusqu'à la fin du set.</li>
-                    <li><strong>e.</strong> Pendant un tie-break, si l'ordre de service ou de relance est incorrect, toute faute de service commise avant la découverte compte. La correction est effectuée immédiatement si un nombre pair de points a été joué ; si un nombre impair a été joué, l'erreur est maintenue.</li>
-                    <li><strong>f.</strong> Pendant un tie-break, si les joueurs n'ont pas changé de côté au bon moment, l'erreur est corrigée dès qu'un nombre pair de points a été joué depuis l'erreur. Le score acquis est conservé.</li>
-                    <li><strong>g.</strong> Si le mauvais type de set a été joué (avantage au lieu de tie-break ou vice versa), le score acquis est conservé sauf si l'erreur est découverte alors que la correction est encore possible sans recommencer le set.</li>
-                    <li><strong>h.</strong> En double, si un joueur reçoit le service dans le mauvais demi-court, l'ordre de réception reste tel quel jusqu'à la fin du set dans lequel il est découvert.</li>
-                    <li><strong>i.</strong> Si des balles ne sont pas changées au bon moment, l'erreur est corrigée au jeu suivant où le(s) joueur(s) qui aurai(en)t dû servir avec les nouvelles balles doi(ven)t servir. Le changement ne peut être fait pendant un jeu en cours.</li>
+                    {t('rules.reference.erreurs.items').split('\n').map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
                 </div>
 
                 <div id="section-formats">
-                  <h5 className="font-bold text-white mb-4">9. Formats de Match FFT</h5>
+                  <h5 className="font-bold text-white mb-4">{t('rules.reference.formats.title')}</h5>
                   <p className="text-sm text-gray-400 mb-4">
-                    La Fédération Française de Tennis (FFT) définit 7 formats officiels de match adaptés aux différentes catégories d'âge et niveaux.
+                    {t('rules.reference.formats.intro')}
                   </p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="bg-[#C8F135]/10 border-b border-white/10">
-                          <th className="px-3 py-3 text-left font-semibold text-white">Format</th>
-                          <th className="px-3 py-3 text-left font-semibold text-white">Structure</th>
-                          <th className="px-3 py-3 text-center font-semibold text-white">TB</th>
-                          <th className="px-3 py-3 text-center font-semibold text-white">Super TB</th>
-                          <th className="px-3 py-3 text-center font-semibold text-white">No Ad</th>
+                          <th className="px-3 py-3 text-left font-semibold text-white">{t('rules.reference.formats.colFormat')}</th>
+                          <th className="px-3 py-3 text-left font-semibold text-white">{t('rules.reference.formats.colStructure')}</th>
+                          <th className="px-3 py-3 text-center font-semibold text-white">{t('rules.reference.formats.colTB')}</th>
+                          <th className="px-3 py-3 text-center font-semibold text-white">{t('rules.reference.formats.colSuperTB')}</th>
+                          <th className="px-3 py-3 text-center font-semibold text-white">{t('rules.reference.formats.colNoAd')}</th>
                         </tr>
                       </thead>
                       <tbody className="text-gray-300">
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 1</td>
-                          <td className="px-3 py-3">3 sets en 6 jeux</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.formats.format1')}</td>
+                          <td className="px-3 py-3">{t('rules.reference.formats.structure3sets6jeux')}</td>
                           <td className="px-3 py-3 text-center">6/6</td>
-                          <td className="px-3 py-3 text-center text-red-400">Non</td>
-                          <td className="px-3 py-3 text-center text-red-400">Non</td>
+                          <td className="px-3 py-3 text-center text-red-400">{t('common.no')}</td>
+                          <td className="px-3 py-3 text-center text-red-400">{t('common.no')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 2</td>
-                          <td className="px-3 py-3">2 sets en 6 jeux</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.formats.format2')}</td>
+                          <td className="px-3 py-3">{t('rules.reference.formats.structure2sets6jeux')}</td>
                           <td className="px-3 py-3 text-center">6/6</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
-                          <td className="px-3 py-3 text-center text-red-400">Non</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('rules.reference.formats.yesTenPoints')}</td>
+                          <td className="px-3 py-3 text-center text-red-400">{t('common.no')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 3</td>
-                          <td className="px-3 py-3">2 sets en 4 jeux</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.formats.format3')}</td>
+                          <td className="px-3 py-3">{t('rules.reference.formats.structure2sets4jeux')}</td>
                           <td className="px-3 py-3 text-center">4/4</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('rules.reference.formats.yesTenPoints')}</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('common.yes')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 4</td>
-                          <td className="px-3 py-3">2 sets en 4 jeux</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.formats.format4')}</td>
+                          <td className="px-3 py-3">{t('rules.reference.formats.structure2sets4jeux')}</td>
                           <td className="px-3 py-3 text-center">6/6</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('rules.reference.formats.yesTenPoints')}</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('common.yes')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 5</td>
-                          <td className="px-3 py-3">2 sets en 3 jeux</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.formats.format5')}</td>
+                          <td className="px-3 py-3">{t('rules.reference.formats.structure2sets3jeux')}</td>
                           <td className="px-3 py-3 text-center">2/2</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('rules.reference.formats.yesTenPoints')}</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('common.yes')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 6</td>
-                          <td className="px-3 py-3">2 sets en 4 jeux</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.formats.format6')}</td>
+                          <td className="px-3 py-3">{t('rules.reference.formats.structure2sets4jeux')}</td>
                           <td className="px-3 py-3 text-center">3/3</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('rules.reference.formats.yesTenPoints')}</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('common.yes')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">Format 7</td>
-                          <td className="px-3 py-3">2 sets en 5 jeux</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.formats.format7')}</td>
+                          <td className="px-3 py-3">{t('rules.reference.formats.structure2sets5jeux')}</td>
                           <td className="px-3 py-3 text-center">4/4</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui (10pts)</td>
-                          <td className="px-3 py-3 text-center text-green-400">Oui</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('rules.reference.formats.yesTenPoints')}</td>
+                          <td className="px-3 py-3 text-center text-green-400">{t('common.yes')}</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
                   <div className="mt-4 space-y-2 text-xs text-gray-400">
-                    <p><strong className="text-gray-300">TB:</strong> Score auquel le tie-break est déclenché (7 points, 2 d'écart).</p>
-                    <p><strong className="text-gray-300">Super Tie-Break:</strong> Au lieu d'un 3ème set, un super tie-break en 10 points (2 d'écart) est joué.</p>
-                    <p><strong className="text-gray-300">No Ad:</strong> Pas d'avantage. A 40-40, le point suivant est décisif (le receveur choisit le côté).</p>
+                    <p><strong className="text-gray-300">{t('rules.reference.formats.tbNoteLabel')}</strong> {t('rules.reference.formats.tbNote')}</p>
+                    <p><strong className="text-gray-300">{t('rules.reference.formats.superTbNoteLabel')}</strong> {t('rules.reference.formats.superTbNote')}</p>
+                    <p><strong className="text-gray-300">{t('rules.reference.formats.noAdNoteLabel')}</strong> {t('rules.reference.formats.noAdNote')}</p>
                   </div>
                   <div className="mt-4 bg-blue-500/10 border border-blue-400/30 rounded-xl p-3">
                     <p className="text-xs text-blue-300">
-                      <strong>Source:</strong> Fédération Française de Tennis - Règlement des formats de matchs 2024-2025.
+                      <strong>{t('rules.reference.formats.sourceLabel')}</strong> {t('rules.reference.formats.source')}
                     </p>
                   </div>
                 </div>
 
                 <div id="section-classement">
-                  <h5 className="font-bold text-white mb-4">10. Classement FFT</h5>
+                  <h5 className="font-bold text-white mb-4">{t('rules.reference.classement.title')}</h5>
                   <p className="text-sm text-gray-400 mb-4">
-                    Le classement FFT est organisé en 5 séries, du niveau débutant au niveau professionnel. Il est calculé mensuellement sur les 12 derniers mois glissants.
+                    {t('rules.reference.classement.intro')}
                   </p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="bg-[#C8F135]/10 border-b border-white/10">
-                          <th className="px-3 py-3 text-left font-semibold text-white">Série</th>
-                          <th className="px-3 py-3 text-left font-semibold text-white">Échelons</th>
-                          <th className="px-3 py-3 text-left font-semibold text-white">Niveau</th>
+                          <th className="px-3 py-3 text-left font-semibold text-white">{t('rules.reference.classement.colSerie')}</th>
+                          <th className="px-3 py-3 text-left font-semibold text-white">{t('rules.reference.classement.colEchelons')}</th>
+                          <th className="px-3 py-3 text-left font-semibold text-white">{t('rules.reference.classement.colNiveau')}</th>
                         </tr>
                       </thead>
                       <tbody className="text-gray-300">
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">5e série</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.classement.serie5')}</td>
                           <td className="px-3 py-3">NC, 40/2, 40/1</td>
-                          <td className="px-3 py-3 text-gray-400">Débutant / Initiation</td>
+                          <td className="px-3 py-3 text-gray-400">{t('rules.reference.classement.niveau5')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">4e série</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.classement.serie4')}</td>
                           <td className="px-3 py-3">40, 30/5, 30/4, 30/3, 30/2, 30/1</td>
-                          <td className="px-3 py-3 text-gray-400">Compétiteur loisir</td>
+                          <td className="px-3 py-3 text-gray-400">{t('rules.reference.classement.niveau4')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">3e série</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.classement.serie3')}</td>
                           <td className="px-3 py-3">30, 15/5, 15/4, 15/3, 15/2, 15/1</td>
-                          <td className="px-3 py-3 text-gray-400">Compétiteur confirmé</td>
+                          <td className="px-3 py-3 text-gray-400">{t('rules.reference.classement.niveau3')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">2e série</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.classement.serie2')}</td>
                           <td className="px-3 py-3">15, 5/6, 4/6, 3/6, 2/6, 1/6, 0, -2/6, -4/6, -15, -30</td>
-                          <td className="px-3 py-3 text-gray-400">Haut niveau / Semi-pro</td>
+                          <td className="px-3 py-3 text-gray-400">{t('rules.reference.classement.niveau2')}</td>
                         </tr>
                         <tr className="border-b border-white/5 hover:bg-white/5">
-                          <td className="px-3 py-3 font-semibold text-[#C8F135]">1re série</td>
+                          <td className="px-3 py-3 font-semibold text-[#C8F135]">{t('rules.reference.classement.serie1')}</td>
                           <td className="px-3 py-3">Promotion, 1re série</td>
-                          <td className="px-3 py-3 text-gray-400">Top 30 H / Top 20 F national</td>
+                          <td className="px-3 py-3 text-gray-400">{t('rules.reference.classement.niveau1')}</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
                   <div className="mt-5">
-                    <h6 className="font-semibold text-white text-sm mb-3">Points par victoire (barème)</h6>
+                    <h6 className="font-semibold text-white text-sm mb-3">{t('rules.reference.classement.pointsTitle')}</h6>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm border-collapse">
                         <thead>
                           <tr className="bg-white/5 border-b border-white/10">
-                            <th className="px-3 py-2 text-left font-semibold text-white">Adversaire</th>
-                            <th className="px-3 py-2 text-right font-semibold text-white">Points</th>
+                            <th className="px-3 py-2 text-left font-semibold text-white">{t('rules.reference.classement.colAdversaire')}</th>
+                            <th className="px-3 py-2 text-right font-semibold text-white">{t('rules.reference.classement.colPoints')}</th>
                           </tr>
                         </thead>
                         <tbody className="text-gray-300">
                           <tr className="border-b border-white/5">
-                            <td className="px-3 py-2">+2 échelons ou plus</td>
+                            <td className="px-3 py-2">{t('rules.reference.classement.opp2plus')}</td>
                             <td className="px-3 py-2 text-right font-semibold text-green-400">+120</td>
                           </tr>
                           <tr className="border-b border-white/5">
-                            <td className="px-3 py-2">+1 échelon</td>
+                            <td className="px-3 py-2">{t('rules.reference.classement.opp1plus')}</td>
                             <td className="px-3 py-2 text-right font-semibold text-green-400">+90</td>
                           </tr>
                           <tr className="border-b border-white/5">
-                            <td className="px-3 py-2">Échelon égal</td>
+                            <td className="px-3 py-2">{t('rules.reference.classement.oppEqual')}</td>
                             <td className="px-3 py-2 text-right font-semibold text-blue-400">+60</td>
                           </tr>
                           <tr className="border-b border-white/5">
-                            <td className="px-3 py-2">-1 échelon</td>
+                            <td className="px-3 py-2">{t('rules.reference.classement.opp1minus')}</td>
                             <td className="px-3 py-2 text-right font-semibold text-yellow-400">+30</td>
                           </tr>
                           <tr className="border-b border-white/5">
-                            <td className="px-3 py-2">-2 échelons</td>
+                            <td className="px-3 py-2">{t('rules.reference.classement.opp2minus')}</td>
                             <td className="px-3 py-2 text-right font-semibold text-orange-400">+20</td>
                           </tr>
                           <tr className="border-b border-white/5">
-                            <td className="px-3 py-2">-3 échelons</td>
+                            <td className="px-3 py-2">{t('rules.reference.classement.opp3minus')}</td>
                             <td className="px-3 py-2 text-right font-semibold text-orange-400">+15</td>
                           </tr>
                           <tr className="border-b border-white/5">
-                            <td className="px-3 py-2">-4 échelons ou plus</td>
+                            <td className="px-3 py-2">{t('rules.reference.classement.opp4minus')}</td>
                             <td className="px-3 py-2 text-right font-semibold text-red-400">0</td>
                           </tr>
                         </tbody>
@@ -802,31 +773,31 @@ export function RulesPage() {
                   </div>
 
                   <div className="mt-5">
-                    <h6 className="font-semibold text-white text-sm mb-3">Conditions de montée (5e série)</h6>
+                    <h6 className="font-semibold text-white text-sm mb-3">{t('rules.reference.classement.promotionTitle')}</h6>
                     <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                      <li><strong className="text-white">40/2:</strong> 4 victoires minimum sur 12 mois (simple ou double, tout format)</li>
-                      <li><strong className="text-white">40/1:</strong> 8 victoires minimum sur 12 mois (hors W.O.)</li>
-                      <li><strong className="text-white">40:</strong> 12 victoires toutes conditions, ou 1 victoire en condition verte/jaune contre un 40, ou 1 victoire "en perf" en double</li>
+                      <li><strong className="text-white">{t('rules.reference.classement.promotion402Label')}</strong> {t('rules.reference.classement.promotion402')}</li>
+                      <li><strong className="text-white">{t('rules.reference.classement.promotion401Label')}</strong> {t('rules.reference.classement.promotion401')}</li>
+                      <li><strong className="text-white">{t('rules.reference.classement.promotion40Label')}</strong> {t('rules.reference.classement.promotion40')}</li>
                     </ul>
                   </div>
 
                   <div className="mt-4 bg-blue-500/10 border border-blue-400/30 rounded-xl p-3">
                     <p className="text-xs text-blue-300">
-                      <strong>Mise à jour:</strong> Depuis le 1er juillet 2025, la FFT a créé la 5e série avec les échelons 40/2 et 40/1 pour faciliter l'accès à la compétition. Le classement est mis à jour chaque premier mardi du mois.
+                      <strong>{t('rules.reference.classement.updateLabel')}</strong> {t('rules.reference.classement.update')}
                     </p>
                   </div>
                 </div>
 
                 <div id="section-utr">
-                  <h5 className="font-bold text-white mb-4">11. Tableau de Conversion UTR</h5>
+                  <h5 className="font-bold text-white mb-4">{t('rules.reference.utr.title')}</h5>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="bg-[#C8F135]/10 border-b border-white/10">
-                          <th className="px-4 py-3 text-left font-semibold text-white">UTR</th>
-                          <th className="px-4 py-3 text-left font-semibold text-white">France</th>
-                          <th className="px-4 py-3 text-left font-semibold text-white">GBR</th>
-                          <th className="px-4 py-3 text-left font-semibold text-white">USA</th>
+                          <th className="px-4 py-3 text-left font-semibold text-white">{t('rules.reference.utr.colUTR')}</th>
+                          <th className="px-4 py-3 text-left font-semibold text-white">{t('rules.reference.utr.colFrance')}</th>
+                          <th className="px-4 py-3 text-left font-semibold text-white">{t('rules.reference.utr.colGBR')}</th>
+                          <th className="px-4 py-3 text-left font-semibold text-white">{t('rules.reference.utr.colUSA')}</th>
                         </tr>
                       </thead>
                       <tbody className="text-gray-300">
@@ -900,14 +871,13 @@ export function RulesPage() {
                     </table>
                   </div>
                   <p className="text-xs text-gray-400 mt-3">
-                    UTR (Universal Tennis Rating) est un système international d'évaluation du niveau des joueurs de tennis.
+                    {t('rules.reference.utr.footer')}
                   </p>
                 </div>
 
                 <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-4">
                   <p className="text-sm text-blue-300">
-                    <strong>Note:</strong> Ces règles sont un résumé simplifié. Pour les règles officielles complètes,
-                    consultez le site de la FFT (Fédération Française de Tennis) ou de l'ITF (International Tennis Federation).
+                    <strong>{t('rules.reference.finalNoteLabel')}</strong> {t('rules.reference.finalNote')}
                   </p>
                 </div>
               </div>

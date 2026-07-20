@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { Club } from '../lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const iconClub = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -117,6 +118,7 @@ type ClubMapViewProps = {
 };
 
 export function ClubMapView({ clubs, selectedClub, onSelectClub, userLocation, onBoundsChange, initialCenter, interestedClubIds }: ClubMapViewProps) {
+  const { t } = useLanguage();
   const defaultCenter: [number, number] = initialCenter || [48.8566, 2.3522];
 
   const groupedClubs = clubs.reduce((acc, club) => {
@@ -153,7 +155,7 @@ export function ClubMapView({ clubs, selectedClub, onSelectClub, userLocation, o
               html: '<div style="background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>'
             })}
           >
-            <Popup>Vous êtes ici</Popup>
+            <Popup>{t('clubs.map.youAreHere')}</Popup>
           </Marker>
         )}
 
@@ -182,7 +184,7 @@ export function ClubMapView({ clubs, selectedClub, onSelectClub, userLocation, o
                 {isMultiple ? (
                   <div className="space-y-2">
                     <div className="text-sm font-semibold mb-2">
-                      {clubsAtLocation.length} clubs à cet emplacement
+                      {t('clubs.map.clubsAtLocation').replace('{n}', String(clubsAtLocation.length))}
                     </div>
                     {clubsAtLocation.map((club) => (
                       <div

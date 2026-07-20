@@ -145,7 +145,7 @@ export function SettingsPage() {
 
       window.history.replaceState({}, document.title, window.location.pathname + window.location.hash.split('?')[0]);
 
-      showAlert('Welcome to Premium! Your subscription is now active.', { type: 'success' });
+      showAlert(t('settings.subscription.welcomePremium'), { type: 'success' });
     }
   };
 
@@ -180,7 +180,7 @@ export function SettingsPage() {
       showAlert(t('settings.updateProfile'), { type: 'success' });
     } catch (error) {
       console.error('Error saving settings:', error);
-      showAlert('Error saving settings', { type: 'error' });
+      showAlert(t('settings.errors.saveSettings'), { type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -188,12 +188,12 @@ export function SettingsPage() {
 
   const handleAddPlayer = async () => {
     if (!playerForm.first_name || !playerForm.birth_year) {
-      showAlert('Please fill in at least first name and birth year', { type: 'warning' });
+      showAlert(t('settings.playersSection.errorMissingFields'), { type: 'warning' });
       return;
     }
 
     if (!canCreatePlayer) {
-      showAlert(`You've reached the limit of ${limits.maxPlayers} player(s) on the Free plan. Upgrade to Premium for unlimited players!`, { type: 'warning' });
+      showAlert(t('settings.playersSection.limitReached').replace('{n}', String(limits.maxPlayers)), { type: 'warning' });
       return;
     }
 
@@ -216,7 +216,7 @@ export function SettingsPage() {
       setShowAddPlayer(false);
       await refreshPlayers();
     } else {
-      showAlert('Error adding player', { type: 'error' });
+      showAlert(t('settings.playersSection.errorAdding'), { type: 'error' });
     }
   };
 
@@ -239,7 +239,7 @@ export function SettingsPage() {
       setEditingPlayer(null);
       await refreshPlayers();
     } else {
-      showAlert('Error updating player', { type: 'error' });
+      showAlert(t('settings.playersSection.errorUpdating'), { type: 'error' });
     }
   };
 
@@ -259,17 +259,17 @@ export function SettingsPage() {
         .eq('id', playerToDelete.id);
 
       if (error) {
-        showAlert('Error deleting player', { type: 'error' });
+        showAlert(t('settings.playersSection.errorDeleting'), { type: 'error' });
         return;
       }
 
       await refreshPlayers();
-      showAlert('Player deleted successfully', { type: 'success' });
+      showAlert(t('settings.playersSection.deletedSuccess'), { type: 'success' });
       setShowDeletePlayerModal(false);
       setPlayerToDelete(null);
     } catch (error) {
       console.error('Error:', error);
-      showAlert('Error deleting player');
+      showAlert(t('settings.playersSection.errorDeleting'));
     } finally {
       setDeletingPlayer(false);
     }
@@ -297,17 +297,17 @@ export function SettingsPage() {
         .eq('id', playerToDelete.id);
 
       if (playerError) {
-        showAlert('Error deleting player', { type: 'error' });
+        showAlert(t('settings.playersSection.errorDeleting'), { type: 'error' });
         return;
       }
 
       await refreshPlayers();
-      showAlert('Player and all match results deleted successfully', { type: 'success' });
+      showAlert(t('settings.playersSection.deletedWithResultsSuccess'), { type: 'success' });
       setShowDeletePlayerModal(false);
       setPlayerToDelete(null);
     } catch (error) {
       console.error('Error:', error);
-      showAlert('Error deleting player and results', { type: 'error' });
+      showAlert(t('settings.playersSection.errorDeletingWithResults'), { type: 'error' });
     } finally {
       setDeletingPlayer(false);
     }
@@ -326,7 +326,7 @@ export function SettingsPage() {
 
   const handleImportFromUrl = async () => {
     if (!importUrl) {
-      showAlert('Please enter a URL', { type: 'warning' });
+      showAlert(t('settings.importPlayer.errorNoUrl'), { type: 'warning' });
       return;
     }
 
@@ -334,7 +334,7 @@ export function SettingsPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        showAlert('You must be logged in to import players', { type: 'warning' });
+        showAlert(t('settings.importPlayer.errorNotLoggedIn'), { type: 'warning' });
         return;
       }
 
@@ -350,7 +350,7 @@ export function SettingsPage() {
           .maybeSingle();
 
         if (matchError || !matchData) {
-          showAlert('Could not load match data from URL', { type: 'error' });
+          showAlert(t('settings.importPlayer.errorLoadMatch'), { type: 'error' });
           return;
         }
 
@@ -378,7 +378,7 @@ export function SettingsPage() {
             .single();
 
           if (playerError || !newPlayer) {
-            showAlert('Error creating player', { type: 'error' });
+            showAlert(t('settings.importPlayer.errorCreatingPlayer'), { type: 'error' });
             return;
           }
 
@@ -402,12 +402,12 @@ export function SettingsPage() {
           });
 
         if (insertError) {
-          showAlert('Error importing match result', { type: 'error' });
+          showAlert(t('settings.importPlayer.errorImportingMatch'), { type: 'error' });
           return;
         }
 
         await refreshPlayers();
-        showAlert('Player and match imported successfully!', { type: 'success' });
+        showAlert(t('settings.importPlayer.successSingle'), { type: 'success' });
         setShowImportModal(false);
         setImportUrl('');
 
@@ -421,7 +421,7 @@ export function SettingsPage() {
           .maybeSingle();
 
         if (shareError || !shareData) {
-          showAlert('Could not load shared results from URL', { type: 'error' });
+          showAlert(t('settings.importPlayer.errorLoadShared'), { type: 'error' });
           return;
         }
 
@@ -431,7 +431,7 @@ export function SettingsPage() {
           .in('id', shareData.match_results_ids);
 
         if (matchesError || !matchesData || matchesData.length === 0) {
-          showAlert('Could not load match results', { type: 'error' });
+          showAlert(t('settings.importPlayer.errorLoadMatches'), { type: 'error' });
           return;
         }
 
@@ -460,7 +460,7 @@ export function SettingsPage() {
             .single();
 
           if (playerError || !newPlayer) {
-            showAlert('Error creating player', { type: 'error' });
+            showAlert(t('settings.importPlayer.errorCreatingPlayer'), { type: 'error' });
             return;
           }
 
@@ -491,15 +491,15 @@ export function SettingsPage() {
         }
 
         await refreshPlayers();
-        showAlert(`Player and ${successCount} match results imported successfully!`, { type: 'success' });
+        showAlert(t('settings.importPlayer.successMultiple').replace('{n}', String(successCount)), { type: 'success' });
         setShowImportModal(false);
         setImportUrl('');
       } else {
-        showAlert('Invalid URL. Please provide a match-history or shared-results URL.', { type: 'warning' });
+        showAlert(t('settings.importPlayer.errorInvalidUrl'), { type: 'warning' });
       }
     } catch (error) {
       console.error('Error importing:', error);
-      showAlert('Error importing data', { type: 'error' });
+      showAlert(t('settings.importPlayer.errorGeneric'), { type: 'error' });
     } finally {
       setImporting(false);
     }
@@ -509,17 +509,17 @@ export function SettingsPage() {
     setPasswordError('');
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('Please fill in all fields');
+      setPasswordError(t('settings.modals.changePassword.errorMissingFields'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match');
+      setPasswordError(t('settings.modals.changePassword.errorMismatch'));
       return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+      setPasswordError(t('settings.modals.changePassword.errorTooShort'));
       return;
     }
 
@@ -533,14 +533,14 @@ export function SettingsPage() {
       if (error) {
         setPasswordError(error.message);
       } else {
-        showAlert('Password updated successfully!', { type: 'success' });
+        showAlert(t('settings.modals.changePassword.success'), { type: 'success' });
         setShowPasswordModal(false);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       }
     } catch (error) {
-      setPasswordError('Error updating password');
+      setPasswordError(t('settings.modals.changePassword.errorGeneric'));
     } finally {
       setChangingPassword(false);
     }
@@ -569,20 +569,20 @@ export function SettingsPage() {
       const { url, error } = await response.json();
 
       if (error) {
-        showAlert('Error creating checkout session: ' + error, { type: 'error' });
+        showAlert(t('settings.subscription.checkoutErrorPrefix') + error, { type: 'error' });
       } else if (url) {
         window.location.href = url;
       }
     } catch (error) {
       console.error('Error upgrading subscription:', error);
-      showAlert('Error upgrading subscription', { type: 'error' });
+      showAlert(t('settings.subscription.upgradeError'), { type: 'error' });
     } finally {
       setUpgradingSubscription(false);
     }
   };
 
   const handleCancelSubscription = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? You will lose access to premium features.')) {
+    if (!confirm(t('settings.subscription.cancelConfirm'))) {
       return;
     }
 
@@ -603,20 +603,20 @@ export function SettingsPage() {
       const result = await response.json();
 
       if (result.error) {
-        showAlert('Error cancelling subscription: ' + result.error, { type: 'error' });
+        showAlert(t('settings.subscription.cancelErrorPrefix') + result.error, { type: 'error' });
       } else {
-        showAlert('Subscription cancelled successfully', { type: 'success' });
+        showAlert(t('settings.subscription.cancelSuccess'), { type: 'success' });
         window.location.reload();
       }
     } catch (error) {
       console.error('Error cancelling subscription:', error);
-      showAlert('Error cancelling subscription', { type: 'error' });
+      showAlert(t('settings.subscription.cancelError'), { type: 'error' });
     }
   };
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') {
-      showAlert('Please type DELETE to confirm account deletion', { type: 'warning' });
+      showAlert(t('settings.modals.deleteAccount.errorConfirmText'), { type: 'warning' });
       return;
     }
 
@@ -628,11 +628,11 @@ export function SettingsPage() {
       await supabase.rpc('delete_user_account', { p_user_id: user.id });
       await supabase.auth.signOut();
 
-      showAlert('Your account has been permanently deleted.', { type: 'success' });
+      showAlert(t('settings.modals.deleteAccount.success'), { type: 'success' });
       window.location.href = '/';
     } catch (error) {
       console.error('Error deleting account:', error);
-      showAlert('Error deleting account. Please contact support.', { type: 'error' });
+      showAlert(t('settings.modals.deleteAccount.errorGeneric'), { type: 'error' });
     } finally {
       setDeletingAccount(false);
     }
@@ -647,17 +647,21 @@ export function SettingsPage() {
       const result = await runClubImport();
 
       if (result.success) {
-        const message = `Import complete! ${result.newClubsCount} new clubs, ${result.updatedClubsCount} updated. ${result.errorCount > 0 ? `${result.errorCount} errors occurred.` : ''}`;
+        const errorsPart = result.errorCount > 0 ? t('settings.dataImport.clubs.errorsOccurred').replace('{n}', String(result.errorCount)) : '';
+        const message = t('settings.dataImport.clubs.successMessage')
+          .replace('{new}', String(result.newClubsCount))
+          .replace('{updated}', String(result.updatedClubsCount))
+          .replace('{errors}', errorsPart);
         setDetailedClubImportResult(message);
         showAlert(message + (result.errors ? `\n\nErrors:\n${result.errors.join('\n')}` : ''), { type: 'success' });
       } else {
-        const errorMsg = `Import failed: ${result.message}\n\nCheck browser console for details (F12)`;
+        const errorMsg = t('settings.dataImport.clubs.failedMessage').replace('{msg}', result.message);
         setDetailedClubImportResult(errorMsg);
         showAlert(errorMsg, { type: 'error' });
       }
     } catch (error) {
       console.error('Error importing detailed clubs:', error);
-      const errorMsg = `Error importing detailed clubs: ${error instanceof Error ? error.message : 'Unknown error'}\n\nCheck browser console for full details (F12)`;
+      const errorMsg = t('settings.dataImport.clubs.errorMessage').replace('{msg}', error instanceof Error ? error.message : 'Unknown error');
       setDetailedClubImportResult(errorMsg);
       showAlert(errorMsg, { type: 'error' });
     } finally {
@@ -674,17 +678,20 @@ export function SettingsPage() {
       const result = await importTournamentsFromJson();
 
       if (result.success) {
-        const message = `Import complete!\n${result.imported} tournaments imported\n${result.updated} tournaments updated\n${result.skipped} tournaments skipped`;
+        const message = t('settings.dataImport.tournaments.successMessage')
+          .replace('{imported}', String(result.imported))
+          .replace('{updated}', String(result.updated))
+          .replace('{skipped}', String(result.skipped));
         setTournamentImportResult(message);
         showAlert(message, { type: 'success' });
       } else {
-        const errorMsg = `Import failed: ${result.error || 'Unknown error'}\n\nCheck browser console for details (F12)`;
+        const errorMsg = t('settings.dataImport.tournaments.failedMessage').replace('{error}', result.error ? String(result.error) : 'Unknown error');
         setTournamentImportResult(errorMsg);
         showAlert(errorMsg, { type: 'error' });
       }
     } catch (error) {
       console.error('Error importing tournaments:', error);
-      const errorMsg = `Error importing tournaments: ${error instanceof Error ? error.message : 'Unknown error'}\n\nCheck browser console for full details (F12)`;
+      const errorMsg = t('settings.dataImport.tournaments.errorMessage').replace('{msg}', error instanceof Error ? error.message : 'Unknown error');
       setTournamentImportResult(errorMsg);
       showAlert(errorMsg, { type: 'error' });
     } finally {
@@ -709,11 +716,14 @@ export function SettingsPage() {
     try {
       const result = await importTenupMatchResults(playerId, playerName);
       if (result) {
-        showAlert(`Import TenUp terminé! ${result.successCount} matches importés, ${result.duplicateCount} doublons ignorés, ${result.errorCount} erreurs.`, { type: 'success' });
+        showAlert(t('settings.dataImport.tenup.successMessage')
+          .replace('{success}', String(result.successCount))
+          .replace('{duplicates}', String(result.duplicateCount))
+          .replace('{errors}', String(result.errorCount)), { type: 'success' });
       }
     } catch (error) {
       console.error('Error importing TenUp data:', error);
-      showAlert('Erreur lors de l\'importation des données TenUp.', { type: 'error' });
+      showAlert(t('settings.dataImport.tenup.errorMessage'), { type: 'error' });
     }
   };
 
@@ -728,13 +738,15 @@ export function SettingsPage() {
       if (pendingJsonData) {
         const result = await importMatchResults(jsonData, pendingJsonData.playerId, pendingJsonData.playerName);
         if (result) {
-          showAlert(`Import terminé! ${result.successCount} matches importés, ${result.errorCount} erreurs.`, { type: 'success' });
+          showAlert(t('settings.dataImport.matchResults.successMessage')
+            .replace('{success}', String(result.successCount))
+            .replace('{errors}', String(result.errorCount)), { type: 'success' });
         }
         setPendingJsonData(null);
       }
     } catch (error) {
       console.error('Error parsing JSON file:', error);
-      showAlert('Error reading JSON file. Please make sure it is a valid JSON file.', { type: 'error' });
+      showAlert(t('settings.dataImport.matchResults.errorReadingFile'), { type: 'error' });
     }
 
     if (fileInputRef.current) {
@@ -819,11 +831,11 @@ export function SettingsPage() {
   };
 
   const deleteSharedLink = async (id: string, type: 'Live Score' | 'Match Result') => {
-    showAlert('Are you sure you want to delete this shared link? This action cannot be undone.', {
+    showAlert(t('settings.sharedLinks.deleteConfirmMessage'), {
       type: 'warning',
-      title: 'Delete Shared Link',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t('settings.sharedLinks.deleteConfirmTitle'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
       onConfirm: async () => {
         try {
           const tableName = type === 'Live Score' ? 'live_matches' : 'shared_match_results';
@@ -836,10 +848,10 @@ export function SettingsPage() {
           if (error) throw error;
 
           setSharedLinks(prev => prev.filter(link => link.id !== id));
-          showAlert('Shared link deleted successfully', { type: 'success' });
+          showAlert(t('settings.sharedLinks.deleteSuccess'), { type: 'success' });
         } catch (error) {
           console.error('Error deleting shared link:', error);
-          showAlert('Error deleting shared link', { type: 'error' });
+          showAlert(t('settings.sharedLinks.deleteError'), { type: 'error' });
         }
       }
     });
@@ -860,43 +872,43 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
                 <CreditCard className="w-5 h-5 text-[#C8F135]" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Subscription Plan</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.subscription.title')}</h3>
             </div>
             {subscription?.subscription_tier === 'free' ? (
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h4 className={`text-lg font-bold text-white`}>Free Plan</h4>
-                    <p className={`text-sm mt-1 text-gray-400`}>Basic features for casual players</p>
+                    <h4 className={`text-lg font-bold text-white`}>{t('settings.subscription.freePlan')}</h4>
+                    <p className={`text-sm mt-1 text-gray-400`}>{t('settings.subscription.freeDesc')}</p>
                   </div>
                   <span className="px-3 py-1 text-sm font-medium rounded-full bg-white/5 text-gray-400 border border-white/10">
-                    Current Plan
+                    {t('settings.subscription.currentPlan')}
                   </span>
                 </div>
 
                 <div className="rounded-xl p-4 space-y-2 bg-white/2 border border-white/5">
-                  <h5 className="font-semibold mb-3 text-white">Current Usage:</h5>
+                  <h5 className="font-semibold mb-3 text-white">{t('settings.subscription.currentUsage')}</h5>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Players Created:</span>
+                      <span className="text-gray-400">{t('settings.subscription.playersCreated')}</span>
                       <span className="font-medium text-white">{usageStats?.players_created || 0} / {limits.maxPlayers}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Match Results:</span>
+                      <span className="text-gray-400">{t('settings.subscription.matchResultsCreated')}</span>
                       <span className="font-medium text-white">{usageStats?.match_results_created || 0} / {limits.maxMatchResults}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Shares Created:</span>
+                      <span className="text-gray-400">{t('settings.subscription.sharesCreated')}</span>
                       <span className="font-medium text-white">{usageStats?.shares_created || 0} / {limits.maxShares}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Live Game Sharing:</span>
-                      <span className="font-medium text-red-400">Not Available</span>
+                      <span className="text-gray-400">{t('settings.subscription.liveGameSharing')}</span>
+                      <span className="font-medium text-red-400">{t('settings.subscription.notAvailable')}</span>
                     </div>
                     {canAccessTournaments && (
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Tournament Access:</span>
-                        <span className="font-medium text-[#C8F135]">Enabled</span>
+                        <span className="text-gray-400">{t('settings.subscription.tournamentAccess')}</span>
+                        <span className="font-medium text-[#C8F135]">{t('settings.subscription.enabled')}</span>
                       </div>
                     )}
                   </div>
@@ -909,27 +921,27 @@ export function SettingsPage() {
                         <Sparkles className="w-5 h-5 text-[#C8F135]" />
                       </div>
                       <div>
-                        <h4 className="text-lg font-bold mb-1 text-white">Upgrade to Premium</h4>
-                        <p className="text-sm mb-3 text-gray-400">Unlock all features for just €5/month</p>
+                        <h4 className="text-lg font-bold mb-1 text-white">{t('settings.subscription.upgradeTitle')}</h4>
+                        <p className="text-sm mb-3 text-gray-400">{t('settings.subscription.upgradeDesc')}</p>
                       </div>
                     </div>
 
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center text-sm text-gray-300">
                         <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
-                        <span>Unlimited players</span>
+                        <span>{t('settings.subscription.unlimitedPlayers')}</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-300">
                         <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
-                        <span>Unlimited match results</span>
+                        <span>{t('settings.subscription.unlimitedMatchResults')}</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-300">
                         <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
-                        <span>Unlimited sharing</span>
+                        <span>{t('settings.subscription.unlimitedSharing')}</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-300">
                         <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
-                        <span>Live game sharing</span>
+                        <span>{t('settings.subscription.liveGameSharingFeature')}</span>
                       </div>
                     </div>
 
@@ -938,7 +950,7 @@ export function SettingsPage() {
                       disabled={upgradingSubscription}
                       className="w-full px-6 py-3 bg-[#C8F135] text-[#040c1a] font-bold rounded-full hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
-                      {upgradingSubscription ? 'Processing...' : 'Upgrade to Premium'}
+                      {upgradingSubscription ? t('settings.subscription.processing') : t('settings.subscription.upgradeTitle')}
                     </button>
                   </div>
                 </div>
@@ -947,45 +959,45 @@ export function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h4 className={`text-lg font-bold text-white`}>Premium Plan</h4>
-                    <p className={`text-sm mt-1 text-gray-400`}>All features unlocked</p>
+                    <h4 className={`text-lg font-bold text-white`}>{t('settings.subscription.premiumPlan')}</h4>
+                    <p className={`text-sm mt-1 text-gray-400`}>{t('settings.subscription.premiumDesc')}</p>
                   </div>
                   <span className="px-3 py-1 bg-[#C8F135]/20 text-[#C8F135] text-sm font-medium rounded-full border border-[#C8F135]/30">
-                    Active
+                    {t('settings.subscription.active')}
                   </span>
                 </div>
 
                 <div className="rounded-xl p-4 space-y-2 bg-[#C8F135]/5 border border-[#C8F135]/20">
-                  <h5 className="font-semibold mb-3 text-white">Premium Features:</h5>
+                  <h5 className="font-semibold mb-3 text-white">{t('settings.subscription.premiumFeatures')}</h5>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center text-gray-300">
                       <Check className="w-4 h-4 text-[#C8F135] mr-2" />
-                      <span>Unlimited players</span>
+                      <span>{t('settings.subscription.unlimitedPlayers')}</span>
                     </div>
                     <div className="flex items-center text-gray-300">
                       <Check className="w-4 h-4 text-[#C8F135] mr-2" />
-                      <span>Unlimited match results</span>
+                      <span>{t('settings.subscription.unlimitedMatchResults')}</span>
                     </div>
                     <div className="flex items-center text-gray-300">
                       <Check className="w-4 h-4 text-[#C8F135] mr-2" />
-                      <span>Unlimited sharing</span>
+                      <span>{t('settings.subscription.unlimitedSharing')}</span>
                     </div>
                     <div className="flex items-center text-gray-300">
                       <Check className="w-4 h-4 text-[#C8F135] mr-2" />
-                      <span>Live game sharing enabled</span>
+                      <span>{t('settings.subscription.liveGameSharingEnabled')}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className={`border-t pt-4 border-[#1A6FC4]/10`}>
                   <p className={`text-sm mb-3 text-gray-400`}>
-                    Billed at €5.00 per month
+                    {t('settings.subscription.billedMonthly')}
                   </p>
                   <button
                     onClick={handleCancelSubscription}
                     className="px-6 py-2 bg-red-600 hover:bg-red-700 text-[#C8F135] rounded-full transition-all duration-300 text-sm font-bold border border-red-600/50 hover:border-red-700/50"
                   >
-                    Cancel Subscription
+                    {t('settings.subscription.cancelButton')}
                   </button>
                 </div>
               </div>
@@ -999,12 +1011,12 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
                 <User className="w-5 h-5 text-[#C8F135]" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Profile Information</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.profileSection.title')}</h3>
             </div>
             <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-400">
-                First Name
+                {t('settings.firstName')}
               </label>
               <input
                 type="text"
@@ -1015,7 +1027,7 @@ export function SettingsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-400">
-                Last Name
+                {t('settings.lastName')}
               </label>
               <input
                 type="text"
@@ -1026,7 +1038,7 @@ export function SettingsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-400">
-                Birth Year
+                {t('settings.yearOfBirth')}
               </label>
               <input
                 type="number"
@@ -1040,7 +1052,7 @@ export function SettingsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-400">
-                Email Address
+                {t('settings.profileSection.email')}
               </label>
               <div className="flex items-center">
                 <Mail className="w-5 h-5 mr-2 text-gray-400" />
@@ -1063,7 +1075,7 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
                 <Users className="w-5 h-5 text-[#C8F135]" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Players</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.players')}</h3>
             </div>
             <div className="space-y-4">
             {players.map((player) => (
@@ -1071,23 +1083,23 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-all">
                   <div>
                     <p className={`font-medium text-white`}>{player.first_name} {player.last_name}</p>
-                    <p className={`text-sm text-gray-400`}>Birth Year: {player.birth_year}</p>
+                    <p className={`text-sm text-gray-400`}>{t('settings.playersSection.birthYearDisplay').replace('{n}', String(player.birth_year))}</p>
                     {player.license_number && (
-                      <p className="text-sm text-gray-500">License: {player.license_number}</p>
+                      <p className="text-sm text-gray-500">{t('settings.playersSection.licenseDisplay').replace('{n}', player.license_number)}</p>
                     )}
                   </div>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => startEditPlayer(player)}
                       className="p-2 text-[#C8F135] hover:bg-[#C8F135]/10 rounded-lg transition-colors"
-                      title="Edit"
+                      title={t('common.edit')}
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeletePlayer(player)}
                       className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                      title="Delete"
+                      title={t('common.delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1096,10 +1108,10 @@ export function SettingsPage() {
 
                 {editingPlayer?.id === player.id && (
                   <div className="mt-3 p-4 border-2 rounded-xl border-[#C8F135]/30 bg-[#C8F135]/5">
-                    <h4 className={`font-semibold mb-3 text-white`}>Edit Player</h4>
+                    <h4 className={`font-semibold mb-3 text-white`}>{t('settings.playersSection.editTitle')}</h4>
                     <div className="space-y-3">
                       <div>
-                        <label className={`block text-sm font-medium mb-1 text-gray-300`}>First Name *</label>
+                        <label className={`block text-sm font-medium mb-1 text-gray-300`}>{t('settings.playersSection.firstNameRequired')}</label>
                         <input
                           type="text"
                           value={playerForm.first_name}
@@ -1110,7 +1122,7 @@ export function SettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className={`block text-sm font-medium mb-1 text-gray-300`}>Last Name</label>
+                        <label className={`block text-sm font-medium mb-1 text-gray-300`}>{t('settings.lastName')}</label>
                         <input
                           type="text"
                           value={playerForm.last_name}
@@ -1120,17 +1132,17 @@ export function SettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className={`block text-sm font-medium mb-1 text-gray-300`}>License Number</label>
+                        <label className={`block text-sm font-medium mb-1 text-gray-300`}>{t('settings.playersSection.licenseNumberLabel')}</label>
                         <input
                           type="text"
                           value={playerForm.license_number}
                           onChange={(e) => setPlayerForm({ ...playerForm, license_number: e.target.value })}
                           className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] outline-none bg-white/5 border-white/10 text-white hover:border-white/20 transition-all"
-                          placeholder="FFT License"
+                          placeholder={t('settings.playersSection.licenseNumberPlaceholder')}
                         />
                       </div>
                       <div>
-                        <label className={`block text-sm font-medium mb-1 text-gray-300`}>Birth Year *</label>
+                        <label className={`block text-sm font-medium mb-1 text-gray-300`}>{t('settings.playersSection.birthYearRequired')}</label>
                         <input
                           type="number"
                           value={playerForm.birth_year}
@@ -1147,7 +1159,7 @@ export function SettingsPage() {
                           onClick={handleUpdatePlayer}
                           className="flex-1 px-6 py-3 bg-[#C8F135] text-[#040c1a] font-bold rounded-full hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20"
                         >
-                          Update
+                          {t('settings.playersSection.update')}
                         </button>
                         <button
                           onClick={() => {
@@ -1156,7 +1168,7 @@ export function SettingsPage() {
                           }}
                           className="px-6 py-3 border-2 border-white/20 text-gray-300 font-bold rounded-full hover:bg-white/10 hover:border-white/30 transition-all duration-300"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       </div>
                     </div>
@@ -1167,10 +1179,10 @@ export function SettingsPage() {
 
             {showAddPlayer && !editingPlayer && (
               <div className="p-4 border-2 rounded-xl border-[#C8F135]/30 bg-[#C8F135]/5">
-                <h4 className={`font-semibold mb-3 text-white`}>Add New Player</h4>
+                <h4 className={`font-semibold mb-3 text-white`}>{t('settings.addPlayer')}</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className={`block text-sm font-medium mb-1 text-gray-300`}>First Name *</label>
+                    <label className={`block text-sm font-medium mb-1 text-gray-300`}>{t('settings.playersSection.firstNameRequired')}</label>
                     <input
                       type="text"
                       value={playerForm.first_name}
@@ -1181,7 +1193,7 @@ export function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-1 text-gray-300`}>Last Name</label>
+                    <label className={`block text-sm font-medium mb-1 text-gray-300`}>{t('settings.lastName')}</label>
                     <input
                       type="text"
                       value={playerForm.last_name}
@@ -1191,17 +1203,17 @@ export function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-1 text-gray-300`}>License Number</label>
+                    <label className={`block text-sm font-medium mb-1 text-gray-300`}>{t('settings.playersSection.licenseNumberLabel')}</label>
                     <input
                       type="text"
                       value={playerForm.license_number}
                       onChange={(e) => setPlayerForm({ ...playerForm, license_number: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] outline-none bg-white/5 border-white/10 text-white hover:border-white/20 transition-all"
-                      placeholder="FFT License"
+                      placeholder={t('settings.playersSection.licenseNumberPlaceholder')}
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-1 text-gray-300`}>Birth Year *</label>
+                    <label className={`block text-sm font-medium mb-1 text-gray-300`}>{t('settings.playersSection.birthYearRequired')}</label>
                     <input
                       type="number"
                       value={playerForm.birth_year}
@@ -1218,7 +1230,7 @@ export function SettingsPage() {
                       onClick={handleAddPlayer}
                       className="flex-1 px-6 py-3 bg-[#C8F135] text-[#040c1a] font-bold rounded-full hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20"
                     >
-                      Add
+                      {t('settings.playersSection.add')}
                     </button>
                     <button
                       onClick={() => {
@@ -1227,7 +1239,7 @@ export function SettingsPage() {
                       }}
                       className="px-6 py-3 border-2 border-white/20 text-gray-300 font-bold rounded-full hover:bg-white/10 hover:border-white/30 transition-all duration-300"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                   </div>
                 </div>
@@ -1239,7 +1251,7 @@ export function SettingsPage() {
                 <button
                   onClick={() => {
                     if (!canCreatePlayer) {
-                      showAlert(`You've reached the limit of ${limits.maxPlayers} player(s) on the Free plan. Upgrade to Premium for unlimited players!`, { type: 'warning' });
+                      showAlert(t('settings.playersSection.limitReached').replace('{n}', String(limits.maxPlayers)), { type: 'warning' });
                     } else {
                       setShowAddPlayer(true);
                     }
@@ -1247,14 +1259,14 @@ export function SettingsPage() {
                   className="w-full px-6 py-3 bg-[#C8F135]/20 hover:bg-[#C8F135]/30 text-[#C8F135] font-bold rounded-full transition-all duration-300 hover:scale-105 border border-[#C8F135]/30 flex items-center justify-center"
                 >
                   <Plus className="w-5 h-5 mr-2" />
-                  Add New Player
+                  {t('settings.addPlayer')}
                 </button>
                 <button
                   onClick={() => setShowImportModal(true)}
                   className="w-full px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-blue-400/30 flex items-center justify-center"
                 >
                   <Download className="w-5 h-5 mr-2" />
-                  Import Player from URL
+                  {t('settings.playersSection.importFromUrl')}
                 </button>
               </div>
             )}
@@ -1268,13 +1280,13 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
                 <Bell className="w-5 h-5 text-[#C8F135]" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Notifications</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.notifications.title')}</h3>
             </div>
             <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className={`font-medium text-white`}>Push Notifications</p>
-                <p className={`text-sm text-gray-400`}>Receive notifications about matches and tournaments</p>
+                <p className={`font-medium text-white`}>{t('settings.notifications.pushTitle')}</p>
+                <p className={`text-sm text-gray-400`}>{t('settings.notifications.pushDesc')}</p>
               </div>
               <button
                 onClick={() => setNotifications(!notifications)}
@@ -1294,15 +1306,15 @@ export function SettingsPage() {
               <div className="space-y-2">
                 <label className="flex items-center">
                   <input type="checkbox" defaultChecked className="rounded text-green-600 focus:ring-green-500" />
-                  <span className="ml-2 text-sm text-gray-300">Match start notifications</span>
+                  <span className="ml-2 text-sm text-gray-300">{t('settings.notifications.matchStart')}</span>
                 </label>
                 <label className="flex items-center">
                   <input type="checkbox" defaultChecked className="rounded text-green-600 focus:ring-green-500" />
-                  <span className="ml-2 text-sm text-gray-300">Tournament updates</span>
+                  <span className="ml-2 text-sm text-gray-300">{t('settings.notifications.tournamentUpdates')}</span>
                 </label>
                 <label className="flex items-center">
                   <input type="checkbox" className="rounded text-green-600 focus:ring-green-500" />
-                  <span className="ml-2 text-sm text-gray-300">Player news</span>
+                  <span className="ml-2 text-sm text-gray-300">{t('settings.notifications.playerNews')}</span>
                 </label>
               </div>
             </div>
@@ -1316,7 +1328,7 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
                 <Globe className="w-5 h-5 text-[#C8F135]" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Language & Region</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.languageRegion.title')}</h3>
             </div>
             <label className="block text-sm font-medium mb-2 text-gray-400">
               {t('settings.language')}
@@ -1338,21 +1350,21 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
                 <Database className="w-5 h-5 text-[#C8F135]" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Data Import</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.dataImport.title')}</h3>
             </div>
             <div className="space-y-6">
             <div>
-              <h4 className={`font-semibold mb-2 text-white`}>Import Detailed Clubs (Multiple Installations)</h4>
+              <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.clubs.title')}</h4>
               <p className={`text-sm mb-4 text-gray-400`}>
-                Import detailed club data from code/club/import-club.json. Creates separate rows for each installation.
+                {t('settings.dataImport.clubs.desc')}
               </p>
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-red-800 mb-2"><strong>How it works:</strong></p>
+                <p className="text-sm text-red-800 mb-2"><strong>{t('settings.dataImport.clubs.howItWorks')}</strong></p>
                 <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                  <li>Each club installation becomes a separate row in the database</li>
-                  <li>All installations share the same club_id</li>
-                  <li>Includes detailed info: teams, installations, contact details</li>
-                  <li>Check browser console (F12) for detailed progress</li>
+                  <li>{t('settings.dataImport.clubs.bullet1')}</li>
+                  <li>{t('settings.dataImport.clubs.bullet2')}</li>
+                  <li>{t('settings.dataImport.clubs.bullet3')}</li>
+                  <li>{t('settings.dataImport.clubs.bullet4')}</li>
                 </ul>
               </div>
               {detailedClubImportResult && (
@@ -1369,22 +1381,22 @@ export function SettingsPage() {
                 disabled={importingDetailedClubs}
                 className="w-full px-6 py-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-purple-400/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                {importingDetailedClubs ? 'Importing Detailed Clubs...' : 'Import Detailed Clubs from JSON'}
+                {importingDetailedClubs ? t('settings.dataImport.clubs.importing') : t('settings.dataImport.clubs.importButton')}
               </button>
             </div>
 
             <div className={`border-t pt-6 ${false ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h4 className={`font-semibold mb-2 text-white`}>Import Tournaments</h4>
+              <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.tournaments.title')}</h4>
               <p className={`text-sm mb-4 text-gray-400`}>
-                Import tournaments from src/data/tournaments.json. Existing tournaments will be updated, new ones will be added.
+                {t('settings.dataImport.tournaments.desc')}
               </p>
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-red-800 mb-2"><strong>How to view detailed logs:</strong></p>
+                <p className="text-sm text-red-800 mb-2"><strong>{t('settings.dataImport.tournaments.howToViewLogs')}</strong></p>
                 <ol className="text-sm text-red-700 list-decimal list-inside space-y-1">
-                  <li>Open browser console: Press F12 (or Cmd+Option+I on Mac)</li>
-                  <li>Click on the "Console" tab</li>
-                  <li>Click "Import Tournaments from JSON" button below</li>
-                  <li>All import progress and errors will be displayed in the console</li>
+                  <li>{t('settings.dataImport.tournaments.step1')}</li>
+                  <li>{t('settings.dataImport.tournaments.step2')}</li>
+                  <li>{t('settings.dataImport.tournaments.step3')}</li>
+                  <li>{t('settings.dataImport.tournaments.step4')}</li>
                 </ol>
               </div>
               {tournamentImportResult && (
@@ -1401,14 +1413,14 @@ export function SettingsPage() {
                 disabled={importingTournaments}
                 className="w-full px-6 py-3 bg-[#C8F135] text-[#040c1a] font-bold rounded-full hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                {importingTournaments ? 'Importing Tournaments...' : 'Import Tournaments from JSON'}
+                {importingTournaments ? t('settings.dataImport.tournaments.importing') : t('settings.dataImport.tournaments.importButton')}
               </button>
             </div>
 
             <div className={`border-t pt-6 ${false ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h4 className={`font-semibold mb-2 text-white`}>Import Match Results</h4>
+              <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.matchResults.title')}</h4>
               <p className={`text-sm mb-4 text-gray-400`}>
-                Import match results from a JSON file. Select a player and upload the match data.
+                {t('settings.dataImport.matchResults.desc')}
               </p>
               <input
                 ref={fileInputRef}
@@ -1421,20 +1433,20 @@ export function SettingsPage() {
                 onClick={handleMatchImportClick}
                 className="w-full px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-blue-400/30"
               >
-                Import Match Results
+                {t('settings.dataImport.matchResults.importButton')}
               </button>
             </div>
 
             <div className={`border-t pt-6 ${false ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h4 className={`font-semibold mb-2 text-white`}>Import Match Results from TenUp</h4>
+              <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.tenup.title')}</h4>
               <p className={`text-sm mb-4 text-gray-400`}>
-                Import match results from TenUp. Select a player to import their match history.
+                {t('settings.dataImport.tenup.desc')}
               </p>
               <button
                 onClick={handleTenupImportClick}
                 className="w-full px-6 py-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-purple-400/30"
               >
-                Import from TenUp
+                {t('settings.dataImport.tenup.importButton')}
               </button>
             </div>
             </div>
@@ -1447,30 +1459,30 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
                 <Share2 className="w-5 h-5 text-[#C8F135]" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Shared Links</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.sharedLinks.title')}</h3>
             </div>
             <p className={`text-sm mb-4 text-gray-400`}>
-              Manage all your shared links for live scores and match results.
+              {t('settings.sharedLinks.desc')}
             </p>
 
             {loadingSharedLinks ? (
               <div className="text-center py-8">
-                <p className={false ? 'text-gray-400' : 'text-gray-600'}>Loading shared links...</p>
+                <p className={false ? 'text-gray-400' : 'text-gray-600'}>{t('settings.sharedLinks.loading')}</p>
               </div>
             ) : sharedLinks.length === 0 ? (
               <div className="text-center py-8">
-                <p className={false ? 'text-gray-400' : 'text-gray-600'}>No shared links yet.</p>
+                <p className={false ? 'text-gray-400' : 'text-gray-600'}>{t('settings.sharedLinks.empty')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className={`border-b ${false ? 'border-gray-700' : 'border-gray-200'}`}>
-                      <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>Type</th>
-                      <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>Players</th>
-                      <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>Created</th>
-                      <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>URL</th>
-                      <th className={`text-center py-3 px-2 text-sm font-semibold text-gray-300`}>Actions</th>
+                      <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colType')}</th>
+                      <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colPlayers')}</th>
+                      <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colCreated')}</th>
+                      <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colUrl')}</th>
+                      <th className={`text-center py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colActions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1482,14 +1494,14 @@ export function SettingsPage() {
                               ? 'bg-green-100 text-green-700'
                               : 'bg-blue-100 text-blue-700'
                           }`}>
-                            {link.type}
+                            {link.type === 'Live Score' ? t('settings.sharedLinks.typeLiveScore') : t('settings.sharedLinks.typeMatchResult')}
                           </span>
                         </td>
                         <td className={`py-3 px-2 text-sm text-gray-300`}>
                           {link.player_names && link.player_names.length > 0 ? link.player_names.join(', ') : '-'}
                         </td>
                         <td className={`py-3 px-2 text-sm text-gray-400`}>
-                          {new Date(link.created_at).toLocaleDateString()}
+                          {new Date(link.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
                         </td>
                         <td className="py-3 px-2">
                           <a
@@ -1508,21 +1520,21 @@ export function SettingsPage() {
                             <button
                               onClick={async () => {
                                 await navigator.clipboard.writeText(link.url);
-                                showAlert('Lien copié dans le presse-papiers! Partagez-le pour montrer les résultats.', {
+                                showAlert(t('settings.sharedLinks.copySuccessMessage'), {
                                   type: 'success',
-                                  title: 'Partage créé',
+                                  title: t('settings.sharedLinks.copySuccessTitle'),
                                   link: link.url
                                 });
                               }}
                               className="p-1 text-[#C8F135] hover:bg-[#C8F135]/10 rounded transition-colors"
-                              title="Copy link"
+                              title={t('settings.sharedLinks.copyLinkTitle')}
                             >
                               <Share2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => deleteSharedLink(link.id, link.type)}
                               className="p-1 text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                              title="Delete"
+                              title={t('common.delete')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1543,14 +1555,14 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-[#C8F135]" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Privacy & Security</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.security.title')}</h3>
             </div>
             <div className="space-y-4">
             <button
               onClick={() => setShowPasswordModal(true)}
               className="w-full px-6 py-3 font-bold rounded-full transition-all duration-300 hover:scale-105 text-center bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 hover:border-white/20"
             >
-              Change Password
+              {t('settings.security.changePassword')}
             </button>
             </div>
           </div>
@@ -1562,25 +1574,25 @@ export function SettingsPage() {
               <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-red-400" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Danger Zone</h3>
+              <h3 className="text-lg font-semibold text-white">{t('settings.dangerZone.title')}</h3>
             </div>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
               <p className="text-sm text-red-800 mb-2">
-                <strong>Warning:</strong> This action cannot be undone. Deleting your account will permanently remove:
+                {t('settings.dangerZone.warningIntro')}
               </p>
               <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                <li>Your profile and all personal data</li>
-                <li>All registered players</li>
-                <li>Match history and results</li>
-                <li>Tournament registrations and convocations</li>
-                <li>Subscription and payment information</li>
+                <li>{t('settings.dangerZone.item1')}</li>
+                <li>{t('settings.dangerZone.item2')}</li>
+                <li>{t('settings.dangerZone.item3')}</li>
+                <li>{t('settings.dangerZone.item4')}</li>
+                <li>{t('settings.dangerZone.item5')}</li>
               </ul>
             </div>
             <button
               onClick={() => setShowDeleteConfirmation(true)}
               className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full transition-all duration-300 hover:scale-105 shadow-lg shadow-red-600/20"
             >
-              Delete Account Permanently
+              {t('settings.dangerZone.deleteButton')}
             </button>
             </div>
           </div>
@@ -1595,7 +1607,7 @@ export function SettingsPage() {
               <h3 className="text-lg font-semibold text-white">{t('nav.logout')}</h3>
             </div>
             <p className={`text-sm mb-4 text-gray-400`}>
-              Sign out from your account. You can always log back in with your credentials.
+              {t('settings.logoutSection.desc')}
             </p>
             <button
               onClick={() => signOut()}
@@ -1609,14 +1621,14 @@ export function SettingsPage() {
 
       <div className="flex justify-end space-x-4 mt-6">
         <button className="px-8 py-3 border-2 border-white/20 font-bold rounded-full transition-all duration-300 hover:scale-105 text-gray-300 hover:bg-white/10 hover:border-white/30">
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           onClick={handleSaveChanges}
           disabled={saving}
           className="px-8 py-3 bg-[#C8F135] text-[#040c1a] font-bold rounded-full hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? t('settings.footer.saving') : t('settings.footer.saveButton')}
         </button>
       </div>
 
@@ -1624,7 +1636,7 @@ export function SettingsPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#0a1628] border border-[#1A6FC4]/30 rounded-xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">Change Password</h3>
+              <h3 className="text-xl font-bold text-white">{t('settings.security.changePassword')}</h3>
               <button
                 onClick={() => {
                   setShowPasswordModal(false);
@@ -1642,7 +1654,7 @@ export function SettingsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Current Password
+                  {t('settings.modals.changePassword.currentPassword')}
                 </label>
                 <div className="relative">
                   <input
@@ -1665,7 +1677,7 @@ export function SettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  New Password
+                  {t('settings.modals.changePassword.newPassword')}
                 </label>
                 <div className="relative">
                   <input
@@ -1688,7 +1700,7 @@ export function SettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Confirm New Password
+                  {t('settings.modals.changePassword.confirmNewPassword')}
                 </label>
                 <div className="relative">
                   <input
@@ -1727,14 +1739,14 @@ export function SettingsPage() {
                   }}
                   className="flex-1 px-6 py-3 border-2 border-white/20 bg-transparent text-gray-300 rounded-full font-bold hover:bg-white/10 hover:border-white/30 transition-all duration-300"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleChangePassword}
                   disabled={changingPassword}
                   className="flex-1 px-6 py-3 bg-[#C8F135] text-[#040c1a] rounded-full font-bold hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  {changingPassword ? 'Updating...' : 'Update Password'}
+                  {changingPassword ? t('settings.modals.changePassword.updating') : t('settings.modals.changePassword.updateButton')}
                 </button>
               </div>
             </div>
@@ -1746,7 +1758,7 @@ export function SettingsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-[#0a1628] border border-[#1A6FC4]/30 rounded-xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-red-600">Delete Account</h3>
+              <h3 className="text-xl font-bold text-red-600">{t('settings.modals.deleteAccount.title')}</h3>
               <button
                 onClick={() => {
                   setShowDeleteConfirmation(false);
@@ -1761,15 +1773,15 @@ export function SettingsPage() {
             <div className="mb-6">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-red-800 font-semibold mb-2">
-                  This action is permanent and cannot be undone!
+                  {t('settings.modals.deleteAccount.permanentWarning')}
                 </p>
                 <p className="text-sm text-red-700">
-                  All your data will be permanently deleted from our servers.
+                  {t('settings.modals.deleteAccount.dataWarning')}
                 </p>
               </div>
 
               <p className="text-sm text-gray-300 mb-4">
-                To confirm, please type <strong className="text-red-600">DELETE</strong> below:
+                {t('settings.modals.deleteAccount.confirmPrompt')}
               </p>
 
               <input
@@ -1777,7 +1789,7 @@ export function SettingsPage() {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 className="w-full px-4 py-2 border border-[#1A6FC4]/30 bg-[#0d1a2d] text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition"
-                placeholder="Type DELETE"
+                placeholder={t('settings.modals.deleteAccount.placeholder')}
               />
             </div>
 
@@ -1789,14 +1801,14 @@ export function SettingsPage() {
                 }}
                 className="flex-1 px-6 py-3 border-2 border-white/20 bg-transparent text-gray-300 rounded-full font-bold hover:bg-white/10 hover:border-white/30 transition-all duration-300"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount || deleteConfirmText !== 'DELETE'}
                 className="flex-1 px-6 py-3 bg-red-600 text-white rounded-full font-bold hover:bg-red-700 transition-all duration-300 hover:scale-105 shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                {deletingAccount ? 'Deleting...' : 'Delete Forever'}
+                {deletingAccount ? t('common.deleting') : t('settings.modals.deleteAccount.deleteButton')}
               </button>
             </div>
           </div>
@@ -1807,7 +1819,7 @@ export function SettingsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-[#0a1628] border border-[#1A6FC4]/30 rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">Import Player from URL</h3>
+              <h3 className="text-xl font-bold text-white">{t('settings.importPlayer.title')}</h3>
               <button
                 onClick={() => {
                   setShowImportModal(false);
@@ -1821,12 +1833,12 @@ export function SettingsPage() {
 
             <div className="p-6">
               <p className="text-sm text-gray-600 mb-4">
-                Paste a match-history URL or shared-results URL to import the player and their match results.
+                {t('settings.importPlayer.desc')}
               </p>
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  URL
+                  {t('settings.importPlayer.urlLabel')}
                 </label>
                 <input
                   type="url"
@@ -1840,7 +1852,7 @@ export function SettingsPage() {
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                 <p className="text-xs text-blue-800">
-                  <strong>Note:</strong> This will create a new player (if not exists) and import all match results from the provided URL.
+                  <strong>{t('settings.importPlayer.noteLabel')}</strong> {t('settings.importPlayer.note')}
                 </p>
               </div>
 
@@ -1853,14 +1865,14 @@ export function SettingsPage() {
                   className="flex-1 px-6 py-3 border-2 border-white/20 bg-transparent text-gray-300 font-bold rounded-full hover:bg-white/10 hover:border-white/30 transition-all duration-300"
                   disabled={importing}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleImportFromUrl}
                   className="flex-1 px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-blue-400/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   disabled={importing || !importUrl}
                 >
-                  {importing ? 'Importing...' : 'Import'}
+                  {importing ? t('settings.importPlayer.importing') : t('settings.importPlayer.importButton')}
                 </button>
               </div>
             </div>
@@ -1872,7 +1884,7 @@ export function SettingsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-[#0a1628] border border-[#1A6FC4]/30 rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">Delete Player</h3>
+              <h3 className="text-xl font-bold text-white">{t('settings.modals.deletePlayer.title')}</h3>
               <button
                 onClick={() => {
                   setShowDeletePlayerModal(false);
@@ -1887,22 +1899,21 @@ export function SettingsPage() {
 
             <div className="p-6">
               <p className="text-gray-300 mb-4">
-                You are about to delete <strong>{playerToDelete.first_name} {playerToDelete.last_name}</strong>.
-                Please choose an option:
+                {t('settings.modals.deletePlayer.confirmPrompt').replace('{name}', `${playerToDelete.first_name} ${playerToDelete.last_name}`)}
               </p>
 
               <div className="space-y-3 mb-6">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">Option 1: Delete Player Only</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">{t('settings.modals.deletePlayer.option1Title')}</h4>
                   <p className="text-sm text-gray-600">
-                    Remove the player from your players list. All match results will remain in your account.
+                    {t('settings.modals.deletePlayer.option1Desc')}
                   </p>
                 </div>
 
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">Option 2: Delete Player + Results</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">{t('settings.modals.deletePlayer.option2Title')}</h4>
                   <p className="text-sm text-gray-600">
-                    Remove the player AND permanently delete all their match results. This action cannot be undone.
+                    {t('settings.modals.deletePlayer.option2Desc')}
                   </p>
                 </div>
               </div>
@@ -1913,14 +1924,14 @@ export function SettingsPage() {
                   className="w-full px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-yellow-400/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   disabled={deletingPlayer}
                 >
-                  {deletingPlayer ? 'Deleting...' : 'Delete Player Only'}
+                  {deletingPlayer ? t('common.deleting') : t('settings.modals.deletePlayer.deleteOnlyButton')}
                 </button>
                 <button
                   onClick={handleDeletePlayerAndResults}
                   className="w-full px-6 py-3 bg-red-600 text-white font-bold rounded-full hover:bg-red-700 transition-all duration-300 hover:scale-105 shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   disabled={deletingPlayer}
                 >
-                  {deletingPlayer ? 'Deleting...' : 'Delete Player + All Results'}
+                  {deletingPlayer ? t('common.deleting') : t('settings.modals.deletePlayer.deleteWithResultsButton')}
                 </button>
                 <button
                   onClick={() => {
@@ -1930,7 +1941,7 @@ export function SettingsPage() {
                   className="w-full px-6 py-3 border-2 border-white/20 bg-transparent text-gray-300 font-bold rounded-full hover:bg-white/10 hover:border-white/30 transition-all duration-300"
                   disabled={deletingPlayer}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

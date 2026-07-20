@@ -11,10 +11,12 @@ import { trackMatchAction, trackButtonClick } from '../utils/analytics';
 import { usePlayers } from '../contexts/PlayersContext';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
+import { useLanguage } from '../contexts/LanguageContext';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 export function MatchesPage() {
+  const { t } = useLanguage();
   const { canCreateMatchResult, canShareLive, incrementUsage } = useSubscription();
   const { players } = usePlayers();
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
@@ -86,7 +88,7 @@ export function MatchesPage() {
       trackMatchAction('update', editingMatch.id);
     } else {
       if (!canCreateMatchResult) {
-        alert('You have reached your match results limit on the Free plan. Upgrade to Premium for unlimited match results!');
+        alert(t('matches.premium.matchLimitReached'));
         return;
       }
 
@@ -113,7 +115,7 @@ export function MatchesPage() {
   };
 
   const handleDeleteMatch = async (matchId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) return;
+    if (!confirm(t('matches.confirmDelete'))) return;
 
     const { error } = await supabase
       .from('match_results')
@@ -315,26 +317,26 @@ export function MatchesPage() {
           <div className="flex items-center gap-2 mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-calendar w-5 h-5 text-[#C8F135]"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
             <span className="text-[#C8F135] text-sm font-medium tracking-widest uppercase">
-              Match Management
+              {t('matches.hero.eyebrow')}
             </span>
           </div>
 
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-5xl lg:text-7xl font-black text-white leading-tight tracking-tight mb-6">
-                Your Match<br />
-                <span className="text-[#C8F135]">Results</span>
+                {t('matches.hero.title1')}<br />
+                <span className="text-[#C8F135]">{t('matches.hero.title2')}</span>
               </h1>
 
               <p className="text-lg text-gray-300 max-w-2xl leading-relaxed">
-                Track your performance, share live scores, and analyze your game progression
+                {t('matches.hero.subtitle')}
               </p>
             </div>
 
             <button
               onClick={() => {
                 if (!canShareLive) {
-                  alert('Live game sharing is only available on Premium plan. Upgrade to Premium for unlimited features!');
+                  alert(t('matches.premium.liveShareGate'));
                   return;
                 }
                 trackMatchAction('share', undefined, { share_type: 'live' });
@@ -343,7 +345,7 @@ export function MatchesPage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-[#1A6FC4] text-white rounded-lg text-sm font-medium hover:bg-[#1A6FC4]/80 transition-all hover:scale-105 shadow-lg shadow-[#1A6FC4]/20 shrink-0"
             >
               <Trophy className="w-4 h-4" />
-              <span>Live Score</span>
+              <span>{t('matches.hero.liveScoreButton')}</span>
             </button>
           </div>
         </div>
@@ -354,7 +356,7 @@ export function MatchesPage() {
         <section className="relative pb-12">
           <div className="max-w-7xl mx-auto px-6 lg:px-10">
             <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight mb-6">
-              Summary
+              {t('matches.summary.title')}
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -371,16 +373,16 @@ export function MatchesPage() {
                       <Target className="w-9 h-9 text-[#C8F135]" />
                     </div>
                     <h4 className="text-sm font-semibold text-white uppercase tracking-wide">
-                      Match Results
+                      {t('matches.summary.matchResults')}
                     </h4>
                     <div className="flex items-center gap-3 text-sm">
-                      <span className="text-green-400 font-semibold">{player.wins} W</span>
-                      <span className="text-red-400 font-semibold">{player.losses} L</span>
+                      <span className="text-green-400 font-semibold">{player.wins} {t('matches.summary.winAbbr')}</span>
+                      <span className="text-red-400 font-semibold">{player.losses} {t('matches.summary.lossAbbr')}</span>
                     </div>
                     {player.matches > 0 && (
                       <div className="mt-2">
                         <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-gray-400">Win Rate</span>
+                          <span className="text-gray-400">{t('matches.summary.winRate')}</span>
                           <span className="font-bold text-[#C8F135]">{player.winRate}%</span>
                         </div>
                         <div className="w-full bg-white/10 rounded-full h-2 mb-4">
@@ -397,7 +399,7 @@ export function MatchesPage() {
                             onClick={() => setExpandedRadars(prev => ({ ...prev, [player.playerId]: !prev[player.playerId] }))}
                             className="lg:hidden w-full flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
                           >
-                            <span className="text-xs font-medium text-gray-300">Stats Radar</span>
+                            <span className="text-xs font-medium text-gray-300">{t('matches.radar.toggleLabel')}</span>
                             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${expandedRadars[player.playerId] ? 'rotate-180' : ''}`} />
                           </button>
 
@@ -415,7 +417,7 @@ export function MatchesPage() {
                                     : 'bg-white/10 text-gray-300 hover:bg-white/20'
                                 }`}
                               >
-                                Win
+                                {t('matches.win')}
                               </button>
                               <button
                                 onClick={() => {
@@ -428,16 +430,23 @@ export function MatchesPage() {
                                     : 'bg-white/10 text-gray-300 hover:bg-white/20'
                                 }`}
                               >
-                                Loss
+                                {t('matches.loss')}
                               </button>
                             </div>
                             <div className="w-full h-64 flex items-center justify-center">
                               <Radar
                                 data={{
-                                  labels: ['Forehand', 'Backhand', 'Service', 'Volley', 'Return', 'Opponent'],
+                                  labels: [
+                                    t('matches.radar.axis.forehand'),
+                                    t('matches.radar.axis.backhand'),
+                                    t('matches.radar.axis.service'),
+                                    t('matches.radar.axis.volley'),
+                                    t('matches.radar.axis.return'),
+                                    t('matches.radar.axis.opponent'),
+                                  ],
                                   datasets: [
                                     {
-                                      label: (radarDataTypes[player.playerId] || 'win') === 'win' ? 'Win %' : 'Loss %',
+                                      label: (radarDataTypes[player.playerId] || 'win') === 'win' ? t('matches.radar.winPercent') : t('matches.radar.lossPercent'),
                                       data: (radarDataTypes[player.playerId] || 'win') === 'win' ? [
                                         player.radarData.win.forehand,
                                         player.radarData.win.backhand,
@@ -501,7 +510,12 @@ export function MatchesPage() {
                                       padding: 10,
                                       displayColors: false,
                                       callbacks: {
-                                        label: (context) => `${context.parsed.r}% ${(radarDataTypes[player.playerId] || 'win') === 'win' ? 'Win' : 'Loss'} Rate`
+                                        label: (context) => {
+                                          const template = (radarDataTypes[player.playerId] || 'win') === 'win'
+                                            ? t('matches.radar.tooltipWin')
+                                            : t('matches.radar.tooltipLoss');
+                                          return template.replace('{pct}', String(context.parsed.r));
+                                        }
                                       }
                                     }
                                   }
