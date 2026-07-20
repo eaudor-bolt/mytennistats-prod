@@ -3,6 +3,7 @@ import { Lock } from 'lucide-react';
 import LandingHeader from '../components/landing/LandingHeader';
 import { LandingHero } from '../components/landing/LandingHero';
 import { LandingFeatures } from '../components/landing/LandingFeatures';
+import { LandingHowItWorks } from '../components/landing/LandingHowItWorks';
 import { LandingForPlayers } from '../components/landing/LandingForPlayers';
 import { LandingForCoaches } from '../components/landing/LandingForCoaches';
 import { LandingPricing } from '../components/landing/LandingPricing';
@@ -93,6 +94,7 @@ export function LandingPage({ onLogin, onSignUp }: LandingPageProps) {
       />
       <LandingHero onSignUp={onSignUp || (() => {})} />
       <LandingFeatures />
+      <LandingHowItWorks />
       <LandingForPlayers />
       <LandingForCoaches />
       <LandingPricing onSignUp={onSignUp || (() => {})} />
