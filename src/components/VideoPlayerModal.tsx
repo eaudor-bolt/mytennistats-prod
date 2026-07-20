@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Play, Pause, ScanFace, AlertCircle, ChevronLeft, ChevronRight, TrendingUp, Activity, Trash2, RotateCcw, Maximize, Minimize, Star, User, Calendar, Tag as TagIcon } from 'lucide-react';
+import { X, Play, Pause, ScanFace, AlertCircle, ChevronLeft, ChevronRight, TrendingUp, Activity, Trash2, RotateCcw, Maximize, Minimize, Star, User, Calendar, Tag as TagIcon, Download, Loader2 } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -45,6 +45,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
   const [duration, setDuration] = useState(0);
   const [poseError, setPoseError] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [selectedLandmarkId, setSelectedLandmarkId] = useState<number>(16);
   const [graphUpdateTrigger, setGraphUpdateTrigger] = useState(0);
   const [graphPosition, setGraphPosition] = useState({ x: 20, y: 20 });
@@ -338,6 +339,30 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
     }
   };
 
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    const filename = decodeURIComponent(videoUrl.split('/').pop()?.split('?')[0] || 'video.mp4');
+    try {
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // Cross-origin fetch failed (e.g. CORS): fall back to opening the
+      // video directly so the user can still save it manually.
+      window.open(videoUrl, '_blank');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const toggleFullscreen = () => {
     const container = videoRef.current?.closest('.fixed');
     if (!container) return;
@@ -500,6 +525,14 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
                 <Star size={20} className={favorite ? 'fill-current' : ''} />
               </button>
             )}
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="p-1.5 rounded-full transition-all text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-50"
+              title="Télécharger la vidéo"
+            >
+              {isDownloading ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
+            </button>
           </div>
           <div className="flex items-center gap-4">
             <label className={`flex items-center gap-2 cursor-pointer bg-slate-800 px-3 py-1.5 rounded-full border transition-colors select-none ${

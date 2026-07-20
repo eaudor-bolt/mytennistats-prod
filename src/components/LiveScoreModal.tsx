@@ -361,6 +361,13 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       const qualityHeight = videoQuality === 'HD' ? 720 : 480;
 
       const getConstraints = (includeAudio: boolean): MediaStreamConstraints => {
+        // Request 44.1kHz as the ideal capture rate so it lines up with the
+        // AAC encoding target used when recording points (best-effort: the
+        // browser/hardware may still deliver a different native rate).
+        const audioConstraints: MediaTrackConstraints | false = includeAudio
+          ? { sampleRate: { ideal: 44100 } }
+          : false;
+
         if (cameraId) {
           return {
             video: {
@@ -368,7 +375,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
               width: { ideal: qualityWidth },
               height: { ideal: qualityHeight }
             },
-            audio: includeAudio
+            audio: audioConstraints
           };
         } else {
           return {
@@ -380,7 +387,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
               width: { ideal: qualityWidth },
               height: { ideal: qualityHeight }
             },
-            audio: includeAudio
+            audio: audioConstraints
           };
         }
       };
@@ -467,18 +474,30 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     pointStartTimeRef.current = Date.now();
     chunksRef.current = [];
 
-    let options: MediaRecorderOptions = {
+    const options: MediaRecorderOptions = {
       videoBitsPerSecond: 2500000,
+      // 64kbps AAC-LC @ 44.1kHz (see audio constraint above); MediaRecorder
+      // has no explicit codec/sample-rate knob, so this bitrate target is
+      // the lever available once mp4/aac (or the webm fallback) is chosen.
+      audioBitsPerSecond: 64000,
     };
 
-    const supportedMimeTypes = [
+    // Prefer AAC/H264 in an MP4 container; fall back to the VP8/VP9/Opus
+    // WebM path only on devices/browsers that can't record MP4 at all.
+    const mp4MimeTypes = [
+      'video/mp4;codecs="avc1.42E01E, mp4a.40.2"',
+      'video/mp4;codecs=avc1,mp4a.40.2',
+      'video/mp4;codecs=h264,aac',
+      'video/mp4',
+    ];
+    const webmMimeTypes = [
       'video/webm;codecs=h264',
       'video/webm;codecs=vp9',
       'video/webm;codecs=vp8',
       'video/webm',
     ];
 
-    for (const mimeType of supportedMimeTypes) {
+    for (const mimeType of [...mp4MimeTypes, ...webmMimeTypes]) {
       if (MediaRecorder.isTypeSupported(mimeType)) {
         options.mimeType = mimeType;
         break;
@@ -494,7 +513,10 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     };
 
     mediaRecorder.onstop = async () => {
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+      // mediaRecorder.mimeType reflects what the browser actually recorded
+      // with, which may differ from the requested options.mimeType.
+      const containerType = (mediaRecorder.mimeType || '').includes('mp4') ? 'video/mp4' : 'video/webm';
+      const blob = new Blob(chunksRef.current, { type: containerType });
       setIsRecording(false);
 
       const duration = recordingStartTimeRef.current
@@ -619,7 +641,8 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const uploadVideoToS3Bucket = async (videoBlob: Blob) => {
     if (!liveMatchId) return null;
 
-    const filename = `${liveMatchId}/point-${sequenceNumberRef.current}-${Date.now()}.webm`;
+    const extension = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
+    const filename = `${liveMatchId}/point-${sequenceNumberRef.current}-${Date.now()}.${extension}`;
 
     const result = await uploadVideoToS3(videoBlob, filename);
 
