@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { MatchResult, supabase, Tournament } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
+
+type RegistrationRow = {
+  player_id: string;
+  tournament_name: string | null;
+  tournaments: Tournament | null;
+};
 
 type AddMatchResultModalProps = {
   isOpen: boolean;
@@ -45,7 +51,8 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
     no_ad: false,
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [playerTournaments, setPlayerTournaments] = useState<Tournament[]>([]);
+  const [registrations, setRegistrations] = useState<RegistrationRow[]>([]);
+  const [isAddingCustomEvent, setIsAddingCustomEvent] = useState(false);
 
   useEffect(() => {
     if (editingMatch) {
@@ -85,84 +92,138 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
         no_ad: initialData?.no_ad || false,
       });
     }
+    setIsAddingCustomEvent(false);
   }, [editingMatch, isOpen, initialData]);
 
-  useEffect(() => {
-    if (formData.player_name && formData.date) {
-      loadPlayerTournaments();
-    }
-  }, [formData.player_name, formData.date]);
-
-  // Handle browser back button on mobile
+  // Fetch every player's tournament registrations in a single request when the
+  // modal opens, instead of re-querying per player selected in the dropdown.
   useEffect(() => {
     if (isOpen) {
-      // Push a dummy state when modal opens
-      window.history.pushState({ modalOpen: true }, '');
-
-      const handlePopState = () => {
-        // Close modal when back button is pressed
-        onClose();
-      };
-
-      window.addEventListener('popstate', handlePopState);
-
-      return () => {
-        window.removeEventListener('popstate', handlePopState);
-        // Clean up: remove the pushed state if modal is closed programmatically
-        if (window.history.state?.modalOpen) {
-          window.history.back();
-        }
-      };
+      loadAllTournamentRegistrations();
     }
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
-  // Wrapper for onClose that handles history cleanup
-  const handleClose = () => {
-    // If we have the modal state in history, go back to remove it
-    if (window.history.state?.modalOpen) {
-      window.history.back();
-    } else {
-      // Otherwise just close normally
-      onClose();
-    }
-  };
-
-  const loadPlayerTournaments = async () => {
+  const loadAllTournamentRegistrations = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const selectedPlayer = players.find(p => {
-      const playerName = p.first_name;
-      return playerName === formData.player_name;
-    });
-    if (!selectedPlayer) return;
-
-    const selectedDate = new Date(formData.date);
-    const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-    const endOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + 1);
-
-    const { data: registrations } = await supabase
+    const { data, error } = await supabase
       .from('tournament_registrations')
-      .select('tournament_id')
-      .eq('user_id', user.id)
-      .eq('player_id', selectedPlayer.id);
+      .select('player_id, tournament_name, tournaments(*)')
+      .eq('user_id', user.id);
 
-    if (!registrations || registrations.length === 0) {
-      setPlayerTournaments([]);
+    if (error) {
+      console.error('Error loading tournament registrations:', error);
+      setRegistrations([]);
       return;
     }
 
-    const tournamentIds = registrations.map(r => r.tournament_id);
+    setRegistrations((data || []) as unknown as RegistrationRow[]);
+  };
 
-    const { data: tournaments } = await supabase
-      .from('tournaments')
-      .select('*')
-      .in('id', tournamentIds)
-      .lte('start_date', endOfDay.toISOString().split('T')[0])
-      .gte('end_date', startOfDay.toISOString().split('T')[0])
-      .order('start_date', { ascending: false });
+  // Events registered for the currently selected player: catalogued
+  // tournaments (filtered to those overlapping the selected match date) plus
+  // custom, free-text events added via "+ Ajouter un événement". Derived
+  // client-side from the single fetch above, so switching players never
+  // triggers a new request.
+  const playerEvents = useMemo(() => {
+    const selectedPlayer = players.find(p => p.first_name === formData.player_name);
+    if (!selectedPlayer) return [];
 
-    setPlayerTournaments(tournaments || []);
+    const forPlayer = registrations.filter(r => r.player_id === selectedPlayer.id);
+
+    const fromTournaments = forPlayer
+      .filter(r => r.tournaments)
+      .map(r => r.tournaments as Tournament)
+      .filter(t => !formData.date || (t.start_date <= formData.date && t.end_date >= formData.date))
+      .sort((a, b) => b.start_date.localeCompare(a.start_date))
+      .map(t => ({ key: t.id, label: `${t.organizer} - ${t.title}` }));
+
+    const fromCustom = forPlayer
+      .filter(r => !r.tournaments && r.tournament_name)
+      .map(r => ({ key: `custom-${r.tournament_name}`, label: r.tournament_name as string }));
+
+    const seenLabels = new Set<string>();
+    return [...fromTournaments, ...fromCustom].filter(e => {
+      if (seenLabels.has(e.label)) return false;
+      seenLabels.add(e.label);
+      return true;
+    });
+  }, [registrations, players, formData.player_name, formData.date]);
+
+  // Persists a manually-typed event ("+ Ajouter un événement") as a
+  // tournament_registrations row with no tournament_id, so it appears in this
+  // player's event list on future matches. Skips the insert if this exact
+  // custom name is already registered for the player, to avoid duplicates
+  // piling up every time the same one-off event is reused.
+  const saveCustomEventRegistration = async (playerName: string, eventName: string) => {
+    const selectedPlayer = players.find(p => p.first_name === playerName);
+    if (!selectedPlayer) return;
+
+    const alreadyRegistered = registrations.some(
+      r => r.player_id === selectedPlayer.id && r.tournament_name === eventName
+    );
+    if (alreadyRegistered) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('tournament_registrations')
+      .insert({
+        user_id: user.id,
+        player_id: selectedPlayer.id,
+        tournament_id: null,
+        tournament_name: eventName,
+      });
+
+    if (error) {
+      console.error('Error saving custom event registration:', error);
+      return;
+    }
+
+    setRegistrations(prev => [...prev, { player_id: selectedPlayer.id, tournament_name: eventName, tournaments: null }]);
+  };
+
+  // Handle browser back button / gesture on mobile: closing the modal any
+  // way (X, Cancel, backdrop, or back button) should consume exactly the one
+  // history entry pushed on open. Kept independent of `onClose`'s identity
+  // (which changes every parent render) so a parent re-render — e.g. from an
+  // auth token refresh when switching tabs/windows — never tears this effect
+  // down and spuriously triggers history.back().
+  const pushedHistoryRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    window.history.pushState({ modalOpen: true }, '');
+    pushedHistoryRef.current = true;
+
+    const handlePopState = () => {
+      pushedHistoryRef.current = false;
+      onCloseRef.current();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOpen]);
+
+  const handleClose = () => {
+    // Close immediately so intentional closes (Save/X/Cancel/backdrop) never
+    // wait on an async popstate round-trip; still pop the pushed history
+    // entry in the background so the stack stays balanced for the physical
+    // back button/gesture.
+    const hadPushedHistory = pushedHistoryRef.current;
+    pushedHistoryRef.current = false;
+    onClose();
+    if (hadPushedHistory) {
+      window.history.back();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -189,6 +250,9 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
         super_tiebreak: formData.super_tiebreak,
         no_ad: formData.no_ad,
       });
+      if (isAddingCustomEvent && formData.tournament_name.trim()) {
+        await saveCustomEventRegistration(formData.player_name, formData.tournament_name.trim());
+      }
       handleClose();
     } catch (error) {
       console.error('Error saving match:', error);
@@ -281,27 +345,61 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
               <label className="block text-sm font-semibold text-white mb-2">
                 Événement :
               </label>
-              <select
-                value={formData.tournament_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, tournament_name: e.target.value }))}
-                className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] outline-none transition-all bg-white/5 border-white/10 text-gray-400 hover:border-white/20"
-                required
-              >
-                <option value=""  class="bg-[#0a1628] text-gray-300">Sélectionner un événement</option>
-                {playerTournaments.length === 0 ? (
-                  <option value="N/A"  class="bg-[#0a1628] text-gray-300">N/A</option>
-                ) : (
-                  playerTournaments.map(tournament => (
-                    <option key={tournament.id} value={`${tournament.organizer} - ${tournament.title}`}  class="bg-[#0a1628] text-gray-300">
-                      {tournament.organizer} - {tournament.title}
-                    </option>
-                  ))
-                )}
-              </select>
-              {playerTournaments.length === 0 && formData.player_name && formData.date && (
-                <p className="mt-2 text-sm text-gray-400">
-                  Aucun événement enregistré pour {formData.player_name} à cette date
-                </p>
+              {isAddingCustomEvent ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    autoFocus
+                    value={formData.tournament_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, tournament_name: e.target.value }))}
+                    placeholder="Nom de l'événement"
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-transparent"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingCustomEvent(false);
+                      setFormData(prev => ({ ...prev, tournament_name: '' }));
+                    }}
+                    className="px-3 text-gray-400 hover:text-white border border-white/10 rounded-lg transition-colors"
+                    title="Revenir à la liste"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <select
+                    value={formData.tournament_name}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setIsAddingCustomEvent(true);
+                        setFormData(prev => ({ ...prev, tournament_name: '' }));
+                      } else {
+                        setFormData(prev => ({ ...prev, tournament_name: e.target.value }));
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] outline-none transition-all bg-white/5 border-white/10 text-gray-400 hover:border-white/20"
+                    required
+                  >
+                    <option value="" className="bg-[#0a1628] text-gray-300">Sélectionner un événement</option>
+                    {formData.tournament_name && !playerEvents.some(e => e.label === formData.tournament_name) && (
+                      <option value={formData.tournament_name} className="bg-[#0a1628] text-gray-300">{formData.tournament_name}</option>
+                    )}
+                    {playerEvents.map(event => (
+                      <option key={event.key} value={event.label} className="bg-[#0a1628] text-gray-300">
+                        {event.label}
+                      </option>
+                    ))}
+                    <option value="__add_new__" className="bg-[#0a1628] text-[#C8F135]">+ Ajouter un événement</option>
+                  </select>
+                  {playerEvents.length === 0 && formData.player_name && formData.date && (
+                    <p className="mt-2 text-sm text-gray-400">
+                      Aucun événement enregistré pour {formData.player_name} à cette date. Utilisez « + Ajouter un événement » pour en saisir un.
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
