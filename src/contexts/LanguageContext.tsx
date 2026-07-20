@@ -452,11 +452,10 @@ const detectLanguage = (): Language => {
     return stored;
   }
 
-  const browserLang = navigator.language.toLowerCase();
-  if (browserLang.startsWith('fr')) {
-    return 'fr';
-  }
-
+  // Language is only ever changed via the in-app FR/EN toggle, never by the
+  // device/browser/OS locale — that mismatch (declared vs. detected content
+  // language) is what triggers browsers' built-in auto-translate and mangles
+  // text like "myTenniStats".
   return 'en';
 };
 
@@ -484,6 +483,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem('tennis-manager-language', language);
+    document.documentElement.lang = language;
   }, [language]);
 
   const setLanguage = async (lang: Language) => {
