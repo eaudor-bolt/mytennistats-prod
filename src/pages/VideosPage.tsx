@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { LayoutGrid, List as ListIcon, Plus, Filter, Video as VideoIcon, AlertCircle, RefreshCw, Play, X, Camera, Upload, Loader2, CheckCircle2, Calendar, User, Activity, StopCircle, ScanFace, TrendingUp, Trash2, Pause, RotateCcw, PlayCircle, Tag as TagIcon, CreditCard as Edit, ChevronLeft, ChevronRight, BarChart3, Maximize, Minimize, Star } from 'lucide-react';
+import { LayoutGrid, List as ListIcon, Plus, Filter, Video as VideoIcon, AlertCircle, RefreshCw, Play, X, Camera, Upload, Loader2, CheckCircle2, Calendar, User, Activity, StopCircle, ScanFace, TrendingUp, Trash2, Pause, RotateCcw, PlayCircle, Tag as TagIcon, CreditCard as Edit, ChevronLeft, ChevronRight, BarChart3, Maximize, Minimize, Star, Download } from 'lucide-react';
 import { supabase, Tag } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlayers } from '../contexts/PlayersContext';
@@ -117,6 +117,7 @@ export function VideosPage() {
   const [poseError, setPoseError] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const [isDownloadingVideo, setIsDownloadingVideo] = useState(false);
   const videoPlayerRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const graphCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -1241,6 +1242,28 @@ export function VideosPage() {
     };
   }, [selectedVideo, duration]);
 
+  const handleDownloadVideo = async (videoUrl: string) => {
+    if (isDownloadingVideo) return;
+    setIsDownloadingVideo(true);
+    const filename = decodeURIComponent(videoUrl.split('/').pop()?.split('?')[0] || 'video.mp4');
+    try {
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(videoUrl, '_blank');
+    } finally {
+      setIsDownloadingVideo(false);
+    }
+  };
+
   const closeVideoPlayer = () => {
     setSelectedVideo(null);
     setIsAnalyzing(false);
@@ -2076,6 +2099,14 @@ export function VideosPage() {
                     <Star size={20} className={selectedVideo.favorite ? 'fill-current' : ''} />
                   </button>
                 )}
+                <button
+                  onClick={() => handleDownloadVideo(selectedVideo.url)}
+                  disabled={isDownloadingVideo}
+                  className="p-1.5 rounded-full transition-all text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-50"
+                  title="Télécharger la vidéo"
+                >
+                  {isDownloadingVideo ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
+                </button>
                 {playlistMode && (
                   <p className="text-sm text-slate-400">
                     {currentPlaylistIndex + 1} / {sortedTimelineVideos.length}
