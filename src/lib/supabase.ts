@@ -95,7 +95,8 @@ export type UserPlayer = {
 export type TournamentRegistration = {
   id: string;
   user_id: string;
-  tournament_id: string;
+  tournament_id: string | null;
+  tournament_name: string | null;
   player_id: string;
   registered_at: string;
   created_at: string;
