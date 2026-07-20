@@ -16,6 +16,7 @@ export default function LandingHeader({ onLoginClick, onSignupClick }: { onLogin
   const links = [
     { label: t.nav.home, href: '#home' },
     { label: t.nav.framework, href: '#framework' },
+    { label: t.nav.howItWorks, href: '#how-it-works' },
     { label: t.nav.players, href: '#players' },
     { label: t.nav.coaches, href: '#coaches' },
     { label: t.nav.pricing, href: '#pricing' },
