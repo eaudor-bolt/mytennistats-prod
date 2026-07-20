@@ -38,7 +38,7 @@ export default function LandingHeader({ onLoginClick, onSignupClick }: { onLogin
               <div className="w-px h-full bg-[#040c1a]/30 rotate-45" />
             </div>
           </div>
-          <span className="text-white font-bold text-base tracking-tight">
+          <span className="text-white font-bold text-base tracking-tight notranslate" translate="no">
             myTenni<span className="text-[#C8F135]">Stats</span>
           </span>
         </a>
