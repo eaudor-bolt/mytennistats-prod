@@ -59,11 +59,7 @@ export function ConvocationModal({
       return;
     }
 
-    const tournamentIds = registrations.map(r => r.tournament_id).filter((id): id is string => !!id);
-    if (tournamentIds.length === 0) {
-      setPlayerTournaments([]);
-      return;
-    }
+    const tournamentIds = registrations.map(r => r.tournament_id);
 
     const { data: tournamentsData } = await supabase
       .from('tournaments')

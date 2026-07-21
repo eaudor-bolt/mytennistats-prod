@@ -95,12 +95,19 @@ export type UserPlayer = {
 export type TournamentRegistration = {
   id: string;
   user_id: string;
-  tournament_id: string | null;
-  tournament_name: string | null;
+  tournament_id: string;
   player_id: string;
   registered_at: string;
   created_at: string;
   paid: boolean;
+};
+
+export type CustomTournamentEvent = {
+  id: string;
+  user_id: string;
+  player_id: string;
+  event_name: string;
+  created_at: string;
 };
 
 export type Convocation = {

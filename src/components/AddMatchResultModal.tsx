@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
-import { MatchResult, supabase, Tournament } from '../lib/supabase';
+import { MatchResult, supabase, Tournament, CustomTournamentEvent } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
 
 type RegistrationRow = {
   player_id: string;
-  tournament_name: string | null;
   tournaments: Tournament | null;
 };
 
@@ -52,6 +51,7 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
   });
   const [isSaving, setIsSaving] = useState(false);
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([]);
+  const [customEvents, setCustomEvents] = useState<CustomTournamentEvent[]>([]);
   const [isAddingCustomEvent, setIsAddingCustomEvent] = useState(false);
 
   useEffect(() => {
@@ -95,11 +95,13 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
     setIsAddingCustomEvent(false);
   }, [editingMatch, isOpen, initialData]);
 
-  // Fetch every player's tournament registrations in a single request when the
-  // modal opens, instead of re-querying per player selected in the dropdown.
+  // Fetch every player's tournament registrations AND their manually-added
+  // custom events in two fixed requests when the modal opens, instead of
+  // re-querying per player selected in the dropdown.
   useEffect(() => {
     if (isOpen) {
       loadAllTournamentRegistrations();
+      loadAllCustomEvents();
     }
   }, [isOpen]);
 
@@ -109,7 +111,7 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
 
     const { data, error } = await supabase
       .from('tournament_registrations')
-      .select('player_id, tournament_name, tournaments(*)')
+      .select('player_id, tournaments(*)')
       .eq('user_id', user.id);
 
     if (error) {
@@ -121,27 +123,45 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
     setRegistrations((data || []) as unknown as RegistrationRow[]);
   };
 
-  // Events registered for the currently selected player: catalogued
-  // tournaments (filtered to those overlapping the selected match date) plus
-  // custom, free-text events added via "+ Ajouter un événement". Derived
-  // client-side from the single fetch above, so switching players never
-  // triggers a new request.
+  const loadAllCustomEvents = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('custom_tournament_events')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error loading custom events:', error);
+      setCustomEvents([]);
+      return;
+    }
+
+    setCustomEvents(data || []);
+  };
+
+  // Events available for the currently selected player: catalogued
+  // tournament registrations (filtered to those overlapping the selected
+  // match date) plus custom, free-text events added via "+ Ajouter un
+  // événement" (stored in custom_tournament_events, independent of the
+  // tournaments/tournament_registrations catalogue so this also works for
+  // players who never use the Tournaments page). Derived client-side from
+  // the two fetches above, so switching players never triggers a new request.
   const playerEvents = useMemo(() => {
     const selectedPlayer = players.find(p => p.first_name === formData.player_name);
     if (!selectedPlayer) return [];
 
-    const forPlayer = registrations.filter(r => r.player_id === selectedPlayer.id);
-
-    const fromTournaments = forPlayer
-      .filter(r => r.tournaments)
+    const fromTournaments = registrations
+      .filter(r => r.player_id === selectedPlayer.id && r.tournaments)
       .map(r => r.tournaments as Tournament)
       .filter(t => !formData.date || (t.start_date <= formData.date && t.end_date >= formData.date))
       .sort((a, b) => b.start_date.localeCompare(a.start_date))
       .map(t => ({ key: t.id, label: `${t.organizer} - ${t.title}` }));
 
-    const fromCustom = forPlayer
-      .filter(r => !r.tournaments && r.tournament_name)
-      .map(r => ({ key: `custom-${r.tournament_name}`, label: r.tournament_name as string }));
+    const fromCustom = customEvents
+      .filter(e => e.player_id === selectedPlayer.id)
+      .map(e => ({ key: `custom-${e.id}`, label: e.event_name }));
 
     const seenLabels = new Set<string>();
     return [...fromTournaments, ...fromCustom].filter(e => {
@@ -149,40 +169,43 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
       seenLabels.add(e.label);
       return true;
     });
-  }, [registrations, players, formData.player_name, formData.date]);
+  }, [registrations, customEvents, players, formData.player_name, formData.date]);
 
-  // Persists a manually-typed event ("+ Ajouter un événement") as a
-  // tournament_registrations row with no tournament_id, so it appears in this
-  // player's event list on future matches. Skips the insert if this exact
-  // custom name is already registered for the player, to avoid duplicates
-  // piling up every time the same one-off event is reused.
-  const saveCustomEventRegistration = async (playerName: string, eventName: string) => {
+  // Persists a manually-typed event ("+ Ajouter un événement") in
+  // custom_tournament_events so it appears in this player's event list on
+  // future matches. Skips the insert if this exact custom name is already
+  // saved for the player, to avoid duplicates piling up every time the same
+  // one-off event is reused.
+  const saveCustomEvent = async (playerName: string, eventName: string) => {
     const selectedPlayer = players.find(p => p.first_name === playerName);
     if (!selectedPlayer) return;
 
-    const alreadyRegistered = registrations.some(
-      r => r.player_id === selectedPlayer.id && r.tournament_name === eventName
+    const alreadySaved = customEvents.some(
+      e => e.player_id === selectedPlayer.id && e.event_name === eventName
     );
-    if (alreadyRegistered) return;
+    if (alreadySaved) return;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from('tournament_registrations')
+    const { data, error } = await supabase
+      .from('custom_tournament_events')
       .insert({
         user_id: user.id,
         player_id: selectedPlayer.id,
-        tournament_id: null,
-        tournament_name: eventName,
-      });
+        event_name: eventName,
+      })
+      .select()
+      .single();
 
     if (error) {
-      console.error('Error saving custom event registration:', error);
+      console.error('Error saving custom event:', error);
       return;
     }
 
-    setRegistrations(prev => [...prev, { player_id: selectedPlayer.id, tournament_name: eventName, tournaments: null }]);
+    if (data) {
+      setCustomEvents(prev => [...prev, data]);
+    }
   };
 
   // Handle browser back button / gesture on mobile: closing the modal any
@@ -251,7 +274,7 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
         no_ad: formData.no_ad,
       });
       if (isAddingCustomEvent && formData.tournament_name.trim()) {
-        await saveCustomEventRegistration(formData.player_name, formData.tournament_name.trim());
+        await saveCustomEvent(formData.player_name, formData.tournament_name.trim());
       }
       handleClose();
     } catch (error) {

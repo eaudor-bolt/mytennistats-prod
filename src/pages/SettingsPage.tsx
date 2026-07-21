@@ -866,144 +866,6 @@ export function SettingsPage() {
       </div>
 
       <div className="space-y-6">
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-[#C8F135]" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">{t('settings.subscription.title')}</h3>
-            </div>
-            {subscription?.subscription_tier === 'free' ? (
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className={`text-lg font-bold text-white`}>{t('settings.subscription.freePlan')}</h4>
-                    <p className={`text-sm mt-1 text-gray-400`}>{t('settings.subscription.freeDesc')}</p>
-                  </div>
-                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-white/5 text-gray-400 border border-white/10">
-                    {t('settings.subscription.currentPlan')}
-                  </span>
-                </div>
-
-                <div className="rounded-xl p-4 space-y-2 bg-white/2 border border-white/5">
-                  <h5 className="font-semibold mb-3 text-white">{t('settings.subscription.currentUsage')}</h5>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">{t('settings.subscription.playersCreated')}</span>
-                      <span className="font-medium text-white">{usageStats?.players_created || 0} / {limits.maxPlayers}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">{t('settings.subscription.matchResultsCreated')}</span>
-                      <span className="font-medium text-white">{usageStats?.match_results_created || 0} / {limits.maxMatchResults}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">{t('settings.subscription.sharesCreated')}</span>
-                      <span className="font-medium text-white">{usageStats?.shares_created || 0} / {limits.maxShares}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">{t('settings.subscription.liveGameSharing')}</span>
-                      <span className="font-medium text-red-400">{t('settings.subscription.notAvailable')}</span>
-                    </div>
-                    {canAccessTournaments && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">{t('settings.subscription.tournamentAccess')}</span>
-                        <span className="font-medium text-[#C8F135]">{t('settings.subscription.enabled')}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4 border-white/5">
-                  <div className="rounded-xl p-6 border border-[#C8F135]/20 bg-[#C8F135]/5">
-                    <div className="flex items-start gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-[#C8F135]/20 flex items-center justify-center flex-shrink-0">
-                        <Sparkles className="w-5 h-5 text-[#C8F135]" />
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-bold mb-1 text-white">{t('settings.subscription.upgradeTitle')}</h4>
-                        <p className="text-sm mb-3 text-gray-400">{t('settings.subscription.upgradeDesc')}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-sm text-gray-300">
-                        <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
-                        <span>{t('settings.subscription.unlimitedPlayers')}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-300">
-                        <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
-                        <span>{t('settings.subscription.unlimitedMatchResults')}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-300">
-                        <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
-                        <span>{t('settings.subscription.unlimitedSharing')}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-300">
-                        <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
-                        <span>{t('settings.subscription.liveGameSharingFeature')}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={handleUpgradeSubscription}
-                      disabled={upgradingSubscription}
-                      className="w-full px-6 py-3 bg-[#C8F135] text-[#040c1a] font-bold rounded-full hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    >
-                      {upgradingSubscription ? t('settings.subscription.processing') : t('settings.subscription.upgradeTitle')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className={`text-lg font-bold text-white`}>{t('settings.subscription.premiumPlan')}</h4>
-                    <p className={`text-sm mt-1 text-gray-400`}>{t('settings.subscription.premiumDesc')}</p>
-                  </div>
-                  <span className="px-3 py-1 bg-[#C8F135]/20 text-[#C8F135] text-sm font-medium rounded-full border border-[#C8F135]/30">
-                    {t('settings.subscription.active')}
-                  </span>
-                </div>
-
-                <div className="rounded-xl p-4 space-y-2 bg-[#C8F135]/5 border border-[#C8F135]/20">
-                  <h5 className="font-semibold mb-3 text-white">{t('settings.subscription.premiumFeatures')}</h5>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center text-gray-300">
-                      <Check className="w-4 h-4 text-[#C8F135] mr-2" />
-                      <span>{t('settings.subscription.unlimitedPlayers')}</span>
-                    </div>
-                    <div className="flex items-center text-gray-300">
-                      <Check className="w-4 h-4 text-[#C8F135] mr-2" />
-                      <span>{t('settings.subscription.unlimitedMatchResults')}</span>
-                    </div>
-                    <div className="flex items-center text-gray-300">
-                      <Check className="w-4 h-4 text-[#C8F135] mr-2" />
-                      <span>{t('settings.subscription.unlimitedSharing')}</span>
-                    </div>
-                    <div className="flex items-center text-gray-300">
-                      <Check className="w-4 h-4 text-[#C8F135] mr-2" />
-                      <span>{t('settings.subscription.liveGameSharingEnabled')}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={`border-t pt-4 border-[#1A6FC4]/10`}>
-                  <p className={`text-sm mb-3 text-gray-400`}>
-                    {t('settings.subscription.billedMonthly')}
-                  </p>
-                  <button
-                    onClick={handleCancelSubscription}
-                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-[#C8F135] rounded-full transition-all duration-300 text-sm font-bold border border-red-600/50 hover:border-red-700/50"
-                  >
-                    {t('settings.subscription.cancelButton')}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
 
         <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
           <div className="p-6">
@@ -1565,6 +1427,145 @@ export function SettingsPage() {
               {t('settings.security.changePassword')}
             </button>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-[#C8F135]" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">{t('settings.subscription.title')}</h3>
+            </div>
+            {subscription?.subscription_tier === 'free' ? (
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className={`text-lg font-bold text-white`}>{t('settings.subscription.freePlan')}</h4>
+                    <p className={`text-sm mt-1 text-gray-400`}>{t('settings.subscription.freeDesc')}</p>
+                  </div>
+                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-white/5 text-gray-400 border border-white/10">
+                    {t('settings.subscription.currentPlan')}
+                  </span>
+                </div>
+
+                <div className="rounded-xl p-4 space-y-2 bg-white/2 border border-white/5">
+                  <h5 className="font-semibold mb-3 text-white">{t('settings.subscription.currentUsage')}</h5>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('settings.subscription.playersCreated')}</span>
+                      <span className="font-medium text-white">{usageStats?.players_created || 0} / {limits.maxPlayers}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('settings.subscription.matchResultsCreated')}</span>
+                      <span className="font-medium text-white">{usageStats?.match_results_created || 0} / {limits.maxMatchResults}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('settings.subscription.sharesCreated')}</span>
+                      <span className="font-medium text-white">{usageStats?.shares_created || 0} / {limits.maxShares}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('settings.subscription.liveGameSharing')}</span>
+                      <span className="font-medium text-red-400">{t('settings.subscription.notAvailable')}</span>
+                    </div>
+                    {canAccessTournaments && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">{t('settings.subscription.tournamentAccess')}</span>
+                        <span className="font-medium text-[#C8F135]">{t('settings.subscription.enabled')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 border-white/5">
+                  <div className="rounded-xl p-6 border border-[#C8F135]/20 bg-[#C8F135]/5">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-[#C8F135]/20 flex items-center justify-center flex-shrink-0">
+                        <Sparkles className="w-5 h-5 text-[#C8F135]" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold mb-1 text-white">{t('settings.subscription.upgradeTitle')}</h4>
+                        <p className="text-sm mb-3 text-gray-400">{t('settings.subscription.upgradeDesc')}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-sm text-gray-300">
+                        <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
+                        <span>{t('settings.subscription.unlimitedPlayers')}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-300">
+                        <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
+                        <span>{t('settings.subscription.unlimitedMatchResults')}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-300">
+                        <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
+                        <span>{t('settings.subscription.unlimitedSharing')}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-300">
+                        <Check className="w-4 h-4 text-[#C8F135] mr-2 flex-shrink-0" />
+                        <span>{t('settings.subscription.liveGameSharingFeature')}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleUpgradeSubscription}
+                      disabled={upgradingSubscription}
+                      className="w-full px-6 py-3 bg-[#C8F135] text-[#040c1a] font-bold rounded-full hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {upgradingSubscription ? t('settings.subscription.processing') : t('settings.subscription.upgradeTitle')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className={`text-lg font-bold text-white`}>{t('settings.subscription.premiumPlan')}</h4>
+                    <p className={`text-sm mt-1 text-gray-400`}>{t('settings.subscription.premiumDesc')}</p>
+                  </div>
+                  <span className="px-3 py-1 bg-[#C8F135]/20 text-[#C8F135] text-sm font-medium rounded-full border border-[#C8F135]/30">
+                    {t('settings.subscription.active')}
+                  </span>
+                </div>
+
+                <div className="rounded-xl p-4 space-y-2 bg-[#C8F135]/5 border border-[#C8F135]/20">
+                  <h5 className="font-semibold mb-3 text-white">{t('settings.subscription.premiumFeatures')}</h5>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center text-gray-300">
+                      <Check className="w-4 h-4 text-[#C8F135] mr-2" />
+                      <span>{t('settings.subscription.unlimitedPlayers')}</span>
+                    </div>
+                    <div className="flex items-center text-gray-300">
+                      <Check className="w-4 h-4 text-[#C8F135] mr-2" />
+                      <span>{t('settings.subscription.unlimitedMatchResults')}</span>
+                    </div>
+                    <div className="flex items-center text-gray-300">
+                      <Check className="w-4 h-4 text-[#C8F135] mr-2" />
+                      <span>{t('settings.subscription.unlimitedSharing')}</span>
+                    </div>
+                    <div className="flex items-center text-gray-300">
+                      <Check className="w-4 h-4 text-[#C8F135] mr-2" />
+                      <span>{t('settings.subscription.liveGameSharingEnabled')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`border-t pt-4 border-[#1A6FC4]/10`}>
+                  <p className={`text-sm mb-3 text-gray-400`}>
+                    {t('settings.subscription.billedMonthly')}
+                  </p>
+                  <button
+                    onClick={handleCancelSubscription}
+                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-[#C8F135] rounded-full transition-all duration-300 text-sm font-bold border border-red-600/50 hover:border-red-700/50"
+                  >
+                    {t('settings.subscription.cancelButton')}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
