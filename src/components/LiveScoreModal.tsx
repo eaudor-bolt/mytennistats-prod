@@ -6,6 +6,9 @@ import { uploadVideoToS3 } from '../utils/s3Upload';
 import { MiniScoreboard } from './MiniScoreboard';
 import { VideoPlayerModal } from './VideoPlayerModal';
 import { useAlert } from '../hooks/useAlert';
+import { useLanguage } from '../contexts/LanguageContext';
+
+const SKILL_KEYS = ['forehand', 'backhand', 'volley', 'service', 'return', 'opponent'];
 
 type GameScore = { adversaire: number; famille: number; totalAd?: number };
 type SetScores = { adversaire: number[]; famille: number[] };
@@ -37,6 +40,7 @@ const getPlaybackUrl = (url: string | null): string | null => {
 };
 
 export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished }: LiveScoreModalProps) {
+  const { t } = useLanguage();
   const { players } = usePlayers();
   const { showAlert, AlertComponent } = useAlert();
   const [selectedPlayer, setSelectedPlayer] = useState('');
@@ -292,6 +296,21 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Shot names are stored/matched internally as fixed English identifiers
+  // (see SKILL_KEYS); only the displayed label should follow the language
+  // setting, so this only formats the "skill: action" history string for
+  // display, leaving the underlying stored value untouched.
+  const translateSkillLabel = (skill: string) => t(`matches.radar.axis.${skill}`);
+
+  const formatToggleValueDisplay = (toggleValue: string) => {
+    const separatorIndex = toggleValue.indexOf(': ');
+    if (separatorIndex === -1) return toggleValue;
+    const skill = toggleValue.slice(0, separatorIndex);
+    if (!SKILL_KEYS.includes(skill)) return toggleValue;
+    const action = toggleValue.slice(separatorIndex + 2);
+    return `${translateSkillLabel(skill)}: ${action}`;
   };
 
   const resetMatch = () => {
@@ -2027,7 +2046,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                           : 'bg-white/5 border-white/10'
                       }`}
                     >
-                      <span className="w-20 text-xs font-medium text-gray-300 capitalize">{skill}</span>
+                      <span className="w-20 text-xs font-medium text-gray-300">{translateSkillLabel(skill)}</span>
                       <button
                         onClick={() => setFault(skill)}
                         disabled={!!pressedButton.skill || isMatchFinished}
@@ -2140,7 +2159,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
 
                           <div className="mt-1">
                             <p className="font-semibold text-gray-200 text-sm">
-                              {entry.toggleValue}
+                              {formatToggleValueDisplay(entry.toggleValue)}
                             </p>
                             {entry.server && (
                               <p className="text-xs text-[#C8F135] font-medium mt-0.5">
@@ -2537,7 +2556,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
 
                         <div className="mt-1">
                           <p className="font-semibold text-gray-200 text-sm">
-                            {entry.toggleValue}
+                            {formatToggleValueDisplay(entry.toggleValue)}
                           </p>
                           {entry.server && (
                             <p className="text-xs text-[#C8F135] font-medium mt-0.5">
