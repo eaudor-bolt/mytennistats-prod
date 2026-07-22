@@ -5,6 +5,7 @@ import { usePlayers } from '../contexts/PlayersContext';
 import { uploadVideoToS3 } from '../utils/s3Upload';
 import { MiniScoreboard } from './MiniScoreboard';
 import { VideoPlayerModal } from './VideoPlayerModal';
+import { LiveScoreHelpButton, LiveScoreHelpTour } from './LiveScoreHelpTour';
 import { useAlert } from '../hooks/useAlert';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -43,6 +44,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const { t } = useLanguage();
   const { players } = usePlayers();
   const { showAlert, AlertComponent } = useAlert();
+  const [showHelpTour, setShowHelpTour] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [gameScore, setGameScore] = useState<GameScore>({ adversaire: 0, famille: 0, totalAd: 0 });
   const [setScores, setSetScores] = useState<SetScores>({ adversaire: [0, 0, 0], famille: [0, 0, 0] });
@@ -726,8 +728,8 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   };
 
   const undoScore = () => {
-    if (historyIndex > 0) {
-      const prevState = scoreHistory[historyIndex - 1];
+    if (historyIndex >= 0) {
+      const prevState = scoreHistory[historyIndex];
       setGameScore(prevState.gameScore);
       setSetScores(prevState.setScores);
       setCurrentSet(prevState.currentSet);
@@ -1719,6 +1721,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   return (
     <>
       <AlertComponent />
+      <LiveScoreHelpTour isOpen={showHelpTour} onClose={() => setShowHelpTour(false)} />
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-gradient-to-br from-[#0a1628] to-[#050d1a] rounded-xl shadow-2xl border border-white/10 max-w-2xl w-full h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-[#0a1628] to-[#0f1e35] border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
@@ -1733,7 +1736,8 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
             </div>
             <button
               onClick={undoScore}
-              disabled={historyIndex <= 0 || isMatchFinished || isLocked}
+              disabled={historyIndex < 0 || isMatchFinished || isLocked}
+              data-tour-id="tour-undo-button"
               className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-white/10"
             >
               <ArrowLeft className="w-3 h-3" />
@@ -1741,6 +1745,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
             </button>
             <button
               onClick={handleShare}
+              data-tour-id="tour-share-button"
               className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-[#C8F135] text-[#050d1a] rounded-lg hover:bg-[#b5d930] transition-colors font-semibold"
               title="Partager le match en direct"
             >
@@ -1749,6 +1754,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
             </button>
             <button
               onClick={() => setIsLocked(!isLocked)}
+              data-tour-id="tour-lock-button"
               className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors border ${
                 isLocked
                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/30'
@@ -1759,19 +1765,22 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
               {isLocked ? <Lock className="w-3 sm:w-4 h-3 sm:h-4" /> : <Unlock className="w-3 sm:w-4 h-3 sm:h-4" />}
             </button>
           </div>
-          <button onClick={() => {
-            if (!isMatchFinished) {
-              saveMatchState();
-            }
-            isClosingRef.current = true;
-            stopCamera();
-            onClose();
-            setTimeout(() => {
-              isClosingRef.current = false;
-            }, 500);
-          }} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors">
-            <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-300" />
-          </button>
+          <div className="flex items-center gap-1">
+            <LiveScoreHelpButton onClick={() => setShowHelpTour(true)} />
+            <button onClick={() => {
+              if (!isMatchFinished) {
+                saveMatchState();
+              }
+              isClosingRef.current = true;
+              stopCamera();
+              onClose();
+              setTimeout(() => {
+                isClosingRef.current = false;
+              }, 500);
+            }} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-300" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 flex flex-col overflow-y-auto">
@@ -1894,6 +1903,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                     {!isRecording ? (
                       <button
                         onClick={startRecordingPoint}
+                        data-tour-id="tour-record-button"
                         className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transform active:scale-95 transition-all landscape-mobile:px-3 landscape-mobile:py-2 landscape-mobile:text-sm"
                       >
                         <Camera className="w-5 h-5 landscape-mobile:w-4 landscape-mobile:h-4" />
@@ -1955,6 +1965,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                             <button
                               onClick={() => !isLocked && scorePoint('adversaire')}
                               disabled={isLocked || isMatchFinished}
+                              data-tour-id="tour-score-cell"
                               className={`w-10 h-6 sm:w-12 sm:h-7 flex items-center justify-center bg-red-500 text-white text-xs sm:text-sm font-bold rounded shadow transition-all flex-shrink-0 ${
                                 !isLocked && !isMatchFinished ? 'hover:bg-red-600 cursor-pointer' : 'cursor-not-allowed opacity-90'
                               }`}
@@ -2038,6 +2049,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                   {['forehand', 'backhand', 'volley', 'service', 'return', 'opponent'].map((skill) => (
                     <div
                       key={skill}
+                      data-tour-id={skill === 'forehand' ? 'tour-skill-row-forehand' : skill === 'opponent' ? 'tour-skill-row-opponent' : undefined}
                       className={`flex items-center gap-1.5 p-1.5 rounded-lg transition-all border ${
                         highlightedRow.row === skill
                           ? highlightedRow.color === 'green'
@@ -2069,6 +2081,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                   <button
                     onClick={handleFinishMatch}
                     disabled={isSaving}
+                    data-tour-id="tour-finish-button"
                     className="w-full px-4 py-3 bg-[#C8F135] text-[#050d1a] rounded-lg font-bold hover:bg-[#b5d930] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-lg"
                   >
                     {isSaving ? (
@@ -2324,6 +2337,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                     {!isRecording ? (
                       <button
                         onClick={startRecordingPoint}
+                        data-tour-id="tour-record-button"
                         className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transform active:scale-95 transition-all"
                       >
                         <Camera className="w-5 h-5" />
@@ -2468,6 +2482,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                   <button
                     onClick={handleFinishMatch}
                     disabled={isSaving}
+                    data-tour-id="tour-finish-button"
                     className="w-full px-4 py-3 bg-[#C8F135] text-[#050d1a] rounded-lg font-bold hover:bg-[#b5d930] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-lg"
                   >
                     {isSaving ? (
