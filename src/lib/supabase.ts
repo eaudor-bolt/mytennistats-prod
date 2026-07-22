@@ -7,6 +7,40 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
+// Supabase's default cross-tab auth lock (Web Locks API) is requested with
+// no timeout for getSession() calls, which run on every query. If one tab's
+// lock acquisition ever stalls (a frozen/throttled background tab, a dropped
+// request mid token-refresh), every other tab sharing this origin — including
+// anonymous /live/:matchId viewers — hangs forever waiting for the same lock,
+// only resolved by closing the stuck tab. Cap the wait and fall back to
+// running without exclusivity instead of hanging indefinitely.
+const TAB_LOCK_TIMEOUT_MS = 3000;
+
+async function tabSafeLock<T>(name: string, _acquireTimeout: number, fn: () => Promise<T>): Promise<T> {
+  if (typeof navigator === 'undefined' || !navigator.locks) {
+    return fn();
+  }
+
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), TAB_LOCK_TIMEOUT_MS);
+
+  try {
+    return await navigator.locks.request(
+      name,
+      { mode: 'exclusive', signal: abortController.signal },
+      (lock) => (lock ? fn() : fn())
+    );
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      console.warn(`Supabase auth lock "${name}" timed out after ${TAB_LOCK_TIMEOUT_MS}ms; proceeding without exclusivity.`);
+      return fn();
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -15,6 +49,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: window.localStorage,
     storageKey: 'tennis-auth',
     flowType: 'pkce',
+    lock: tabSafeLock,
   },
   global: {
     headers: {
