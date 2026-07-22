@@ -27,6 +27,7 @@ type ScoringPoint = {
   isTiebreak?: boolean;
   toggleValue?: string;
   duration?: number;
+  sizeBytes?: number;
 };
 
 export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => void; inline?: boolean }) {
@@ -117,6 +118,8 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
           taken_at: point.timestamp || selectedMatch.date,
           status: 'ready',
           favorite: true,
+          size_bytes: point.sizeBytes ?? null,
+          duration_seconds: point.duration ?? null,
         });
       }
     }

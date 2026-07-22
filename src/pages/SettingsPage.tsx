@@ -1,4 +1,4 @@
-import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, Download, LogOut, Database, Share2, ExternalLink } from 'lucide-react';
+import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, Download, LogOut, Database, Share2, ExternalLink, HardDrive } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { supabase, UserPlayer } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
@@ -17,6 +17,26 @@ type PlayerFormData = {
   last_name: string;
   license_number: string;
   birth_year: string;
+};
+
+const formatBytes = (bytes: number): string => {
+  if (!bytes) return '0 MB';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
+
+const formatDuration = (totalSeconds: number): string => {
+  const seconds = Math.round(totalSeconds);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
 };
 
 export function SettingsPage() {
@@ -69,12 +89,15 @@ export function SettingsPage() {
     player_names?: string[];
   }>>([]);
   const [loadingSharedLinks, setLoadingSharedLinks] = useState(false);
+  const [videoUsage, setVideoUsage] = useState<{ totalBytes: number; totalSeconds: number; count: number } | null>(null);
+  const [loadingVideoUsage, setLoadingVideoUsage] = useState(false);
 
   useEffect(() => {
     loadUserData();
     loadSettings();
     handleReturnFromStripe();
     loadSharedLinks();
+    loadVideoUsage();
   }, []);
 
   const loadUserData = async () => {
@@ -830,6 +853,61 @@ export function SettingsPage() {
     }
   };
 
+  const loadVideoUsage = async () => {
+    setLoadingVideoUsage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoadingVideoUsage(false);
+        return;
+      }
+
+      const { data: videoRows } = await supabase
+        .from('videos')
+        .select('url, size_bytes, duration_seconds')
+        .eq('user_id', user.id);
+
+      const knownUrls = new Set<string>();
+      let totalBytes = 0;
+      let totalSeconds = 0;
+      let count = 0;
+
+      (videoRows || []).forEach(v => {
+        if (v.url) knownUrls.add(v.url);
+        totalBytes += v.size_bytes || 0;
+        totalSeconds += v.duration_seconds || 0;
+        count += 1;
+      });
+
+      // Point clips recorded during a live match but never "favorited" only
+      // live inline inside scoring_history (no row in `videos`) — count them
+      // too, skipping any URL already counted above to avoid double-counting
+      // once a clip has been promoted into the videos table.
+      const [{ data: liveMatches }, { data: matchResults }] = await Promise.all([
+        supabase.from('live_matches').select('scoring_history').eq('user_id', user.id),
+        supabase.from('match_results').select('scoring_history').eq('user_id', user.id),
+      ]);
+
+      [...(liveMatches || []), ...(matchResults || [])].forEach(row => {
+        const points = Array.isArray(row.scoring_history) ? row.scoring_history : [];
+        points.forEach((point: any) => {
+          if (point?.videoUrl && point?.sizeBytes && !knownUrls.has(point.videoUrl)) {
+            knownUrls.add(point.videoUrl);
+            totalBytes += point.sizeBytes;
+            totalSeconds += point.duration || 0;
+            count += 1;
+          }
+        });
+      });
+
+      setVideoUsage({ totalBytes, totalSeconds, count });
+    } catch (error) {
+      console.error('Error loading video usage:', error);
+    } finally {
+      setLoadingVideoUsage(false);
+    }
+  };
+
   const deleteSharedLink = async (id: string, type: 'Live Score' | 'Match Result') => {
     showAlert(t('settings.sharedLinks.deleteConfirmMessage'), {
       type: 'warning',
@@ -1312,6 +1390,41 @@ export function SettingsPage() {
               </button>
             </div>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
+                <HardDrive className="w-5 h-5 text-[#C8F135]" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">{t('settings.videoUsage.title')}</h3>
+            </div>
+            <p className="text-sm mb-4 text-gray-400">
+              {t('settings.videoUsage.desc')}
+            </p>
+
+            {loadingVideoUsage ? (
+              <div className="text-center py-6">
+                <p className="text-gray-400">{t('settings.videoUsage.loading')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl p-4 bg-white/2 border border-white/5">
+                  <p className="text-xs text-gray-400 mb-1">{t('settings.videoUsage.totalStorage')}</p>
+                  <p className="text-xl font-bold text-white">{formatBytes(videoUsage?.totalBytes || 0)}</p>
+                </div>
+                <div className="rounded-xl p-4 bg-white/2 border border-white/5">
+                  <p className="text-xs text-gray-400 mb-1">{t('settings.videoUsage.totalVideos')}</p>
+                  <p className="text-xl font-bold text-white">{videoUsage?.count || 0}</p>
+                </div>
+                <div className="rounded-xl p-4 bg-white/2 border border-white/5">
+                  <p className="text-xs text-gray-400 mb-1">{t('settings.videoUsage.totalDuration')}</p>
+                  <p className="text-xl font-bold text-white">{formatDuration(videoUsage?.totalSeconds || 0)}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -577,6 +577,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
           currentSet,
           videoUrl: null,
           duration: duration,
+          sizeBytes: blob.size,
           uploading: true,
           isTiebreak: isTiebreak,
           server: currentServer,
@@ -636,6 +637,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                 ...updated[updated.length - 1],
                 videoUrl: storedUrl || updated[updated.length - 1].videoUrl,
                 duration: duration || updated[updated.length - 1].duration,
+                sizeBytes: blob.size || updated[updated.length - 1].sizeBytes,
                 uploading: false,
               };
             }

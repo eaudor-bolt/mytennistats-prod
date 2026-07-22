@@ -22,8 +22,26 @@ interface VideoRecord {
   poster_image: string;
   status: string;
   favorite: boolean;
+  size_bytes?: number | null;
+  duration_seconds?: number | null;
   tags?: Tag[];
 }
+
+const getVideoDuration = (file: Blob): Promise<number | null> => {
+  return new Promise((resolve) => {
+    const videoEl = document.createElement('video');
+    videoEl.preload = 'metadata';
+    videoEl.onloadedmetadata = () => {
+      URL.revokeObjectURL(videoEl.src);
+      resolve(Number.isFinite(videoEl.duration) ? videoEl.duration : null);
+    };
+    videoEl.onerror = () => {
+      URL.revokeObjectURL(videoEl.src);
+      resolve(null);
+    };
+    videoEl.src = URL.createObjectURL(file);
+  });
+};
 
 interface FilterState {
   player_name: string;
@@ -727,6 +745,7 @@ export function VideosPage() {
 
       // Create poster image URL by replacing .mp4 with .jpg
       const posterImageUrl = videoUrl.replace(/\.(mp4|webm|mov|avi)$/i, '.jpg');
+      const durationSeconds = await getVideoDuration(file);
 
       const { data: videoData, error: dbError } = await supabase
         .from('videos')
@@ -738,6 +757,8 @@ export function VideosPage() {
           taken_at: new Date(takenAt).toISOString(),
           poster_image: posterImageUrl,
           status: 'completed',
+          size_bytes: file.size,
+          duration_seconds: durationSeconds,
         }])
         .select()
         .single();
