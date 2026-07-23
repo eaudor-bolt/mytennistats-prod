@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { X, TrendingUp, BarChart2, Radar, Medal, Zap, Video, Play, Clock, ChevronLeft, ChevronRight, Camera, Target } from 'lucide-react';
+import { X, TrendingUp, BarChart2, Radar, Medal, Zap, Video, Play, Clock, ChevronLeft, ChevronRight, Camera, Target, Download, Loader2 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { MatchResult } from '../lib/supabase';
 import { FinalScoreboard } from './FinalScoreboard';
 import { InlineScoreboard } from './InlineScoreboard';
@@ -25,12 +27,14 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
   const [skillDataType, setSkillDataType] = useState<'win' | 'loss'>('win');
   const [videoModalOpen, setVideoModalOpen] = useState<boolean>(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   // Touch handling for swipe gestures
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
   const graphContainerRef = useRef<HTMLDivElement>(null);
   const historyContainerRef = useRef<HTMLDivElement>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
   const barRefs = useRef<Map<number, HTMLElement>>(new Map());
 
   // Lock body scroll when modal is open
@@ -868,6 +872,148 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
     touchEndX.current = 0;
   };
 
+  // Temporarily un-clips every nested scrollable region (the bar chart strip,
+  // the per-set table, the point history list, the card itself) so the PDF
+  // capture includes their full content instead of just what's scrolled into
+  // view. Returns a function that restores every element's original styles.
+  const expandScrollableAreas = (root: HTMLElement): (() => void) => {
+    const elements = [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))];
+    const restores: Array<() => void> = [];
+
+    elements.forEach((el) => {
+      const computed = window.getComputedStyle(el);
+      const isScrollable = computed.overflowX === 'auto' || computed.overflowX === 'scroll'
+        || computed.overflowY === 'auto' || computed.overflowY === 'scroll';
+      if (!isScrollable) return;
+
+      const prev = {
+        overflow: el.style.overflow,
+        overflowX: el.style.overflowX,
+        overflowY: el.style.overflowY,
+        maxHeight: el.style.maxHeight,
+      };
+      el.style.overflow = 'visible';
+      el.style.overflowX = 'visible';
+      el.style.overflowY = 'visible';
+      el.style.maxHeight = 'none';
+
+      restores.push(() => {
+        el.style.overflow = prev.overflow;
+        el.style.overflowX = prev.overflowX;
+        el.style.overflowY = prev.overflowY;
+        el.style.maxHeight = prev.maxHeight;
+      });
+    });
+
+    return () => restores.forEach((restore) => restore());
+  };
+
+  // Player/opponent names on the scoreboard use Tailwind's `truncate`
+  // (overflow hidden + ellipsis) so they fit the compact on-screen table.
+  // For the PDF we want the full name visible instead — the table's column
+  // width auto-sizes to content once truncation is lifted.
+  const expandTruncatedText = (root: HTMLElement): (() => void) => {
+    const elements = Array.from(root.querySelectorAll<HTMLElement>('.truncate'));
+    const restores: Array<() => void> = [];
+
+    elements.forEach((el) => {
+      const prev = {
+        whiteSpace: el.style.whiteSpace,
+        overflow: el.style.overflow,
+        textOverflow: el.style.textOverflow,
+      };
+      el.style.whiteSpace = 'normal';
+      el.style.overflow = 'visible';
+      el.style.textOverflow = 'unset';
+
+      restores.push(() => {
+        el.style.whiteSpace = prev.whiteSpace;
+        el.style.overflow = prev.overflow;
+        el.style.textOverflow = prev.textOverflow;
+      });
+    });
+
+    return () => restores.forEach((restore) => restore());
+  };
+
+  const MAX_PDF_BYTES = 1024 * 1024;
+
+  const buildPdf = (canvas: HTMLCanvasElement, quality: number): jsPDF => {
+    const imgData = canvas.toDataURL('image/jpeg', quality);
+    const pdf = new jsPDF({
+      orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [canvas.width, canvas.height],
+    });
+    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+    return pdf;
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!modalContentRef.current || !match) return;
+
+    setSelectedPoint(null);
+    setClickPosition(null);
+    setIsExportingPdf(true);
+
+    // Let the branding header render before we measure/capture the DOM.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const target = modalContentRef.current;
+    if (!target) {
+      setIsExportingPdf(false);
+      return;
+    }
+
+    const restoreScroll = expandScrollableAreas(target);
+    const restoreTruncation = expandTruncatedText(target);
+
+    try {
+      const canvas = await html2canvas(target, {
+        backgroundColor: '#050d1a',
+        scale: 1.5,
+        useCORS: true,
+        windowWidth: target.scrollWidth,
+        windowHeight: target.scrollHeight,
+        ignoreElements: (element) => element.getAttribute('data-pdf-exclude') === 'true',
+      });
+
+      // Start at a decent JPEG quality, then keep compressing until the
+      // file fits under 1 MB. If quality alone isn't enough, fall back to
+      // downscaling the captured canvas itself as a last resort.
+      let quality = 0.85;
+      let pdf = buildPdf(canvas, quality);
+
+      while (pdf.output('blob').size > MAX_PDF_BYTES && quality > 0.35) {
+        quality -= 0.15;
+        pdf = buildPdf(canvas, quality);
+      }
+
+      const sizeAfterQualityPass = pdf.output('blob').size;
+      if (sizeAfterQualityPass > MAX_PDF_BYTES) {
+        const scaleFactor = Math.max(0.3, Math.sqrt(MAX_PDF_BYTES / sizeAfterQualityPass) * 0.9);
+        const scaledCanvas = document.createElement('canvas');
+        scaledCanvas.width = Math.max(1, Math.round(canvas.width * scaleFactor));
+        scaledCanvas.height = Math.max(1, Math.round(canvas.height * scaleFactor));
+        const ctx = scaledCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+          pdf = buildPdf(scaledCanvas, 0.7);
+        }
+      }
+
+      const safeName = (match.player_name || 'match').replace(/[^a-z0-9]+/gi, '-');
+      const safeDate = (match.date || '').slice(0, 10);
+      pdf.save(`statistiques-${safeName}-${safeDate}.pdf`);
+    } catch (error) {
+      console.error('Error exporting match stats PDF:', error);
+    } finally {
+      restoreScroll();
+      restoreTruncation();
+      setIsExportingPdf(false);
+    }
+  };
+
   if (!isOpen || !match) return null;
 
 
@@ -878,11 +1024,20 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
       onClick={onClose}
     >
       <div
+        ref={modalContentRef}
         data-modal-content
         className="bg-gradient-to-br from-[#050d1a] via-[#071428] to-[#050d1a] rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-white/10"
         style={{ position: 'relative', zIndex: 51 }}
         onClick={(e) => e.stopPropagation()}
       >
+        {isExportingPdf && (
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10">
+            <img src="/logo.svg" alt="" className="w-8 h-8 shrink-0" />
+            <span className="text-lg font-bold text-white tracking-tight">
+              myTenni<span className="text-[#C8F135]">Stats</span>
+            </span>
+          </div>
+        )}
         <div className="sticky top-0 bg-gradient-to-br from-[#050d1a] via-[#071428] to-[#050d1a] border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
           <div>
             <h3 className="text-xl font-bold text-white">Statistiques du Match</h3>
@@ -890,12 +1045,22 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               {match.player_name} - {match.tournament_name} ({new Date(match.date).toLocaleDateString('fr-FR')})
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Télécharger en PDF"
+            >
+              {isExportingPdf ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-6">
@@ -1355,7 +1520,8 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
             )}
           </div>
 
-          {/* Point by Point Analysis */}
+          {/* Point by Point Analysis - excluded from PDF export */}
+          <div data-pdf-exclude="true">
           {chartData.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -2221,6 +2387,7 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               <p className="text-gray-400">Aucune donnée de scoring disponible pour ce match</p>
             </div>
           )}
+          </div>
         </div>
       </div>
 
