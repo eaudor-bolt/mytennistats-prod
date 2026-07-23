@@ -655,6 +655,17 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
   const stats = useMemo(() => calculateMatchStats(match?.scoring_history || []), [match]);
   const chartData = useMemo(() => processChartData(match?.scoring_history || []), [match]);
 
+  // Manually-added match results have no time-of-day (just a date), but
+  // matches recorded via Live Score have a real timestamp on their first
+  // point - use that to show the actual match time when available.
+  const matchTime = useMemo(() => {
+    const first = match?.scoring_history?.[0] as any;
+    if (!first) return null;
+    const ts = first.timestampMs || (first.timestamp && new Date(first.timestamp).getTime()) || (first.datetime && new Date(first.datetime).getTime());
+    if (!ts) return null;
+    return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }, [match]);
+
   // Filtered chart data for history log
   const historyFilteredData = useMemo(() => {
     return chartData.filter((point) => {
@@ -1042,8 +1053,13 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
           <div>
             <h3 className="text-xl font-bold text-white">Statistiques du Match</h3>
             <p className="text-sm text-gray-400 mt-1">
-              {match.player_name} - {match.tournament_name} ({new Date(match.date).toLocaleDateString('fr-FR')})
+              {match.player_name} - {match.tournament_name} ({new Date(match.date).toLocaleDateString('fr-FR')}{matchTime ? ` à ${matchTime}` : ''})
             </p>
+            {match.classement && (
+              <span className="inline-block mt-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
+                Classement : <span className="font-bold text-[#C8F135]">{match.classement}</span>
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -1108,6 +1124,16 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               <div className="mt-2 flex gap-3 text-xs">
                 <span className="text-green-400">{stats.totalWinners} Winners</span>
                 <span className="text-red-400">{stats.totalFaults} Fautes</span>
+              </div>
+              <div className="mt-3 w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-[#C8F135] rounded-full transition-all"
+                  style={{
+                    width: `${stats.totalWinners + stats.totalFaults > 0
+                      ? Math.round((stats.totalWinners / (stats.totalWinners + stats.totalFaults)) * 100)
+                      : 0}%`,
+                  }}
+                />
               </div>
             </div>
 
@@ -1284,7 +1310,11 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               }
             });
 
-            const statRows: { label: string; getValue: (s: SetStats) => string }[] = [
+            const statRows: {
+              label: string;
+              getValue: (s: SetStats) => string;
+              getRatio?: (s: SetStats) => { won: number; total: number };
+            }[] = [
               { label: 'Aces', getValue: (s) => String(s.aces) },
               { label: 'Double Fautes', getValue: (s) => String(s.doubleFaults) },
               { label: 'Game Points Won', getValue: (s) => `${s.gamePointsWon}/${s.gamePointsTotal}` },
@@ -1292,12 +1322,21 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               { label: 'Set Points', getValue: (s) => `${s.setPointsWon}/${s.setPointsTotal}` },
               { label: 'Total Winners', getValue: (s) => String(s.totalWinners) },
               { label: 'Total Fautes', getValue: (s) => String(s.totalFaults) },
-              { label: 'Forehand', getValue: (s) => `${s.forehandWon}/${s.forehandTotal}` },
-              { label: 'Backhand', getValue: (s) => `${s.backhandWon}/${s.backhandTotal}` },
-              { label: 'Volley', getValue: (s) => `${s.volleyWon}/${s.volleyTotal}` },
-              { label: 'Return', getValue: (s) => `${s.returnWon}/${s.returnTotal}` },
-              { label: 'Opponent', getValue: (s) => `${s.opponentWon}/${s.opponentTotal}` },
+              { label: 'Forehand', getValue: (s) => `${s.forehandWon}/${s.forehandTotal}`, getRatio: (s) => ({ won: s.forehandWon, total: s.forehandTotal }) },
+              { label: 'Backhand', getValue: (s) => `${s.backhandWon}/${s.backhandTotal}`, getRatio: (s) => ({ won: s.backhandWon, total: s.backhandTotal }) },
+              { label: 'Volley', getValue: (s) => `${s.volleyWon}/${s.volleyTotal}`, getRatio: (s) => ({ won: s.volleyWon, total: s.volleyTotal }) },
+              { label: 'Return', getValue: (s) => `${s.returnWon}/${s.returnTotal}`, getRatio: (s) => ({ won: s.returnWon, total: s.returnTotal }) },
+              { label: 'Opponent', getValue: (s) => `${s.opponentWon}/${s.opponentTotal}`, getRatio: (s) => ({ won: s.opponentWon, total: s.opponentTotal }) },
             ];
+
+            const renderWinnerBar = (won: number, total: number) => {
+              const pct = total > 0 ? Math.round((won / total) * 100) : 0;
+              return (
+                <div className="mt-1 w-full max-w-[56px] h-1 rounded-full bg-white/10 overflow-hidden mx-auto">
+                  <div className="h-full bg-[#C8F135]" style={{ width: `${pct}%` }} />
+                </div>
+              );
+            };
 
             return (
               <div className="overflow-x-auto">
@@ -1329,10 +1368,12 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                         {perSet.map((setData, i) => (
                           <td key={i} className="px-3 py-2 text-center text-sm font-semibold text-white">
                             {row.getValue(setData)}
+                            {row.getRatio && renderWinnerBar(row.getRatio(setData).won, row.getRatio(setData).total)}
                           </td>
                         ))}
                         <td className="px-3 py-2 text-center text-sm font-bold text-[#C8F135] bg-white/5">
                           {row.getValue(totals)}
+                          {row.getRatio && renderWinnerBar(row.getRatio(totals).won, row.getRatio(totals).total)}
                         </td>
                       </tr>
                     ))}
