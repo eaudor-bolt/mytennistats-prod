@@ -17,6 +17,50 @@ type MatchStatsModalProps = {
   match: MatchResult | null;
 };
 
+const skillRadarOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  scales: {
+    r: {
+      beginAtZero: true,
+      max: 100,
+      ticks: {
+        stepSize: 20,
+        color: 'rgba(255, 255, 255, 0.5)',
+        backdropColor: 'transparent',
+        font: { size: 10 }
+      },
+      grid: {
+        color: 'rgba(255, 255, 255, 0.1)',
+      },
+      pointLabels: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        font: { size: 11, weight: '600' as const as 'bold' }
+      },
+      angleLines: {
+        color: 'rgba(255, 255, 255, 0.1)',
+      }
+    },
+  },
+  plugins: {
+    legend: {
+      display: false,
+    },
+    tooltip: {
+      backgroundColor: 'rgba(5, 13, 26, 0.9)',
+      titleColor: '#C8F135',
+      bodyColor: '#fff',
+      borderColor: 'rgba(200, 241, 53, 0.3)',
+      borderWidth: 1,
+      padding: 10,
+      displayColors: false,
+      callbacks: {
+        label: (context: any) => `${context.parsed.r}%`
+      }
+    }
+  },
+} as const;
+
 export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps) {
   const [selectedGraphType, setSelectedGraphType] = useState<'winners-errors' | 'duration'>('winners-errors');
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
@@ -24,7 +68,6 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
   const [selectedShotFilter, setSelectedShotFilter] = useState<string | null>(null);
   const [selectedPointImportance, setSelectedPointImportance] = useState<'breakPoints' | 'gamePoints' | 'setPoints' | null>(null);
   const [highlightedBarIndex, setHighlightedBarIndex] = useState<number | null>(null);
-  const [skillDataType, setSkillDataType] = useState<'win' | 'loss'>('win');
   const [videoModalOpen, setVideoModalOpen] = useState<boolean>(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -652,6 +695,25 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
     return colors[skill] || '#6b7280';
   };
 
+  // Color scale for the winner-percentage gauge bars: red (weak) through
+  // green (strong), with the app's existing accent color kept for the
+  // "solid" middle band.
+  const getGaugeColor = (pct: number): string => {
+    if (pct < 15) return '#ef4444';
+    if (pct < 30) return '#f97316';
+    if (pct < 60) return '#C8F135';
+    return '#22c55e';
+  };
+
+  const renderGaugeBar = (pct: number, sizeClassName: string = 'h-2') => (
+    <div className={`group relative w-full rounded-full bg-white/10 ${sizeClassName}`}>
+      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: getGaugeColor(pct) }} />
+      <div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-black/90 text-[10px] font-semibold text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
+        {pct}%
+      </div>
+    </div>
+  );
+
   const stats = useMemo(() => calculateMatchStats(match?.scoring_history || []), [match]);
   const chartData = useMemo(() => processChartData(match?.scoring_history || []), [match]);
 
@@ -1051,17 +1113,19 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
         )}
         <div className="sticky top-0 bg-gradient-to-br from-[#050d1a] via-[#071428] to-[#050d1a] border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
           <div>
-            <h3 className="text-xl font-bold text-white">Statistiques du Match</h3>
+            <h3 className="text-xl font-bold text-white">
+              Statistiques du Match{match.tournament_name ? ` - ${match.tournament_name}` : ''}
+            </h3>
             <p className="text-sm text-gray-400 mt-1">
-              {match.player_name} - {match.tournament_name} ({new Date(match.date).toLocaleDateString('fr-FR')}{matchTime ? ` à ${matchTime}` : ''})
+              {match.player_name} ({new Date(match.date).toLocaleDateString('fr-FR')}{matchTime ? ` à ${matchTime}` : ''})
             </p>
             {match.classement && (
-              <span className="inline-block mt-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
-                Classement : <span className="font-bold text-[#C8F135]">{match.classement}</span>
+              <span className="inline-flex items-center mt-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs leading-none text-gray-300">
+                Classement :<span className="font-bold text-[#C8F135] ml-1">{match.classement}</span>
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div data-pdf-exclude="true" className="flex items-center gap-1">
             <button
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
@@ -1125,15 +1189,12 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                 <span className="text-green-400">{stats.totalWinners} Winners</span>
                 <span className="text-red-400">{stats.totalFaults} Fautes</span>
               </div>
-              <div className="mt-3 w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full bg-[#C8F135] rounded-full transition-all"
-                  style={{
-                    width: `${stats.totalWinners + stats.totalFaults > 0
-                      ? Math.round((stats.totalWinners / (stats.totalWinners + stats.totalFaults)) * 100)
-                      : 0}%`,
-                  }}
-                />
+              <div className="mt-3">
+                {renderGaugeBar(
+                  stats.totalWinners + stats.totalFaults > 0
+                    ? Math.round((stats.totalWinners / (stats.totalWinners + stats.totalFaults)) * 100)
+                    : 0
+                )}
               </div>
             </div>
 
@@ -1329,12 +1390,19 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               { label: 'Opponent', getValue: (s) => `${s.opponentWon}/${s.opponentTotal}`, getRatio: (s) => ({ won: s.opponentWon, total: s.opponentTotal }) },
             ];
 
-            const renderWinnerBar = (won: number, total: number) => {
-              const pct = total > 0 ? Math.round((won / total) * 100) : 0;
+            const renderStatCell = (row: typeof statRows[number], s: SetStats, extraClassName: string, key: string | number) => {
+              const ratio = row.getRatio?.(s);
               return (
-                <div className="mt-1 w-full max-w-[56px] h-1 rounded-full bg-white/10 overflow-hidden mx-auto">
-                  <div className="h-full bg-[#C8F135]" style={{ width: `${pct}%` }} />
-                </div>
+                <td key={key} className={`px-2 py-2 text-center text-sm font-semibold ${extraClassName}`}>
+                  <div className="flex items-center justify-center gap-2">
+                    <span>{row.getValue(s)}</span>
+                    {ratio && (
+                      <div className="w-14 shrink-0">
+                        {renderGaugeBar(ratio.total > 0 ? Math.round((ratio.won / ratio.total) * 100) : 0, 'h-1.5')}
+                      </div>
+                    )}
+                  </div>
+                </td>
               );
             };
 
@@ -1343,15 +1411,15 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-[#C8F135]/10 border-b border-[#C8F135]/30">
-                      <th className="px-3 py-2.5 text-left text-xs font-bold text-[#C8F135] uppercase tracking-wider">
+                      <th className="w-24 sm:w-28 px-2 py-2.5 text-left text-xs font-bold text-[#C8F135] uppercase tracking-wider">
                         Statistique
                       </th>
                       {Array.from({ length: numSets }).map((_, i) => (
-                        <th key={i} className="px-3 py-2.5 text-center text-xs font-bold text-[#C8F135] uppercase tracking-wider">
+                        <th key={i} className="px-2 py-2.5 text-center text-xs font-bold text-[#C8F135] uppercase tracking-wider">
                           Set {i + 1}
                         </th>
                       ))}
-                      <th className="px-3 py-2.5 text-center text-xs font-bold text-white uppercase tracking-wider bg-white/5">
+                      <th className="px-2 py-2.5 text-center text-xs font-bold text-white uppercase tracking-wider bg-white/5">
                         Total
                       </th>
                     </tr>
@@ -1362,19 +1430,11 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                         key={row.label}
                         className={`border-b border-white/5 ${rowIdx % 2 === 0 ? 'bg-white/[0.02]' : ''} hover:bg-white/5 transition-colors`}
                       >
-                        <td className="px-3 py-2 text-sm font-medium text-gray-300">
+                        <td className="w-24 sm:w-28 px-2 py-2 text-sm font-medium text-gray-300">
                           {row.label}
                         </td>
-                        {perSet.map((setData, i) => (
-                          <td key={i} className="px-3 py-2 text-center text-sm font-semibold text-white">
-                            {row.getValue(setData)}
-                            {row.getRatio && renderWinnerBar(row.getRatio(setData).won, row.getRatio(setData).total)}
-                          </td>
-                        ))}
-                        <td className="px-3 py-2 text-center text-sm font-bold text-[#C8F135] bg-white/5">
-                          {row.getValue(totals)}
-                          {row.getRatio && renderWinnerBar(row.getRatio(totals).won, row.getRatio(totals).total)}
-                        </td>
+                        {perSet.map((setData, i) => renderStatCell(row, setData, 'text-white', i))}
+                        {renderStatCell(row, totals, 'text-[#C8F135] bg-white/5', 'total')}
                       </tr>
                     ))}
                   </tbody>
@@ -1395,88 +1455,9 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Mirrored Bar Chart */}
-                <div className="bg-white/5 rounded-lg shadow p-4">
-                  <div className="flex items-center justify-center gap-6 mb-4">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-sm bg-red-400" />
-                      <span className="text-xs font-medium text-gray-300">Fautes</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-sm bg-[#C8F135]" />
-                      <span className="text-xs font-medium text-gray-300">Winners</span>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    {['forehand', 'backhand', 'service', 'volley', 'return', 'opponent'].map(skill => {
-                      const s = stats.skillStats[skill];
-                      if (!s) return null;
-                      const winPct = s.percentage || 0;
-                      const lossPct = s.faultPercentage || 0;
-                      return (
-                        <div key={skill}>
-                          <div className="text-center text-xs font-bold text-white uppercase tracking-wide mb-1">{skill}</div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-bold text-red-400 w-8 text-right shrink-0">{lossPct}%</span>
-                            <div className="flex-1 flex h-6 bg-white/10 rounded overflow-hidden">
-                              <div className="flex-1 flex justify-end">
-                                <div
-                                  className="bg-red-400 h-full rounded-l flex items-center justify-center transition-all"
-                                  style={{ width: `${lossPct}%`, minWidth: lossPct > 0 ? '28px' : '0' }}
-                                >
-                                  {lossPct > 0 && (
-                                    <span className="text-[10px] font-bold text-white px-1 whitespace-nowrap">
-                                      {s.faults}/{s.total}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="w-px bg-white/20 shrink-0" />
-                              <div className="flex-1 flex justify-start">
-                                <div
-                                  className="bg-[#C8F135] h-full rounded-r flex items-center justify-center transition-all"
-                                  style={{ width: `${winPct}%`, minWidth: winPct > 0 ? '28px' : '0' }}
-                                >
-                                  {winPct > 0 && (
-                                    <span className="text-[10px] font-bold text-white px-1 whitespace-nowrap">
-                                      {s.winners}/{s.total}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            <span className="text-xs font-bold text-[#C8F135] w-8 shrink-0">{winPct}%</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Radar Chart with Win/Loss Toggle */}
+                {/* Winner Radar */}
                 <div className="w-full bg-white/5 rounded-lg shadow p-4">
-                  <div className="flex justify-center gap-2 mb-4">
-                    <button
-                      onClick={() => setSkillDataType('win')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        skillDataType === 'win'
-                          ? 'bg-[#C8F135] text-black'
-                          : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                      }`}
-                    >
-                      Win
-                    </button>
-                    <button
-                      onClick={() => setSkillDataType('loss')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        skillDataType === 'loss'
-                          ? 'bg-red-500 text-white'
-                          : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                      }`}
-                    >
-                      Loss
-                    </button>
-                  </div>
+                  <div className="text-center text-sm font-bold text-[#C8F135] uppercase tracking-wide mb-2">Winners</div>
                   <div className="w-full h-64 flex items-center justify-center">
                     <div className="w-full max-w-xs h-full">
                       <RadarChart
@@ -1484,15 +1465,43 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                           labels: ['Forehand', 'Backhand', 'Service', 'Volley', 'Return', 'Opponent'],
                           datasets: [
                             {
-                              label: skillDataType === 'win' ? 'Winners %' : 'Faults %',
-                              data: skillDataType === 'win' ? [
+                              label: 'Winners %',
+                              data: [
                                 stats.skillStats.forehand?.percentage || 0,
                                 stats.skillStats.backhand?.percentage || 0,
                                 stats.skillStats.service?.percentage || 0,
                                 stats.skillStats.volley?.percentage || 0,
                                 stats.skillStats.return?.percentage || 0,
                                 stats.skillStats.opponent?.percentage || 0,
-                              ] : [
+                              ],
+                              backgroundColor: 'rgba(200, 241, 53, 0.2)',
+                              borderColor: 'rgba(200, 241, 53, 1)',
+                              borderWidth: 2,
+                              pointBackgroundColor: 'rgba(200, 241, 53, 1)',
+                              pointBorderColor: '#fff',
+                              pointHoverBackgroundColor: '#fff',
+                              pointHoverBorderColor: 'rgba(200, 241, 53, 1)',
+                            },
+                          ],
+                        }}
+                        options={skillRadarOptions}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Faute Radar */}
+                <div className="w-full bg-white/5 rounded-lg shadow p-4">
+                  <div className="text-center text-sm font-bold text-red-400 uppercase tracking-wide mb-2">Fautes</div>
+                  <div className="w-full h-64 flex items-center justify-center">
+                    <div className="w-full max-w-xs h-full">
+                      <RadarChart
+                        data={{
+                          labels: ['Forehand', 'Backhand', 'Service', 'Volley', 'Return', 'Opponent'],
+                          datasets: [
+                            {
+                              label: 'Faults %',
+                              data: [
                                 stats.skillStats.forehand?.faultPercentage || 0,
                                 stats.skillStats.backhand?.faultPercentage || 0,
                                 stats.skillStats.service?.faultPercentage || 0,
@@ -1500,59 +1509,17 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                                 stats.skillStats.return?.faultPercentage || 0,
                                 stats.skillStats.opponent?.faultPercentage || 0,
                               ],
-                              backgroundColor: skillDataType === 'win' ? 'rgba(200, 241, 53, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                              borderColor: skillDataType === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
+                              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                              borderColor: 'rgba(239, 68, 68, 1)',
                               borderWidth: 2,
-                              pointBackgroundColor: skillDataType === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
+                              pointBackgroundColor: 'rgba(239, 68, 68, 1)',
                               pointBorderColor: '#fff',
                               pointHoverBackgroundColor: '#fff',
-                              pointHoverBorderColor: skillDataType === 'win' ? 'rgba(200, 241, 53, 1)' : 'rgba(239, 68, 68, 1)',
+                              pointHoverBorderColor: 'rgba(239, 68, 68, 1)',
                             },
                           ],
                         }}
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: true,
-                          scales: {
-                            r: {
-                              beginAtZero: true,
-                              max: 100,
-                              ticks: {
-                                stepSize: 20,
-                                color: 'rgba(255, 255, 255, 0.5)',
-                                backdropColor: 'transparent',
-                                font: { size: 10 }
-                              },
-                              grid: {
-                                color: 'rgba(255, 255, 255, 0.1)',
-                              },
-                              pointLabels: {
-                                color: 'rgba(255, 255, 255, 0.7)',
-                                font: { size: 11, weight: '600' }
-                              },
-                              angleLines: {
-                                color: 'rgba(255, 255, 255, 0.1)',
-                              }
-                            },
-                          },
-                          plugins: {
-                            legend: {
-                              display: false,
-                            },
-                            tooltip: {
-                              backgroundColor: 'rgba(5, 13, 26, 0.9)',
-                              titleColor: '#C8F135',
-                              bodyColor: '#fff',
-                              borderColor: 'rgba(200, 241, 53, 0.3)',
-                              borderWidth: 1,
-                              padding: 10,
-                              displayColors: false,
-                              callbacks: {
-                                label: (context) => `${context.parsed.r}%`
-                              }
-                            }
-                          },
-                        }}
+                        options={skillRadarOptions}
                       />
                     </div>
                   </div>

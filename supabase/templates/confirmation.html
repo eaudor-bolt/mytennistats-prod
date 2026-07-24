@@ -27,10 +27,24 @@
       text-align: center;
       border-bottom: 2px solid rgba(200, 241, 53, 0.2);
     }
-    .logo {
-      width: 120px;
-      height: auto;
+    .brand {
+      display: inline-block;
       margin-bottom: 20px;
+    }
+    .brand svg {
+      vertical-align: middle;
+    }
+    .brand-text {
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 10px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+    .brand-text .accent {
+      color: #C8F135;
     }
     .header h1 {
       margin: 0;
@@ -103,7 +117,14 @@
 <body>
   <div class="container">
     <div class="header">
-      <img src="https://tt.com/logo.svg" alt="Logo" class="logo">
+      <div class="brand">
+        <svg width="32" height="32" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="14" r="14" fill="#C8F135"/>
+          <circle cx="14" cy="14" r="12" fill="none" stroke="rgba(4, 12, 26, 0.4)" stroke-width="2"/>
+          <line x1="14" y1="0" x2="14" y2="28" stroke="rgba(4, 12, 26, 0.3)" stroke-width="1" transform="rotate(45 14 14)"/>
+        </svg>
+        <span class="brand-text">myTenni<span class="accent">Stats</span></span>
+      </div>
       <h1>Confirm your signup</h1>
     </div>
 

@@ -132,7 +132,8 @@ function uploadWithProgress(
 export async function uploadVideoToS3(
   videoBlob: Blob,
   filename: string,
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number) => void,
+  onError?: (message: string) => void
 ): Promise<S3UploadResult | null> {
   try {
     const contentType = videoBlob.type || 'video/mp4';
@@ -143,7 +144,9 @@ export async function uploadVideoToS3(
       return await uploadSingle(videoBlob, filename, contentType, onProgress);
     }
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error('Error uploading video to S3:', error);
+    onError?.(message);
     return null;
   }
 }

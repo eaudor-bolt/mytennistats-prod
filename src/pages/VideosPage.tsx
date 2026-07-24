@@ -734,10 +734,16 @@ export function VideosPage() {
       const uniqueId = crypto.randomUUID();
       const fileName = `${uniqueId}-${timestamp}.${fileExt}`;
 
-      const s3Result = await uploadVideoToS3(file, fileName, (pct) => setUploadProgress(pct));
+      let s3ErrorMessage = '';
+      const s3Result = await uploadVideoToS3(
+        file,
+        fileName,
+        (pct) => setUploadProgress(pct),
+        (message) => { s3ErrorMessage = message; }
+      );
 
       if (!s3Result) {
-        throw new Error('Failed to upload video to S3');
+        throw new Error(s3ErrorMessage || 'Failed to upload video to S3');
       }
 
       // Use the presigned URL from S3 and replace /import/ with /ffmpeg/

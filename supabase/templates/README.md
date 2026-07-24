@@ -15,7 +15,7 @@ Custom branded email templates for authentication flows.
 - Dark theme matching the app design (#0a1526 background)
 - Neon green (#C8F135) accent colors
 - Responsive design
-- Logo integration from https://tt.com/logo.svg
+- Logo rendered as inline SVG matching `public/logo.svg` + the "myTenniStats" wordmark used in the app header (no external image request, so it can't break in an inbox)
 - Professional gradient backgrounds
 - Hover effects on CTA buttons
 - Security warnings for sensitive actions
@@ -50,7 +50,7 @@ supabase db remote commit
 
 To customize the templates:
 
-1. **Logo URL**: Replace `https://tt.com/logo.svg` with your actual logo URL
+1. **Logo**: rendered inline as `<svg>` markup (circle mark) + a `myTenniStats` text lockup, so there's no external URL to keep in sync — edit the `<svg>` coordinates/colors directly in each template if the app logo ever changes, matching `public/logo.svg`
 2. **Colors**:
    - Primary background: `#0a1526`
    - Accent color: `#C8F135`
@@ -105,5 +105,3 @@ For issues or questions about these templates, refer to:
 - Project documentation
 
 ---
-
-**Note**: Remember to update the logo URL (`https://tt.com/logo.svg`) to your actual hosted logo before deploying to production.
