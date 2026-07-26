@@ -3,6 +3,7 @@ import { LayoutGrid, List as ListIcon, Plus, Filter, Video as VideoIcon, AlertCi
 import { supabase, Tag } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlayers } from '../contexts/PlayersContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { MatchAnalysisPage } from './MatchAnalysisPage';
 import { uploadVideoToS3 } from '../utils/s3Upload';
 import { deleteVideoFromS3 } from '../utils/s3Delete';
@@ -80,6 +81,7 @@ const VIDEOS_PER_PAGE = 30;
 export function VideosPage() {
   const { user } = useAuth();
   const { players } = usePlayers();
+  const { limits, canUploadVideo, hasVideoStorageRoom, incrementUsage } = useSubscription();
   const { showAlert, showConfirm, AlertComponent } = useAlert();
   const [videos, setVideos] = useState<VideoRecord[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
@@ -723,12 +725,32 @@ export function VideosPage() {
   const uploadVideo = async () => {
     if (!file || !user) return;
 
+    if (!canUploadVideo) {
+      setStatus('error');
+      setErrorMessage(`You've reached your ${limits.maxVideos} video upload limit on the Free plan. Upgrade to Premium for unlimited uploads!`);
+      return;
+    }
+
     setStatus('uploading');
     setUploadProgress(0);
     setErrorMessage('');
     trackVideoAction('upload', undefined, { file_size: file.size, file_type: file.type });
 
     try {
+      const durationSeconds = await getVideoDuration(file);
+
+      if (durationSeconds !== null && durationSeconds > limits.maxVideoDurationSeconds) {
+        setStatus('error');
+        setErrorMessage(`Videos must be ${limits.maxVideoDurationSeconds} seconds or less.`);
+        return;
+      }
+
+      if (!hasVideoStorageRoom(file.size)) {
+        setStatus('error');
+        setErrorMessage("You've reached your 1GB video storage limit on the Premium plan.");
+        return;
+      }
+
       const fileExt = file.name.split('.').pop();
       const timestamp = Date.now();
       const uniqueId = crypto.randomUUID();
@@ -751,7 +773,6 @@ export function VideosPage() {
 
       // Create poster image URL by replacing .mp4 with .jpg
       const posterImageUrl = videoUrl.replace(/\.(mp4|webm|mov|avi)$/i, '.jpg');
-      const durationSeconds = await getVideoDuration(file);
 
       const { data: videoData, error: dbError } = await supabase
         .from('videos')
@@ -770,6 +791,8 @@ export function VideosPage() {
         .single();
 
       if (dbError) throw dbError;
+
+      await incrementUsage('video', { bytes: file.size });
 
       for (const tagName of selectedTags) {
         let tagId = allTags.find(t => t.name === tagName)?.id;

@@ -2,6 +2,7 @@ import { BookOpen, Mic, Loader2, MessageCircle, ExternalLink } from 'lucide-reac
 import { useState } from 'react';
 import { useAlert } from '../hooks/useAlert';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -11,6 +12,7 @@ interface Message {
 export function RulesPage() {
   const { t } = useLanguage();
   const { showAlert, AlertComponent } = useAlert();
+  const { canUseRulesChat, incrementUsage } = useSubscription();
   const [question, setQuestion] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,6 +22,11 @@ export function RulesPage() {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
   const startRecording = async () => {
+    if (!canUseRulesChat) {
+      showAlert(t('rules.chat.errors.limitReached'), { type: 'warning' });
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -151,6 +158,7 @@ export function RulesPage() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      await incrementUsage('rules_chat');
     } catch (error) {
       console.error('Error submitting audio:', error);
       const errorMessage: Message = {
@@ -169,6 +177,11 @@ export function RulesPage() {
   const handleTextSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
+
+    if (!canUseRulesChat) {
+      showAlert(t('rules.chat.errors.limitReached'), { type: 'warning' });
+      return;
+    }
 
     const userMessage: Message = {
       role: 'user',
@@ -211,6 +224,7 @@ export function RulesPage() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      await incrementUsage('rules_chat');
     } catch (error) {
       console.error('Error submitting question:', error);
       const errorMessage: Message = {

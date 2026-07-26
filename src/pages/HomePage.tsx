@@ -166,11 +166,16 @@ export function HomePage() {
         const fullName = `${player.first_name} ${player.last_name}`.trim();
 
         const tournaments = tournamentsByPlayer.get(player.id) || 0;
+        // match_results.player_name is saved as just the first name
+        // (AddMatchResultModal's player dropdown uses player.first_name as
+        // the option value), while videos.player_name is saved as the full
+        // "first last" name - match each against its actual stored format
+        // instead of a fuzzy substring check against the full name.
         const matches = matchesResult.data?.filter(m =>
-          m.player_name.toLowerCase().includes(fullName.toLowerCase())
+          m.player_name.trim().toLowerCase() === player.first_name.trim().toLowerCase()
         ) || [];
         const videos = videosResult.data?.filter(v =>
-          v.player_name.toLowerCase().includes(fullName.toLowerCase())
+          v.player_name.trim().toLowerCase() === fullName.toLowerCase()
         ).length || 0;
 
         let wins = 0;

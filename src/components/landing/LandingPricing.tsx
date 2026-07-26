@@ -13,6 +13,7 @@ export function LandingPricing({ onSignUp }: LandingPricingProps) {
     t('landing.pricing.free.feature2'),
     t('landing.pricing.free.feature3'),
     t('landing.pricing.free.feature4'),
+    t('landing.pricing.free.feature5'),
   ];
 
   const premiumFeatures = [

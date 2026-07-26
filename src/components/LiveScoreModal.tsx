@@ -8,6 +8,7 @@ import { VideoPlayerModal } from './VideoPlayerModal';
 import { LiveScoreHelpButton, LiveScoreHelpTour } from './LiveScoreHelpTour';
 import { useAlert } from '../hooks/useAlert';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 const SKILL_KEYS = ['forehand', 'backhand', 'volley', 'service', 'return', 'opponent'];
 
@@ -44,6 +45,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const { t } = useLanguage();
   const { players } = usePlayers();
   const { showAlert, AlertComponent } = useAlert();
+  const { canShareLive, canRecordLivePoint, incrementUsage } = useSubscription();
   const [showHelpTour, setShowHelpTour] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [gameScore, setGameScore] = useState<GameScore>({ adversaire: 0, famille: 0, totalAd: 0 });
@@ -491,6 +493,12 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const startRecordingPoint = () => {
     if (!streamRef.current) return;
 
+    if (!canRecordLivePoint) {
+      showAlert(t('matches.premium.livePointsLimitReached'), { type: 'warning' });
+      return;
+    }
+    incrementUsage('live_point');
+
     recordingStartTimeRef.current = Date.now();
     pointStartTimeRef.current = Date.now();
     chunksRef.current = [];
@@ -766,11 +774,11 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     }
   };
 
-  const createLiveMatch = async () => {
+  const createLiveMatch = async (): Promise<string | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.log('No user logged in, cannot create live match');
-      return;
+      return null;
     }
 
     const { data, error } = await supabase
@@ -792,10 +800,11 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
 
     if (error) {
       console.error('Error creating live match:', error);
-      return;
+      return null;
     }
 
     setLiveMatchId(data.id);
+    return data.id;
   };
 
   const handleShare = async () => {
@@ -812,13 +821,19 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       return;
     }
 
-    await createLiveMatch();
+    if (!canShareLive) {
+      showAlert(t('matches.premium.liveShareGate'), { type: 'warning' });
+      return;
+    }
 
-    if (liveMatchId) {
-      const url = `${window.location.origin}/live/${liveMatchId}`;
+    const newLiveMatchId = await createLiveMatch();
+
+    if (newLiveMatchId) {
+      const url = `${window.location.origin}/live/${newLiveMatchId}`;
       setShareUrl(url);
       await navigator.clipboard.writeText(url);
       setIsSharing(true);
+      await incrementUsage('live_share');
       showAlert('Lien copié dans le presse-papiers! Partagez-le pour permettre aux autres de suivre le match en direct.', {
         type: 'success',
         title: 'Match partagé',

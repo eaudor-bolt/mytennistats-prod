@@ -8,7 +8,12 @@ type SubscriptionLimits = {
   maxPlayers: number;
   maxMatchResults: number;
   maxShares: number;
-  canShareLive: boolean;
+  maxLiveShares: number;
+  maxLivePoints: number;
+  maxVideos: number;
+  maxVideoStorageBytes: number;
+  maxVideoDurationSeconds: number;
+  maxRulesChatResponses: number;
 };
 
 type UserSubscription = {
@@ -35,7 +40,13 @@ type UserUsageStats = {
   match_results_created: number;
   shares_created: number;
   live_shares_created: number;
+  live_points_recorded: number;
+  videos_uploaded: number;
+  video_storage_bytes: number;
+  rules_chat_responses: number;
 };
+
+type UsageType = 'player' | 'match_result' | 'share' | 'live_share' | 'live_point' | 'video' | 'rules_chat';
 
 type SubscriptionContextType = {
   subscription: UserSubscription | null;
@@ -47,25 +58,41 @@ type SubscriptionContextType = {
   canCreateMatchResult: boolean;
   canShareMatch: boolean;
   canShareLive: boolean;
+  canRecordLivePoint: boolean;
+  canUploadVideo: boolean;
+  canUseRulesChat: boolean;
   canAccessTournaments: boolean;
-  incrementUsage: (type: 'player' | 'match_result' | 'share' | 'live_share') => Promise<void>;
+  hasVideoStorageRoom: (additionalBytes: number) => boolean;
+  incrementUsage: (type: UsageType, extra?: { bytes?: number }) => Promise<void>;
   refreshSubscription: () => Promise<void>;
 };
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
+const ONE_GB = 1024 * 1024 * 1024;
+
 const FREE_LIMITS: SubscriptionLimits = {
   maxPlayers: 1,
   maxMatchResults: 3,
-  maxShares: 1,
-  canShareLive: false,
+  maxShares: 3,
+  maxLiveShares: 1,
+  maxLivePoints: 3,
+  maxVideos: 3,
+  maxVideoStorageBytes: Infinity,
+  maxVideoDurationSeconds: 60,
+  maxRulesChatResponses: 3,
 };
 
 const PREMIUM_LIMITS: SubscriptionLimits = {
   maxPlayers: Infinity,
   maxMatchResults: Infinity,
   maxShares: Infinity,
-  canShareLive: true,
+  maxLiveShares: Infinity,
+  maxLivePoints: Infinity,
+  maxVideos: Infinity,
+  maxVideoStorageBytes: ONE_GB,
+  maxVideoDurationSeconds: 60,
+  maxRulesChatResponses: Infinity,
 };
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
@@ -110,26 +137,40 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id]);
 
-  const incrementUsage = async (type: 'player' | 'match_result' | 'share' | 'live_share') => {
+  const incrementUsage = async (type: UsageType, extra?: { bytes?: number }) => {
     if (!user || !usageStats) return;
 
-    const fieldMap = {
+    const fieldMap: Record<UsageType, keyof UserUsageStats> = {
       player: 'players_created',
       match_result: 'match_results_created',
       share: 'shares_created',
       live_share: 'live_shares_created',
+      live_point: 'live_points_recorded',
+      video: 'videos_uploaded',
+      rules_chat: 'rules_chat_responses',
     };
 
     const field = fieldMap[type];
-    const newValue = (usageStats[field as keyof UserUsageStats] as number) + 1;
+    const newValue = (usageStats[field] as number) + 1;
+
+    const updatePayload: Record<string, unknown> = {
+      [field]: newValue,
+      updated_at: new Date().toISOString(),
+    };
+
+    let newStorageBytes = usageStats.video_storage_bytes;
+    if (type === 'video' && extra?.bytes) {
+      newStorageBytes = usageStats.video_storage_bytes + extra.bytes;
+      updatePayload.video_storage_bytes = newStorageBytes;
+    }
 
     const { error } = await supabase
       .from('user_usage_stats')
-      .update({ [field]: newValue, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('user_id', user.id);
 
     if (!error) {
-      setUsageStats({ ...usageStats, [field]: newValue });
+      setUsageStats({ ...usageStats, [field]: newValue, video_storage_bytes: newStorageBytes });
     }
   };
 
@@ -140,8 +181,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const canCreatePlayer = !usageStats || usageStats.players_created < limits.maxPlayers;
   const canCreateMatchResult = !usageStats || usageStats.match_results_created < limits.maxMatchResults;
   const canShareMatch = !usageStats || usageStats.shares_created < limits.maxShares;
-  const canShareLive = limits.canShareLive;
+  const canShareLive = !usageStats || usageStats.live_shares_created < limits.maxLiveShares;
+  const canRecordLivePoint = !usageStats || usageStats.live_points_recorded < limits.maxLivePoints;
+  const canUploadVideo = !usageStats || usageStats.videos_uploaded < limits.maxVideos;
+  const canUseRulesChat = !usageStats || usageStats.rules_chat_responses < limits.maxRulesChatResponses;
   const canAccessTournaments = featureFlags?.can_access_tournaments || false;
+
+  const hasVideoStorageRoom = (additionalBytes: number): boolean => {
+    if (limits.maxVideoStorageBytes === Infinity) return true;
+    const currentBytes = usageStats?.video_storage_bytes || 0;
+    return currentBytes + additionalBytes <= limits.maxVideoStorageBytes;
+  };
 
   return (
     <SubscriptionContext.Provider
@@ -155,7 +205,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         canCreateMatchResult,
         canShareMatch,
         canShareLive,
+        canRecordLivePoint,
+        canUploadVideo,
+        canUseRulesChat,
         canAccessTournaments,
+        hasVideoStorageRoom,
         incrementUsage,
         refreshSubscription,
       }}

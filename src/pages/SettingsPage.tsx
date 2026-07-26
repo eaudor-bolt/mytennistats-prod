@@ -1580,7 +1580,17 @@ export function SettingsPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">{t('settings.subscription.liveGameSharing')}</span>
-                      <span className="font-medium text-red-400">{t('settings.subscription.notAvailable')}</span>
+                      <span className={`font-medium ${(usageStats?.live_shares_created || 0) > 0 ? 'text-gray-400' : 'text-[#C8F135]'}`}>
+                        {(usageStats?.live_shares_created || 0) > 0 ? t('settings.subscription.used') : t('settings.subscription.notUsed')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('settings.subscription.livePointsRecorded')}</span>
+                      <span className="font-medium text-white">{usageStats?.live_points_recorded || 0} / {limits.maxLivePoints}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('settings.subscription.videosUploaded')}</span>
+                      <span className="font-medium text-white">{usageStats?.videos_uploaded || 0} / {limits.maxVideos}</span>
                     </div>
                     {canAccessTournaments && (
                       <div className="flex justify-between">

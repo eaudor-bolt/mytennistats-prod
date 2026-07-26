@@ -17,7 +17,7 @@ ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, 
 
 export function MatchesPage() {
   const { t } = useLanguage();
-  const { canCreateMatchResult, canShareLive, incrementUsage } = useSubscription();
+  const { canCreateMatchResult, canShareMatch, incrementUsage } = useSubscription();
   const { players } = usePlayers();
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -335,10 +335,6 @@ export function MatchesPage() {
 
             <button
               onClick={() => {
-                if (!canShareLive) {
-                  alert(t('matches.premium.liveShareGate'));
-                  return;
-                }
                 trackMatchAction('share', undefined, { share_type: 'live' });
                 setIsLiveScoreModalOpen(true);
               }}
@@ -550,6 +546,10 @@ export function MatchesPage() {
               setIsShareModalOpen(true);
             }}
             onShareIndividual={async () => {
+              if (!canShareMatch) {
+                alert(t('matches.premium.shareLimitReached'));
+                return;
+              }
               trackMatchAction('share', undefined, { share_type: 'individual' });
               await incrementUsage('share');
             }}
