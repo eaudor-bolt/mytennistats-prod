@@ -196,7 +196,11 @@ export function HomePage() {
           }
         });
 
-        const totalMatches = wins + losses;
+        // Total matches must be the actual count of recorded matches, not
+        // wins + losses - a match whose score string doesn't parse into a
+        // clear set-by-set winner (unusual format, walkover, etc.) would
+        // otherwise silently disappear from the count entirely.
+        const totalMatches = matches.length;
         const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
         console.log('Player stats:', { fullName, tournaments, matches: totalMatches, wins, losses, winRate, videos });
@@ -296,7 +300,6 @@ export function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-10">
           {!hasAnyActivity ? (
             <div className="border border-white/8 rounded-2xl bg-white/3 p-12 text-center">
-              <Trophy className="w-16 h-16 text-[#C8F135]/40 mx-auto mb-6" />
               <h2 className="text-2xl font-bold text-white mb-3">
                 Get Started with MyTenniStats
               </h2>
