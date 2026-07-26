@@ -1,4 +1,4 @@
-import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, Download, LogOut, Database, Share2, ExternalLink, HardDrive } from 'lucide-react';
+import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, Download, LogOut, Database, Share2, ExternalLink, HardDrive, ChevronRight } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { supabase, UserPlayer } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
@@ -945,11 +945,38 @@ export function SettingsPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-[#C8F135] mb-2">{t('settings.title')}</h2>
+        <nav className="mt-4 rounded-2xl border border-white/8 bg-white/2 divide-y divide-white/5 max-w-xs">
+          {[
+            { id: 'profile-information', label: t('settings.profileSection.title') },
+            { id: 'players', label: t('settings.players') },
+            { id: 'language-region', label: t('settings.languageRegion.title') },
+            { id: 'data-import', label: t('settings.dataImport.title') },
+            { id: 'video-storage', label: t('settings.videoUsage.title') },
+            { id: 'shared-links', label: t('settings.sharedLinks.title') },
+            { id: 'subscription-plan', label: t('settings.subscription.title') },
+            { id: 'privacy-security', label: t('settings.security.title') },
+            { id: 'logout', label: t('nav.logout') },
+            { id: 'danger-zone', label: t('settings.quickLinks.dangerZone') },
+          ].map((link) => (
+            <a
+              key={link.id}
+              href={`#${link.id}`}
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="group flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-[#C8F135] transition-colors first:rounded-t-2xl last:rounded-b-2xl"
+            >
+              {link.label}
+              <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-[#C8F135] transition-colors" />
+            </a>
+          ))}
+        </nav>
       </div>
 
       <div className="space-y-6">
 
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="profile-information" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1013,7 +1040,7 @@ export function SettingsPage() {
       </div>
 
       <div className="space-y-6 mt-6">
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="players" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1266,7 +1293,7 @@ export function SettingsPage() {
           </div>
         </div>
 */}
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="language-region" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1288,7 +1315,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="data-import" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1399,7 +1426,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="video-storage" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1434,7 +1461,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="shared-links" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1532,7 +1559,7 @@ export function SettingsPage() {
 
 
 
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="subscription-plan" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1681,7 +1708,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="privacy-security" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1700,7 +1727,7 @@ export function SettingsPage() {
           </div>
         </div>
         
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+        <div id="logout" className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
@@ -1721,7 +1748,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-         <div className="rounded-2xl border-2 border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-all duration-400">
+         <div id="danger-zone" className="rounded-2xl border-2 border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-all duration-400 scroll-mt-24">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
