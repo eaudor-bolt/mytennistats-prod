@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trophy, Target, Video, User } from 'lucide-react';
+import { Trophy, Calendar, Video, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import CourtBackground, { CourtLinePattern } from '../components/landing/CourtBackground';
@@ -86,7 +86,7 @@ function MatchResultsBox({
           <div className="text-4xl font-black text-[#C8F135] tabular-nums">
             {matches}
           </div>
-          <Target className="w-9 h-9 text-[#C8F135]" />
+          <Calendar className="w-9 h-9 text-[#C8F135]" />
         </div>
        
         <div className="flex items-center gap-3 text-sm">
@@ -278,7 +278,7 @@ export function HomePage() {
               value={totalMatches}
               title="Match Results"
               description="total match results recorded"
-              icon={Target}
+              icon={Calendar}
             />
             <AnimatedStatCard
               value={totalVideos}
@@ -315,6 +315,12 @@ export function HomePage() {
                   className="px-6 py-3 border-2 border-[#C8F135] text-[#C8F135] rounded-full font-bold hover:bg-[#C8F135]/10 transition-all duration-300"
                 >
                   Record Match
+                </button>
+                <button
+                  onClick={() => window.location.hash = '#/videos'}
+                  className="px-6 py-3 border-2 border-[#C8F135] text-[#C8F135] rounded-full font-bold hover:bg-[#C8F135]/10 transition-all duration-300"
+                >
+                  Upload Video
                 </button>
               </div>
             </div>
