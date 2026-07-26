@@ -12,13 +12,15 @@ import { usePlayers } from '../contexts/PlayersContext';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../hooks/useAlert';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 export function MatchesPage() {
   const { t } = useLanguage();
-  const { canCreateMatchResult, canShareMatch, incrementUsage } = useSubscription();
+  const { canCreateMatchResult, canShareMatch, canShareLive, incrementUsage } = useSubscription();
   const { players } = usePlayers();
+  const { showAlert, AlertComponent } = useAlert();
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddMatchModalOpen, setIsAddMatchModalOpen] = useState(false);
@@ -88,7 +90,7 @@ export function MatchesPage() {
       trackMatchAction('update', editingMatch.id);
     } else {
       if (!canCreateMatchResult) {
-        alert(t('matches.premium.matchLimitReached'));
+        showAlert(t('matches.premium.matchLimitReached'), { type: 'warning' });
         return;
       }
 
@@ -304,6 +306,7 @@ export function MatchesPage() {
 
   return (
     <div className="min-h-screen bg-[#050d1a]">
+      <AlertComponent />
       {/* Hero Section */}
       <section className="relative pt-16 pb-8 lg:pt-20 lg:pb-12 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#050d1a] via-[#071428]/30 to-[#050d1a]" />
@@ -335,8 +338,13 @@ export function MatchesPage() {
 
             <button
               onClick={() => {
+                if (!canShareLive) {
+                  showAlert(t('matches.premium.liveShareGate'), { type: 'warning' });
+                  return;
+                }
                 trackMatchAction('share', undefined, { share_type: 'live' });
                 setIsLiveScoreModalOpen(true);
+                incrementUsage('live_share');
               }}
               className="flex items-center gap-2 px-4 py-2.5 bg-[#1A6FC4] text-white rounded-lg text-sm font-medium hover:bg-[#1A6FC4]/80 transition-all hover:scale-105 shadow-lg shadow-[#1A6FC4]/20 shrink-0"
             >
@@ -547,7 +555,7 @@ export function MatchesPage() {
             }}
             onShareIndividual={async () => {
               if (!canShareMatch) {
-                alert(t('matches.premium.shareLimitReached'));
+                showAlert(t('matches.premium.shareLimitReached'), { type: 'warning' });
                 return;
               }
               trackMatchAction('share', undefined, { share_type: 'individual' });

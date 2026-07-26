@@ -5,9 +5,9 @@ import { usePlayers } from '../contexts/PlayersContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useAuth } from '../contexts/AuthContext';
-import { runClubImport } from '../utils/importClubsDetailed';
-import { importTournamentsFromJson } from '../utils/importTournamentsFromJson';
-import { importMatchResults } from '../utils/importMatchResults';
+// import { runClubImport } from '../utils/importClubsDetailed';
+// import { importTournamentsFromJson } from '../utils/importTournamentsFromJson';
+// import { importMatchResults } from '../utils/importMatchResults';
 import { importTenupMatchResults } from '../utils/importTenupMatchResults';
 import { ImportPlayerSelectionModal } from '../components/ImportPlayerSelectionModal';
 import { useAlert } from '../hooks/useAlert';
@@ -73,10 +73,10 @@ export function SettingsPage() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [importingDetailedClubs, setImportingDetailedClubs] = useState(false);
-  const [detailedClubImportResult, setDetailedClubImportResult] = useState<string>('');
-  const [importingTournaments, setImportingTournaments] = useState(false);
-  const [tournamentImportResult, setTournamentImportResult] = useState<string>('');
+  // const [importingDetailedClubs, setImportingDetailedClubs] = useState(false);
+  // const [detailedClubImportResult, setDetailedClubImportResult] = useState<string>('');
+  // const [importingTournaments, setImportingTournaments] = useState(false);
+  // const [tournamentImportResult, setTournamentImportResult] = useState<string>('');
   const [isMatchImportModalOpen, setIsMatchImportModalOpen] = useState(false);
   const [isTenupImportModalOpen, setIsTenupImportModalOpen] = useState(false);
   const [pendingJsonData, setPendingJsonData] = useState<any>(null);
@@ -661,6 +661,7 @@ export function SettingsPage() {
     }
   };
 
+  /*
   const handleImportDetailedClubs = async () => {
     setImportingDetailedClubs(true);
     setDetailedClubImportResult('');
@@ -725,6 +726,7 @@ export function SettingsPage() {
   const handleMatchImportClick = () => {
     setIsMatchImportModalOpen(true);
   };
+  */
 
   const handleTenupImportClick = () => {
     setIsTenupImportModalOpen(true);
@@ -750,6 +752,7 @@ export function SettingsPage() {
     }
   };
 
+  /*
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -776,6 +779,7 @@ export function SettingsPage() {
       fileInputRef.current.value = '';
     }
   };
+  */
 
   const loadSharedLinks = async () => {
     setLoadingSharedLinks(true);
@@ -1213,7 +1217,7 @@ export function SettingsPage() {
             </div>
           </div>
         </div>
-
+{/*
         <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
@@ -1261,7 +1265,7 @@ export function SettingsPage() {
             </div>
           </div>
         </div>
-
+*/}
         <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
@@ -1293,6 +1297,7 @@ export function SettingsPage() {
               <h3 className="text-lg font-semibold text-white">{t('settings.dataImport.title')}</h3>
             </div>
             <div className="space-y-6">
+            {/*
             <div>
               <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.clubs.title')}</h4>
               <p className={`text-sm mb-4 text-gray-400`}>
@@ -1376,6 +1381,7 @@ export function SettingsPage() {
                 {t('settings.dataImport.matchResults.importButton')}
               </button>
             </div>
+            */}
 
             <div className={`border-t pt-6 ${false ? 'border-gray-700' : 'border-gray-200'}`}>
               <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.tenup.title')}</h4>
@@ -1524,24 +1530,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-[#C8F135]" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">{t('settings.security.title')}</h3>
-            </div>
-            <div className="space-y-4">
-            <button
-              onClick={() => setShowPasswordModal(true)}
-              className="w-full px-6 py-3 font-bold rounded-full transition-all duration-300 hover:scale-105 text-center bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 hover:border-white/20"
-            >
-              {t('settings.security.changePassword')}
-            </button>
-            </div>
-          </div>
-        </div>
+
 
         <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
           <div className="p-6">
@@ -1692,6 +1681,46 @@ export function SettingsPage() {
           </div>
         </div>
 
+        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-[#C8F135]" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">{t('settings.security.title')}</h3>
+            </div>
+            <div className="space-y-4">
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="w-full px-6 py-3 font-bold rounded-full transition-all duration-300 hover:scale-105 text-center bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 hover:border-white/20"
+            >
+              {t('settings.security.changePassword')}
+            </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
+                <LogOut className="w-5 h-5 text-[#C8F135]" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">{t('nav.logout')}</h3>
+            </div>
+            <p className={`text-sm mb-4 text-gray-400`}>
+              {t('settings.logoutSection.desc')}
+            </p>
+            <button
+              onClick={() => signOut()}
+              className="w-full px-6 py-3 bg-gray-600/20 hover:bg-gray-600/30 text-gray-300 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-gray-600/30"
+            >
+              {t('nav.logout')}
+            </button>
+          </div>
+        </div>
+      </div>
+
          <div className="rounded-2xl border-2 border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-all duration-400">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
@@ -1722,26 +1751,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-[#C8F135]/25 transition-all duration-400">
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-[#C8F135]/10 flex items-center justify-center">
-                <LogOut className="w-5 h-5 text-[#C8F135]" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">{t('nav.logout')}</h3>
-            </div>
-            <p className={`text-sm mb-4 text-gray-400`}>
-              {t('settings.logoutSection.desc')}
-            </p>
-            <button
-              onClick={() => signOut()}
-              className="w-full px-6 py-3 bg-gray-600/20 hover:bg-gray-600/30 text-gray-300 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-gray-600/30"
-            >
-              {t('nav.logout')}
-            </button>
-          </div>
-        </div>
-      </div>
+
 
       <div className="flex justify-end space-x-4 mt-6">
         <button className="px-8 py-3 border-2 border-white/20 font-bold rounded-full transition-all duration-300 hover:scale-105 text-gray-300 hover:bg-white/10 hover:border-white/30">

@@ -45,7 +45,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const { t } = useLanguage();
   const { players } = usePlayers();
   const { showAlert, AlertComponent } = useAlert();
-  const { canShareLive, canRecordLivePoint, incrementUsage } = useSubscription();
+  const { canRecordLivePoint, incrementUsage } = useSubscription();
   const [showHelpTour, setShowHelpTour] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [gameScore, setGameScore] = useState<GameScore>({ adversaire: 0, famille: 0, totalAd: 0 });
@@ -821,11 +821,6 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       return;
     }
 
-    if (!canShareLive) {
-      showAlert(t('matches.premium.liveShareGate'), { type: 'warning' });
-      return;
-    }
-
     const newLiveMatchId = await createLiveMatch();
 
     if (newLiveMatchId) {
@@ -833,7 +828,6 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       setShareUrl(url);
       await navigator.clipboard.writeText(url);
       setIsSharing(true);
-      await incrementUsage('live_share');
       showAlert('Lien copié dans le presse-papiers! Partagez-le pour permettre aux autres de suivre le match en direct.', {
         type: 'success',
         title: 'Match partagé',
