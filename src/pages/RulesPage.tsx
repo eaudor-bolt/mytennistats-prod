@@ -481,7 +481,7 @@ export function RulesPage() {
                     {/* Net Side View */}
                     <div className="bg-[#0a1628] border border-white/10 rounded-xl p-4">
                       <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">{t('rules.reference.svg.netSideViewCaption')}</p>
-                      <svg viewBox="0 0 200 180" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                      <svg viewBox="0 0 200 210" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
                         {/* Ground line */}
                         <line x1="10" y1="150" x2="190" y2="150" stroke="#4B5563" strokeWidth="2" />
                         <rect x="10" y="150" width="180" height="8" fill="#1A6FC4" opacity="0.3" />
@@ -535,15 +535,17 @@ export function RulesPage() {
                         <line x1="4" y1="150" x2="12" y2="150" stroke="#C8F135" strokeWidth="1" />
                         <text x="7" y="110" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold" transform="rotate(-90, 7, 110)">1.07m</text>
 
-                        {/* Dimension: Center height (0.914m) */}
-                        <line x1="100" y1="68" x2="100" y2="150" stroke="#C8F135" strokeWidth="0.8" strokeDasharray="2 2" />
-                        <text x="100" y="170" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.centerHeightLabel')}</text>
+                        {/* Dimension: Width - singles stick offset (0.914m) */}
+                        <line x1="20" y1="158" x2="37.25" y2="158" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="20" y1="154" x2="20" y2="162" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="37.25" y1="154" x2="37.25" y2="162" stroke="#C8F135" strokeWidth="1" />
+                        <text x="28.6" y="172" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.singlesStickOffsetLabel')}</text>
 
-                        {/* Dimension: Width */}
-                        <line x1="20" y1="160" x2="180" y2="160" stroke="#C8F135" strokeWidth="1" />
-                        <line x1="20" y1="156" x2="20" y2="164" stroke="#C8F135" strokeWidth="1" />
-                        <line x1="180" y1="156" x2="180" y2="164" stroke="#C8F135" strokeWidth="1" />
-                        <text x="100" y="178" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.doubleWidthLabel')}</text>
+                        {/* Dimension: Width - full doubles width (12.80m) */}
+                        <line x1="20" y1="184" x2="180" y2="184" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="20" y1="180" x2="20" y2="188" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="180" y1="180" x2="180" y2="188" stroke="#C8F135" strokeWidth="1" />
+                        <text x="100" y="198" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.doubleWidthLabel')}</text>
 
                         {/* Singles sticks label */}
                         <line x1="37" y1="42" x2="37" y2="56" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1 1" />
