@@ -2221,7 +2221,7 @@ export function VideosPage() {
                   onCanPlay={() => {
                     console.log('Video can play');
                   }}
-                  className="max-w-full max-h-full w-auto h-auto object-contain z-10"
+                  className="w-full h-full object-contain z-10"
                   style={{ backgroundColor: '#000' }}
                 />
                 <canvas
