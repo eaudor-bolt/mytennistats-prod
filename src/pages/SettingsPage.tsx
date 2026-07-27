@@ -115,39 +115,12 @@ export function SettingsPage() {
         setFirstName(profile.first_name || '');
         setLastName(profile.last_name || '');
         setBirthYear(profile.birth_year ? profile.birth_year.toString() : '');
-
-        await ensureDefaultPlayer(user.id, profile.first_name, profile.last_name, profile.birth_year);
       } else {
         const authFirstName = user.user_metadata?.first_name || '';
         const authLastName = user.user_metadata?.last_name || '';
         setFirstName(authFirstName);
         setLastName(authLastName);
       }
-    }
-  };
-
-  const ensureDefaultPlayer = async (userId: string, firstName: string | null, lastName: string | null, birthYear: number | null) => {
-    const { data: existingPlayers } = await supabase
-      .from('user_players')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (!existingPlayers || existingPlayers.length === 0) {
-      const playerFirstName = firstName || 'Player';
-      const playerLastName = lastName || '';
-      const playerBirthYear = birthYear || new Date().getFullYear() - 30;
-
-      await supabase
-        .from('user_players')
-        .insert({
-          user_id: userId,
-          first_name: playerFirstName,
-          last_name: playerLastName,
-          birth_year: playerBirthYear,
-          license_number: '',
-        });
-
-      await refreshPlayers();
     }
   };
 
