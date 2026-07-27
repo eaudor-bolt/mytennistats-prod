@@ -1,3 +1,5 @@
+import { functionAuthHeaders, functionUrl } from '../lib/functions';
+
 export interface S3UploadResult {
   key: string;
   presignedUrl: string;
@@ -5,13 +7,12 @@ export interface S3UploadResult {
 
 const MULTIPART_THRESHOLD = 10 * 1024 * 1024;
 const PART_SIZE = 10 * 1024 * 1024;
-const PRESIGN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/presign-upload`;
-const AUTH_HEADER = { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` };
+const PRESIGN_URL = functionUrl('presign-upload');
 
 async function callPresignApi(body: Record<string, unknown>): Promise<any> {
   const res = await fetch(PRESIGN_URL, {
     method: 'POST',
-    headers: { ...AUTH_HEADER, 'Content-Type': 'application/json' },
+    headers: { ...(await functionAuthHeaders()), 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (!res.ok) {

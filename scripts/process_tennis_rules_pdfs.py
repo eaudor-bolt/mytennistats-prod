@@ -18,6 +18,9 @@ import PyPDF2
 # Configuration
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
+# The edge function writes the shared rules index with the service role, so it
+# is gated on a shared secret rather than the public anon key.
+ADMIN_TASK_SECRET = os.getenv("ADMIN_TASK_SECRET")
 
 PDF_DOCUMENTS = [
     {
@@ -56,6 +59,7 @@ def upload_document(doc_config: Dict[str, Any], text_content: str) -> Dict[str, 
 
     headers = {
         "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+        "X-Admin-Secret": ADMIN_TASK_SECRET,
         "Content-Type": "application/json",
     }
 
@@ -77,6 +81,11 @@ def main():
     """Main processing function."""
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         print("Error: Environment variables VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set")
+        return
+
+    if not ADMIN_TASK_SECRET:
+        print("Error: ADMIN_TASK_SECRET must be set, and must match the value in the")
+        print("       Supabase edge function secrets for process-tennis-rules-pdf.")
         return
 
     print("=" * 60)

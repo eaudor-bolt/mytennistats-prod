@@ -63,12 +63,41 @@ async function extractTextFromPDF(pdfUrl: string): Promise<string> {
   }
 }
 
+/**
+ * Maintenance endpoint, not a user-facing one: it writes the shared rules
+ * index with the service role and pays Mistral to embed whatever text it is
+ * given. No end user should ever reach it, so it is gated on a shared secret
+ * rather than a user JWT. Set ADMIN_TASK_SECRET in the function secrets and
+ * pass it as `X-Admin-Secret` (see scripts/process_tennis_rules_pdfs.py).
+ */
+function isAuthorizedAdmin(req: Request): boolean {
+  const expected = Deno.env.get("ADMIN_TASK_SECRET");
+  if (!expected) return false;
+
+  const provided = req.headers.get("X-Admin-Secret") ?? "";
+  if (provided.length !== expected.length) return false;
+
+  // Constant-time compare so the secret cannot be recovered byte by byte.
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ provided.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
       headers: corsHeaders,
     });
+  }
+
+  if (!isAuthorizedAdmin(req)) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {

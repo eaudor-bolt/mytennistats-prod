@@ -1,21 +1,23 @@
-export async function deleteVideoFromS3(videoUrl: string): Promise<boolean> {
+import { functionAuthHeaders, functionUrl } from '../lib/functions';
+
+/**
+ * Takes the video's row id, not its URL. The edge function looks the row up
+ * against the signed-in user and derives the S3 key from what we stored at
+ * upload time, so the key is never client-supplied.
+ */
+export async function deleteVideoFromS3(videoId: string): Promise<boolean> {
   try {
-    const url = new URL(videoUrl);
-    const s3Key = url.pathname.substring(1);
-
-    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-video-from-s3`;
-
-    const response = await fetch(apiUrl, {
+    const response = await fetch(functionUrl('delete-video-from-s3'), {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        ...(await functionAuthHeaders()),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ s3Key }),
+      body: JSON.stringify({ videoId }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       console.error('Error deleting video from S3:', error);
       return false;
     }

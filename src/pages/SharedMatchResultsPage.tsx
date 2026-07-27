@@ -27,12 +27,12 @@ export function SharedMatchResultsPage({ shareId }: SharedMatchResultsPageProps)
     setError(null);
 
     try {
+      // One RPC instead of two table reads: neither shared_match_results nor
+      // match_results is readable by anonymous visitors. The function resolves
+      // the share and its matches, and applies the is_active / expires_at
+      // checks server-side.
       const { data: shareData, error: shareError } = await supabase
-        .from('shared_match_results')
-        .select('*')
-        .eq('id', shareId)
-        .eq('is_active', true)
-        .maybeSingle();
+        .rpc('get_shared_match_results', { p_share_id: shareId });
 
       if (shareError) {
         console.error('Error loading share:', shareError);
@@ -42,34 +42,14 @@ export function SharedMatchResultsPage({ shareId }: SharedMatchResultsPageProps)
       }
 
       if (!shareData) {
-        console.log('No share data found for ID:', shareId);
+        console.log('No active share found for ID:', shareId);
         setError('Partage introuvable ou expiré');
         setLoading(false);
         return;
       }
 
-      if (shareData.expires_at && new Date(shareData.expires_at) < new Date()) {
-        setError('Ce partage a expiré');
-        setLoading(false);
-        return;
-      }
-
-      setPlayerNames(shareData.player_names);
-
-      const { data: matchData, error: matchError } = await supabase
-        .from('match_results')
-        .select('*')
-        .in('id', shareData.match_results_ids)
-        .order('date', { ascending: false });
-
-      if (matchError) {
-        console.error('Error fetching matches:', matchError);
-        setError('Erreur lors du chargement des résultats');
-        setLoading(false);
-        return;
-      }
-
-      setMatchResults(matchData || []);
+      setPlayerNames(shareData.player_names || []);
+      setMatchResults((shareData.matches || []) as MatchResult[]);
     } catch (err) {
       console.error('Error loading shared results:', err);
       setError('Erreur lors du chargement');

@@ -467,7 +467,7 @@ export function VideosPage() {
     setIsDeleting(true);
     try {
       // Delete from S3 first
-      const s3DeleteSuccess = await deleteVideoFromS3(deleteConfirmVideo.url);
+      const s3DeleteSuccess = await deleteVideoFromS3(deleteConfirmVideo.id);
 
       if (!s3DeleteSuccess) {
         console.error('Failed to delete video from S3');

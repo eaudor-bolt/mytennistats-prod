@@ -23,11 +23,10 @@ export function MatchHistoryPage({ matchId }: MatchHistoryPageProps) {
     setError(null);
 
     try {
+      // Read through the RPC rather than the table: match_results is not
+      // readable by anonymous visitors, and this link is public.
       const { data, error: fetchError } = await supabase
-        .from('match_results')
-        .select('*')
-        .eq('id', matchId)
-        .single();
+        .rpc('get_public_match_result', { p_match_id: matchId });
 
       if (fetchError) {
         console.error('Error fetching match:', fetchError);
@@ -36,7 +35,13 @@ export function MatchHistoryPage({ matchId }: MatchHistoryPageProps) {
         return;
       }
 
-      setMatch(data);
+      if (!data) {
+        setError('Match introuvable');
+        setLoading(false);
+        return;
+      }
+
+      setMatch(data as MatchResult);
     } catch (err) {
       console.error('Error loading match:', err);
       setError('Erreur lors du chargement du match');

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAlert } from '../hooks/useAlert';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { functionAuthHeaders, functionUrl } from '../lib/functions';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -95,13 +96,9 @@ export function RulesPage() {
       formData.append('audio', audioBlob, 'recording.webm');
       formData.append('language', 'auto'); // Auto-detect French or English
 
-      const transcribeApiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`;
-
-      const transcribeResponse = await fetch(transcribeApiUrl, {
+      const transcribeResponse = await fetch(functionUrl('transcribe-audio'), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
+        headers: await functionAuthHeaders(),
         body: formData,
       });
 
@@ -128,17 +125,15 @@ export function RulesPage() {
       setMessages(prev => [...prev, userMessage]);
 
       // Step 2: Send transcribed text to Mistral chat
-      const chatApiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tennis-rules-chat`;
-
       const conversationHistory = messages.map(msg => ({
         role: msg.role,
         content: msg.content
       }));
 
-      const chatResponse = await fetch(chatApiUrl, {
+      const chatResponse = await fetch(functionUrl('tennis-rules-chat'), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          ...(await functionAuthHeaders()),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -194,17 +189,15 @@ export function RulesPage() {
     setQuestion('');
 
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tennis-rules-chat`;
-
       const conversationHistory = messages.map(msg => ({
         role: msg.role,
         content: msg.content
       }));
 
-      const response = await fetch(apiUrl, {
+      const response = await fetch(functionUrl('tennis-rules-chat'), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          ...(await functionAuthHeaders()),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

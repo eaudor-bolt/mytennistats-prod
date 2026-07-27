@@ -86,13 +86,14 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
   }, [autoRefresh, matchId]);
 
   const loadMatch = async () => {
+    // live_matches is not readable by anonymous visitors; the RPC returns the
+    // single match for this id. This polling path is also what keeps the page
+    // fresh for logged-out viewers, since the Realtime subscription above only
+    // delivers rows the subscriber can read under RLS (i.e. the owner's own).
     const { data, error } = await supabase
-      .from('live_matches')
-      .select('*')
-      .eq('id', matchId)
-      .single();
+      .rpc('get_live_match', { p_match_id: matchId });
 
-    if (error) {
+    if (error || !data) {
       setError('Match non trouvé');
       setLoading(false);
       return;
