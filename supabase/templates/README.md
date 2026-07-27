@@ -98,6 +98,8 @@ Before deploying, test the templates:
 - Test links before deployment
 - Keep file sizes small (< 100KB)
 
+**Note on the CTA button specifically**: many webmail clients (Gmail in particular) strip or ignore `<style>` blocks in `<head>`, which would silently fall back the "Confirm my email address" / "Reset my password" / etc. button to an unstyled default link with no yellow background. The button now also carries the same colors as an inline `style=""` attribute (in addition to its `.cta-button` class) so it renders correctly even in clients that don't honor the `<style>` block.
+
 ## Support
 
 For issues or questions about these templates, refer to:
