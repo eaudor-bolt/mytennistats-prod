@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /live/
+Disallow: /match-history/
+Disallow: /shared-results/
+
+Sitemap: https://mytennistats.com/sitemap.xml
