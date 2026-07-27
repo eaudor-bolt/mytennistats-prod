@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, ArrowLeft, Trophy, Share2, Lock, Unlock, Camera, StopCircle, Settings, Clock, Upload, CheckCircle, Eye, EyeOff, Play } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
 import { uploadVideoToS3 } from '../utils/s3Upload';
 import { MiniScoreboard } from './MiniScoreboard';
 import { VideoPlayerModal } from './VideoPlayerModal';
+import { GaugeBar } from './GaugeBar';
 import { LiveScoreHelpButton, LiveScoreHelpTour } from './LiveScoreHelpTour';
 import { useAlert } from '../hooks/useAlert';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -316,6 +317,31 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     const action = toggleValue.slice(separatorIndex + 2);
     return `${translateSkillLabel(skill)}: ${action}`;
   };
+
+  // Live winner/loss percentage per skill row, computed from the point
+  // history so far this match - drives the gauge bars next to each Gagne
+  // button (win % on top, fault % below, in red).
+  const { liveSkillWinPct, liveSkillLossPct } = useMemo(() => {
+    const counts: Record<string, { winners: number; total: number }> = {};
+    SKILL_KEYS.forEach(skill => { counts[skill] = { winners: 0, total: 0 }; });
+
+    scoringHistory.forEach((entry: any) => {
+      if (!entry.toggleValue) return;
+      const [skill, action] = entry.toggleValue.split(': ');
+      if (!counts[skill]) return;
+      counts[skill].total += 1;
+      if (action === 'Gagne') counts[skill].winners += 1;
+    });
+
+    const winPct: Record<string, number> = {};
+    const lossPct: Record<string, number> = {};
+    SKILL_KEYS.forEach(skill => {
+      const { winners, total } = counts[skill];
+      winPct[skill] = total > 0 ? Math.round((winners / total) * 100) : 0;
+      lossPct[skill] = total > 0 ? Math.round(((total - winners) / total) * 100) : 0;
+    });
+    return { liveSkillWinPct: winPct, liveSkillLossPct: lossPct };
+  }, [scoringHistory]);
 
   const resetMatch = () => {
     setSelectedPlayer('');
@@ -2084,6 +2110,10 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
                       >
                         Gagne
                       </button>
+                      <div className="w-8 shrink-0 flex flex-col gap-1">
+                        <GaugeBar pct={liveSkillWinPct[skill] ?? 0} sizeClassName="h-1.5" />
+                        <GaugeBar pct={liveSkillLossPct[skill] ?? 0} sizeClassName="h-1.5" color="#ef4444" />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2152,13 +2182,18 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
 
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start mb-1 gap-2">
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                              entry.player === 'famille'
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                            }`}>
-                              {entry.player === 'famille' ? 'Point gagné' : 'Point perdu'}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/10">
+                                #{entry.sequence}
+                              </span>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                entry.player === 'famille'
+                                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                              }`}>
+                                {entry.player === 'famille' ? 'Point gagné' : 'Point perdu'}
+                              </span>
+                            </div>
 
                             <div className="flex items-center gap-1">
                               {entry.duration && (
@@ -2551,13 +2586,18 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
 
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-1 gap-2">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            entry.player === 'famille'
-                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          }`}>
-                            {entry.player === 'famille' ? 'Point gagné' : 'Point perdu'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/10">
+                              #{entry.sequence}
+                            </span>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              entry.player === 'famille'
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            }`}>
+                              {entry.player === 'famille' ? 'Point gagné' : 'Point perdu'}
+                            </span>
+                          </div>
 
                           <div className="flex items-center gap-1">
                             {entry.duration && (

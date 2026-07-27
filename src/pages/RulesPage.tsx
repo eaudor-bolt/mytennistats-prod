@@ -409,7 +409,7 @@ export function RulesPage() {
                     {/* Tennis Court Top View */}
                     <div className="lg:col-span-2 bg-[#0a1628] border border-white/10 rounded-xl p-4">
                       <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">{t('rules.reference.svg.courtTopViewCaption')}</p>
-                      <svg viewBox="0 0 500 260" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                      <svg viewBox="0 0 512 260" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
                         {/* Court background */}
                         <rect x="30" y="20" width="440" height="220" fill="#1A6FC4" rx="2" />
 
@@ -446,7 +446,7 @@ export function RulesPage() {
                         <line x1="482" y1="45" x2="482" y2="215" stroke="#C8F135" strokeWidth="1" />
                         <line x1="478" y1="45" x2="486" y2="45" stroke="#C8F135" strokeWidth="1" />
                         <line x1="478" y1="215" x2="486" y2="215" stroke="#C8F135" strokeWidth="1" />
-                        <text x="495" y="134" textAnchor="middle" fill="#C8F135" fontSize="9" fontWeight="bold" transform="rotate(90, 495, 134)">8.23m</text>
+                        <text x="491" y="134" textAnchor="middle" fill="#C8F135" fontSize="9" fontWeight="bold" transform="rotate(90, 491, 134)">8.23m</text>
 
                         {/* Dimension: Doubles width */}
                         <line x1="15" y1="20" x2="15" y2="240" stroke="#C8F135" strokeWidth="1" />
@@ -459,6 +459,24 @@ export function RulesPage() {
                         <line x1="120" y1="6" x2="120" y2="14" stroke="#C8F135" strokeWidth="1" />
                         <line x1="250" y1="6" x2="250" y2="14" stroke="#C8F135" strokeWidth="1" />
                         <text x="185" y="9" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">6.40m</text>
+
+                        {/* Dimension: Service line to baseline */}
+                        <line x1="30" y1="10" x2="120" y2="10" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="30" y1="6" x2="30" y2="14" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="120" y1="6" x2="120" y2="14" stroke="#C8F135" strokeWidth="1" />
+                        <text x="75" y="9" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">5.485m</text>
+
+                        {/* Dimension: Doubles alley width (1.37m) - top */}
+                        <line x1="45" y1="20" x2="45" y2="45" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="41" y1="20" x2="49" y2="20" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="41" y1="45" x2="49" y2="45" stroke="#C8F135" strokeWidth="1" />
+                        <text x="53" y="36" textAnchor="start" fill="#C8F135" fontSize="7" fontWeight="bold">1.37m</text>
+
+                        {/* Dimension: Doubles alley width (1.37m) - bottom */}
+                        <line x1="45" y1="215" x2="45" y2="240" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="41" y1="215" x2="49" y2="215" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="41" y1="240" x2="49" y2="240" stroke="#C8F135" strokeWidth="1" />
+                        <text x="53" y="231" textAnchor="start" fill="#C8F135" fontSize="7" fontWeight="bold">1.37m</text>
 
                         {/* Net posts indicators */}
                         <circle cx="250" cy="20" r="3" fill="#C8F135" />
@@ -481,10 +499,18 @@ export function RulesPage() {
                     {/* Net Side View */}
                     <div className="bg-[#0a1628] border border-white/10 rounded-xl p-4">
                       <p className="text-xs text-gray-400 mb-3 text-center font-semibold uppercase tracking-wider">{t('rules.reference.svg.netSideViewCaption')}</p>
-                      <svg viewBox="0 0 200 210" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                      <svg viewBox="0 0 200 250" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
                         {/* Ground line */}
                         <line x1="10" y1="150" x2="190" y2="150" stroke="#4B5563" strokeWidth="2" />
                         <rect x="10" y="150" width="180" height="8" fill="#1A6FC4" opacity="0.3" />
+
+                        {/* Doubles alley bars - between the doubles sideline and the singles sideline */}
+                        <rect x="31.4" y="62" width="17.1" height="88" fill="#C8F135" opacity="0.08" />
+                        <rect x="151.5" y="62" width="17.1" height="88" fill="#C8F135" opacity="0.08" />
+                        <line x1="31.4" y1="62" x2="31.4" y2="150" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1.5 1.5" opacity="0.6" />
+                        <line x1="48.5" y1="62" x2="48.5" y2="150" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1.5 1.5" opacity="0.6" />
+                        <line x1="151.5" y1="62" x2="151.5" y2="150" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1.5 1.5" opacity="0.6" />
+                        <line x1="168.6" y1="62" x2="168.6" y2="150" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1.5 1.5" opacity="0.6" />
 
                         {/* Net posts (doubles) */}
                         <rect x="20" y="60" width="4" height="90" fill="#9CA3AF" />
@@ -494,7 +520,7 @@ export function RulesPage() {
                         <rect x="18" y="57" width="8" height="5" fill="#D1D5DB" rx="1" />
                         <rect x="174" y="57" width="8" height="5" fill="#D1D5DB" rx="1" />
 
-                        {/* Singles sticks - 0.914m outside singles court on each side */}
+                        {/* Singles sticks - 0.914m outside singles court on each side, inside the alley */}
                         <rect x="36" y="60" width="2.5" height="90" fill="#E5E7EB" />
                         <rect x="161.5" y="60" width="2.5" height="90" fill="#E5E7EB" />
                         {/* Singles stick caps (not more than 1 inch above net cord) */}
@@ -515,7 +541,6 @@ export function RulesPage() {
                         <line x1="43" y1="62" x2="43" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
                         <line x1="62" y1="62" x2="62" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
                         <line x1="81" y1="62" x2="81" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
-                        <line x1="100" y1="62" x2="100" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
                         <line x1="119" y1="62" x2="119" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
                         <line x1="138" y1="62" x2="138" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
                         <line x1="157" y1="62" x2="157" y2="150" stroke="white" strokeWidth="0.3" opacity="0.4" />
@@ -529,28 +554,56 @@ export function RulesPage() {
                         {/* Net sag - center is lower */}
                         <path d="M 24 62 Q 100 70 176 62" fill="none" stroke="white" strokeWidth="1.5" />
 
+                        {/* Dimension: Net height at center (0.914m) - vertical yellow line */}
+                        <line x1="100" y1="70" x2="100" y2="150" stroke="#C8F135" strokeWidth="1.2" />
+                        <line x1="94" y1="70" x2="106" y2="70" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="94" y1="150" x2="106" y2="150" stroke="#C8F135" strokeWidth="1" />
+                        <text x="108" y="98" textAnchor="start" fill="#C8F135" fontSize="7" fontWeight="bold">{t('rules.reference.svg.netCenterHeightLabel')}</text>
+
                         {/* Dimension: Post height (1.07m) */}
                         <line x1="8" y1="60" x2="8" y2="150" stroke="#C8F135" strokeWidth="1" />
                         <line x1="4" y1="60" x2="12" y2="60" stroke="#C8F135" strokeWidth="1" />
                         <line x1="4" y1="150" x2="12" y2="150" stroke="#C8F135" strokeWidth="1" />
                         <text x="7" y="110" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold" transform="rotate(-90, 7, 110)">1.07m</text>
 
-                        {/* Dimension: Width - singles stick offset (0.914m) */}
-                        <line x1="20" y1="158" x2="37.25" y2="158" stroke="#C8F135" strokeWidth="1" />
+                        {/* Dimension: Width - post to doubles sideline (0.914m) */}
+                        <line x1="20" y1="158" x2="31.4" y2="158" stroke="#C8F135" strokeWidth="1" />
                         <line x1="20" y1="154" x2="20" y2="162" stroke="#C8F135" strokeWidth="1" />
-                        <line x1="37.25" y1="154" x2="37.25" y2="162" stroke="#C8F135" strokeWidth="1" />
-                        <text x="28.6" y="172" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.singlesStickOffsetLabel')}</text>
+                        <line x1="31.4" y1="154" x2="31.4" y2="162" stroke="#C8F135" strokeWidth="1" />
+                        <text x="25.7" y="172" textAnchor="middle" fill="#C8F135" fontSize="7" fontWeight="bold">{t('rules.reference.svg.singlesStickOffsetLabel')}</text>
 
-                        {/* Dimension: Width - full doubles width (12.80m) */}
-                        <line x1="20" y1="184" x2="180" y2="184" stroke="#C8F135" strokeWidth="1" />
-                        <line x1="20" y1="180" x2="20" y2="188" stroke="#C8F135" strokeWidth="1" />
-                        <line x1="180" y1="180" x2="180" y2="188" stroke="#C8F135" strokeWidth="1" />
-                        <text x="100" y="198" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.doubleWidthLabel')}</text>
+                        {/* Dimension: Width - singles sideline to singles stick (0.914m) */}
+                        <line x1="37.25" y1="158" x2="48.5" y2="158" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="37.25" y1="154" x2="37.25" y2="162" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="48.5" y1="154" x2="48.5" y2="162" stroke="#C8F135" strokeWidth="1" />
+                        <text x="42.85" y="184" textAnchor="middle" fill="#C8F135" fontSize="7" fontWeight="bold">{t('rules.reference.svg.singlesStickOffsetLabel')}</text>
+
+                        {/* Dimension: Width - singles court (8.23m) */}
+                        <line x1="48.5" y1="192" x2="151.5" y2="192" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="48.5" y1="188" x2="48.5" y2="196" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="151.5" y1="188" x2="151.5" y2="196" stroke="#C8F135" strokeWidth="1" />
+                        <text x="100" y="206" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.singlesWidthLabel')}</text>
+
+                        {/* Dimension: Width - doubles court (10.97m) */}
+                        <line x1="31.4" y1="210" x2="168.6" y2="210" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="31.4" y1="206" x2="31.4" y2="214" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="168.6" y1="206" x2="168.6" y2="214" stroke="#C8F135" strokeWidth="1" />
+                        <text x="100" y="224" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.doublesCourtWidthLabel')}</text>
+
+                        {/* Dimension: Width - full post-to-post width (12.80m) */}
+                        <line x1="20" y1="228" x2="180" y2="228" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="20" y1="224" x2="20" y2="232" stroke="#C8F135" strokeWidth="1" />
+                        <line x1="180" y1="224" x2="180" y2="232" stroke="#C8F135" strokeWidth="1" />
+                        <text x="100" y="242" textAnchor="middle" fill="#C8F135" fontSize="8" fontWeight="bold">{t('rules.reference.svg.doubleWidthLabel')}</text>
 
                         {/* Singles sticks label */}
                         <line x1="37" y1="42" x2="37" y2="56" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1 1" />
                         <line x1="163" y1="42" x2="163" y2="56" stroke="#C8F135" strokeWidth="0.5" strokeDasharray="1 1" />
                         <text x="100" y="40" textAnchor="middle" fill="#C8F135" fontSize="6.5">{t('rules.reference.svg.singlesSticksLabel')}</text>
+
+                        {/* Doubles alley label */}
+                        <text x="40" y="55" textAnchor="middle" fill="#C8F135" fontSize="5.5">{t('rules.reference.svg.doublesAlley')}</text>
+                        <text x="160" y="55" textAnchor="middle" fill="#C8F135" fontSize="5.5">{t('rules.reference.svg.doublesAlley')}</text>
                       </svg>
                     </div>
                   </div>

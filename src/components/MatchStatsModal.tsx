@@ -6,6 +6,7 @@ import { MatchResult } from '../lib/supabase';
 import { FinalScoreboard } from './FinalScoreboard';
 import { InlineScoreboard } from './InlineScoreboard';
 import { VideoPlayerModal } from './VideoPlayerModal';
+import { GaugeBar } from './GaugeBar';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Radar as RadarChart, Bar } from 'react-chartjs-2';
 
@@ -695,25 +696,6 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
     return colors[skill] || '#6b7280';
   };
 
-  // Color scale for the winner-percentage gauge bars: red (weak) through
-  // green (strong), with the app's existing accent color kept for the
-  // "solid" middle band.
-  const getGaugeColor = (pct: number): string => {
-    if (pct < 15) return '#ef4444';
-    if (pct < 30) return '#f97316';
-    if (pct < 60) return '#C8F135';
-    return '#22c55e';
-  };
-
-  const renderGaugeBar = (pct: number, sizeClassName: string = 'h-2') => (
-    <div className={`group relative w-full rounded-full bg-white/10 ${sizeClassName}`}>
-      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: getGaugeColor(pct) }} />
-      <div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-black/90 text-[10px] font-semibold text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
-        {pct}%
-      </div>
-    </div>
-  );
-
   const stats = useMemo(() => calculateMatchStats(match?.scoring_history || []), [match]);
   const chartData = useMemo(() => processChartData(match?.scoring_history || []), [match]);
 
@@ -1190,11 +1172,13 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                 <span className="text-red-400">{stats.totalFaults} Fautes</span>
               </div>
               <div className="mt-3">
-                {renderGaugeBar(
-                  stats.totalWinners + stats.totalFaults > 0
-                    ? Math.round((stats.totalWinners / (stats.totalWinners + stats.totalFaults)) * 100)
-                    : 0
-                )}
+                <GaugeBar
+                  pct={
+                    stats.totalWinners + stats.totalFaults > 0
+                      ? Math.round((stats.totalWinners / (stats.totalWinners + stats.totalFaults)) * 100)
+                      : 0
+                  }
+                />
               </div>
             </div>
 
@@ -1398,7 +1382,7 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                     <span>{row.getValue(s)}</span>
                     {ratio && (
                       <div className="w-14 shrink-0">
-                        {renderGaugeBar(ratio.total > 0 ? Math.round((ratio.won / ratio.total) * 100) : 0, 'h-1.5')}
+                        <GaugeBar pct={ratio.total > 0 ? Math.round((ratio.won / ratio.total) * 100) : 0} sizeClassName="h-1.5" />
                       </div>
                     )}
                   </div>
