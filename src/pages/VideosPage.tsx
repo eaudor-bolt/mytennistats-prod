@@ -1821,9 +1821,9 @@ export function VideosPage() {
       )}
 
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           {mode === 'record' ? (
-            <div className="w-full max-w-4xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[90vh] border border-white/20">
+            <div className="w-full max-w-4xl bg-[#0a1628] rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[90vh] border border-white/10">
               <div className="flex-1 relative bg-black flex items-center justify-center">
                 <video
                   ref={videoRecorderRef}
@@ -1876,9 +1876,9 @@ export function VideosPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-black w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-white/20 flex flex-col relative max-h-[90vh]">
+            <div className="bg-[#0a1628] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-white/10 flex flex-col relative max-h-[90vh]">
               {status === 'idle' && (
-                <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+                <div className="p-4 border-b border-white/10 flex justify-between items-center">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
                     <VideoIcon className="text-[#C8F135]" size={20} />
                     Ajouter Vidéo
