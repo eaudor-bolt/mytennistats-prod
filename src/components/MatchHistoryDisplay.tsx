@@ -70,13 +70,20 @@ export function MatchHistoryDisplay({ scoringHistory, playerName, onPlayVideo }:
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-1 gap-2">
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    player === 'famille'
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  }`}>
-                    {player === 'famille' ? 'Point gagné' : 'Point perdu'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {entry.sequence != null && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/10">
+                        #{entry.sequence}
+                      </span>
+                    )}
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      player === 'famille'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    }`}>
+                      {player === 'famille' ? 'Point gagné' : 'Point perdu'}
+                    </span>
+                  </div>
 
                   <div className="flex items-center gap-1">
                     {entry.duration && (

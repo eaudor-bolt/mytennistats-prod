@@ -1,4 +1,4 @@
-import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, Download, LogOut, Database, Share2, ExternalLink, HardDrive, ChevronRight } from 'lucide-react';
+import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, Download, LogOut, Database, Share2, ExternalLink, HardDrive } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { supabase, UserPlayer } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
@@ -918,32 +918,34 @@ export function SettingsPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-[#C8F135] mb-2">{t('settings.title')}</h2>
-        <nav className="mt-4 rounded-2xl border border-white/8 bg-white/2 divide-y divide-white/5 max-w-xs">
-          {[
-            { id: 'profile-information', label: t('settings.profileSection.title') },
-            { id: 'players', label: t('settings.players') },
-            { id: 'language-region', label: t('settings.languageRegion.title') },
-            { id: 'data-import', label: t('settings.dataImport.title') },
-            { id: 'video-storage', label: t('settings.videoUsage.title') },
-            { id: 'shared-links', label: t('settings.sharedLinks.title') },
-            { id: 'subscription-plan', label: t('settings.subscription.title') },
-            { id: 'privacy-security', label: t('settings.security.title') },
-            { id: 'logout', label: t('nav.logout') },
-            { id: 'danger-zone', label: t('settings.quickLinks.dangerZone') },
-          ].map((link) => (
-            <a
-              key={link.id}
-              href={`#${link.id}`}
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="group flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-[#C8F135] transition-colors first:rounded-t-2xl last:rounded-b-2xl"
-            >
-              {link.label}
-              <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-[#C8F135] transition-colors" />
-            </a>
-          ))}
+        <nav className="bg-white/5 border border-white/10 rounded-xl p-4 mt-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('settings.quickLinks.title')}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {[
+              { id: 'profile-information', label: t('settings.profileSection.title') },
+              { id: 'players', label: t('settings.players') },
+              { id: 'language-region', label: t('settings.languageRegion.title') },
+              { id: 'data-import', label: t('settings.dataImport.title') },
+              { id: 'video-storage', label: t('settings.videoUsage.title') },
+              { id: 'shared-links', label: t('settings.sharedLinks.title') },
+              { id: 'subscription-plan', label: t('settings.subscription.title') },
+              { id: 'privacy-security', label: t('settings.security.title') },
+              { id: 'logout', label: t('nav.logout') },
+              { id: 'danger-zone', label: t('settings.quickLinks.dangerZone') },
+            ].map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-sm text-gray-300 hover:text-[#C8F135] transition-colors py-1 px-2 rounded hover:bg-white/5"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
         </nav>
       </div>
 
