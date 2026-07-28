@@ -28,33 +28,45 @@ Deno.serve(async (req: Request) => {
     const signature = req.headers.get("stripe-signature");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
-    console.log("Webhook received:", {
-      hasSignature: !!signature,
-      hasSecret: !!webhookSecret,
-    });
+    /*
+     * The signature is the only authentication this endpoint can have: it is
+     * called by Stripe, which cannot present a user JWT, and it runs under the
+     * service role. So there is no unsigned path - a request without a valid
+     * signature is rejected before the body is parsed, let alone acted on.
+     *
+     * There used to be an `else` branch here that did `JSON.parse(body)` and
+     * processed the result. Since the attacker chooses whether to send the
+     * `stripe-signature` header, omitting it was enough to reach that branch,
+     * and a forged checkout.session.completed carrying any user id in
+     * metadata.supabase_user_id granted that account premium.
+     */
+    if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET is not configured; refusing webhook");
+      return new Response(
+        JSON.stringify({ error: "Webhook not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!signature) {
+      return new Response(
+        JSON.stringify({ error: "Missing stripe-signature header" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     let event: Stripe.Event;
 
     const body = await req.text();
 
-    if (webhookSecret && signature) {
-      try {
-        event = await stripe.webhooks.constructEventAsync(
-          body,
-          signature,
-          webhookSecret
-        );
-        console.log("✅ Signature verified successfully");
-      } catch (err: any) {
-        console.error("❌ Webhook signature verification failed:", err.message);
-        return new Response(
-          JSON.stringify({ error: "Webhook signature verification failed", details: err.message }),
-          { status: 400, headers: corsHeaders }
-        );
-      }
-    } else {
-      console.log("⚠️ No signature verification - processing without verification");
-      event = JSON.parse(body);
+    try {
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+    } catch (err: any) {
+      console.error("Webhook signature verification failed:", err.message);
+      return new Response(
+        JSON.stringify({ error: "Webhook signature verification failed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log("Processing webhook event:", event.type);

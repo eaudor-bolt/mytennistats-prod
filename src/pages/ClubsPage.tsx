@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { Club, supabase } from '../lib/supabase';
 import { ClubMapView } from '../components/ClubMapView';
 import { ClubList } from '../components/ClubList';
-import { loadAndSeedClubs, getClubsWithMetadata, getClubsByBounds } from '../utils/loadClubs';
+import { getClubsWithMetadata, getClubsByBounds } from '../utils/loadClubs';
 import { trackClubAction } from '../utils/analytics';
 import { useAlert } from '../hooks/useAlert';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -56,7 +56,6 @@ export function ClubsPage() {
 
   const initializeApp = async () => {
     setLoading(true);
-    await loadAndSeedClubs();
     getUserLocation();
   };
 

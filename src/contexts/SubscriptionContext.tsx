@@ -140,37 +140,21 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const incrementUsage = async (type: UsageType, extra?: { bytes?: number }) => {
     if (!user || !usageStats) return;
 
-    const fieldMap: Record<UsageType, keyof UserUsageStats> = {
-      player: 'players_created',
-      match_result: 'match_results_created',
-      share: 'shares_created',
-      live_share: 'live_shares_created',
-      live_point: 'live_points_recorded',
-      video: 'videos_uploaded',
-      rules_chat: 'rules_chat_responses',
-    };
+    // Goes through an RPC because the client can no longer UPDATE this table:
+    // a writable counter is a resettable counter, which is a bypassable limit.
+    // The function only adds, and only to this user's row.
+    const { data, error } = await supabase.rpc('increment_usage_stat', {
+      p_type: type,
+      p_bytes: type === 'video' ? extra?.bytes ?? 0 : 0,
+    });
 
-    const field = fieldMap[type];
-    const newValue = (usageStats[field] as number) + 1;
-
-    const updatePayload: Record<string, unknown> = {
-      [field]: newValue,
-      updated_at: new Date().toISOString(),
-    };
-
-    let newStorageBytes = usageStats.video_storage_bytes;
-    if (type === 'video' && extra?.bytes) {
-      newStorageBytes = usageStats.video_storage_bytes + extra.bytes;
-      updatePayload.video_storage_bytes = newStorageBytes;
+    if (error) {
+      console.error('Error incrementing usage stat:', error);
+      return;
     }
 
-    const { error } = await supabase
-      .from('user_usage_stats')
-      .update(updatePayload)
-      .eq('user_id', user.id);
-
-    if (!error) {
-      setUsageStats({ ...usageStats, [field]: newValue, video_storage_bytes: newStorageBytes });
+    if (data) {
+      setUsageStats(data as UserUsageStats);
     }
   };
 
