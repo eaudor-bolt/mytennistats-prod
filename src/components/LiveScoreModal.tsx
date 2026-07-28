@@ -77,6 +77,12 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string>('');
   const [isLocked, setIsLocked] = useState(true);
+  const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
+  // Synchronous guard against rapid repeated clicks on the share button:
+  // state updates (isCreatingShareLink, liveMatchId) aren't visible until the
+  // next render, so a second click fired before that re-render would still
+  // see liveMatchId as null and create a second live_matches row/URL.
+  const isCreatingShareLinkRef = useRef(false);
   const prevGameScoreRef = useRef<GameScore>({ adversaire: 0, famille: 0 });
   const tiebreakPointCountRef = useRef(0);
   const wasTiebreakRef = useRef(false);
@@ -847,18 +853,31 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       return;
     }
 
-    const newLiveMatchId = await createLiveMatch();
+    // No live match yet: only one share link should ever be created for
+    // this match. Guard with a ref (synchronous, unlike state) so rapid
+    // repeated clicks before the first createLiveMatch() resolves can't
+    // each create their own live_matches row/URL.
+    if (isCreatingShareLinkRef.current) return;
+    isCreatingShareLinkRef.current = true;
+    setIsCreatingShareLink(true);
 
-    if (newLiveMatchId) {
-      const url = `${window.location.origin}/live/${newLiveMatchId}`;
-      setShareUrl(url);
-      await navigator.clipboard.writeText(url);
-      setIsSharing(true);
-      showAlert('Lien copié dans le presse-papiers! Partagez-le pour permettre aux autres de suivre le match en direct.', {
-        type: 'success',
-        title: 'Match partagé',
-        link: url
-      });
+    try {
+      const newLiveMatchId = await createLiveMatch();
+
+      if (newLiveMatchId) {
+        const url = `${window.location.origin}/live/${newLiveMatchId}`;
+        setShareUrl(url);
+        await navigator.clipboard.writeText(url);
+        setIsSharing(true);
+        showAlert('Lien copié dans le presse-papiers! Partagez-le pour permettre aux autres de suivre le match en direct.', {
+          type: 'success',
+          title: 'Match partagé',
+          link: url
+        });
+      }
+    } finally {
+      isCreatingShareLinkRef.current = false;
+      setIsCreatingShareLink(false);
     }
   };
 
@@ -1782,12 +1801,13 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
             </button>
             <button
               onClick={handleShare}
+              disabled={isCreatingShareLink}
               data-tour-id="tour-share-button"
-              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-[#C8F135] text-[#050d1a] rounded-lg hover:bg-[#b5d930] transition-colors font-semibold"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-[#C8F135] text-[#050d1a] rounded-lg hover:bg-[#b5d930] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
               title="Partager le match en direct"
             >
               <Share2 className="w-3 sm:w-4 h-3 sm:h-4" />
-              <span className="hidden sm:inline">{isSharing ? 'Partagé' : 'Partager'}</span>
+              <span className="hidden sm:inline">{isCreatingShareLink ? '...' : isSharing ? 'Partagé' : 'Partager'}</span>
             </button>
             <button
               onClick={() => setIsLocked(!isLocked)}
