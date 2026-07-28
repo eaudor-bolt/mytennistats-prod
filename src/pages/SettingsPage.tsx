@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { importTenupMatchResults } from '../utils/importTenupMatchResults';
 import { ImportPlayerSelectionModal } from '../components/ImportPlayerSelectionModal';
 import { useAlert } from '../hooks/useAlert';
+import { deleteAccount } from '../utils/deleteAccount';
 
 type PlayerFormData = {
   first_name: string;
@@ -618,10 +619,7 @@ export function SettingsPage() {
 
     setDeletingAccount(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      await supabase.rpc('delete_user_account', { p_user_id: user.id });
+      await deleteAccount();
       await supabase.auth.signOut();
 
       showAlert(t('settings.modals.deleteAccount.success'), { type: 'success' });
