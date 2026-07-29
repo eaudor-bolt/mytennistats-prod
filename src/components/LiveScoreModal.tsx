@@ -118,6 +118,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
   const isClosingRef = useRef(false);
+  const networkWarningShownRef = useRef(false);
   const skipNextResetRef = useRef(false);
   const isFirstDiscardTokenRunRef = useRef(true);
 
@@ -658,58 +659,63 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         const entrySequence = sequenceNumberRef.current;
         setUploadingEntries(prev => new Set(prev).add(entrySequence));
 
-        const videoUrl = await uploadVideoToS3Bucket(blob);
-        // Replace /import/ with /ffmpeg/ for the stored URL
-        const storedUrl = videoUrl?.replace('/import/', '/ffmpeg/') || null;
-
-        setUploadingEntries(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(entrySequence);
-          return newSet;
-        });
-
-        setScoringHistory(prev => {
-          const updated = [...prev];
-          const index = updated.findIndex(e => e.sequence === entrySequence);
-          if (index !== -1) {
-            updated[index] = { ...updated[index], videoUrl: storedUrl, uploading: false };
-          }
-          return updated;
-        });
-
+        // The point is scored right away - the video upload happens in the
+        // background below and never delays the scoreboard.
         await scorePoint(player, true);
 
         pendingActionRef.current = null;
         pointStartTimeRef.current = Date.now();
+
+        uploadVideoToS3Bucket(blob, entrySequence).then((videoUrl) => {
+          // Replace /import/ with /ffmpeg/ for the stored URL
+          const storedUrl = videoUrl?.replace('/import/', '/ffmpeg/') || null;
+
+          setUploadingEntries(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(entrySequence);
+            return newSet;
+          });
+
+          setScoringHistory(prev => {
+            const updated = [...prev];
+            const index = updated.findIndex(e => e.sequence === entrySequence);
+            if (index !== -1) {
+              updated[index] = { ...updated[index], videoUrl: storedUrl, uploading: false };
+            }
+            return updated;
+          });
+        });
       } else {
         const lastEntrySequence = sequenceNumberRef.current;
         setUploadingEntries(prev => new Set(prev).add(lastEntrySequence));
 
-        const videoUrl = await uploadVideoToS3Bucket(blob);
-        // Replace /import/ with /ffmpeg/ for the stored URL
-        const storedUrl = videoUrl?.replace('/import/', '/ffmpeg/') || null;
+        uploadVideoToS3Bucket(blob, lastEntrySequence).then((videoUrl) => {
+          // Replace /import/ with /ffmpeg/ for the stored URL
+          const storedUrl = videoUrl?.replace('/import/', '/ffmpeg/') || null;
 
-        setUploadingEntries(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(lastEntrySequence);
-          return newSet;
-        });
-
-        if (storedUrl || duration) {
-          setScoringHistory(prev => {
-            const updated = [...prev];
-            if (updated.length > 0) {
-              updated[updated.length - 1] = {
-                ...updated[updated.length - 1],
-                videoUrl: storedUrl || updated[updated.length - 1].videoUrl,
-                duration: duration || updated[updated.length - 1].duration,
-                sizeBytes: blob.size || updated[updated.length - 1].sizeBytes,
-                uploading: false,
-              };
-            }
-            return updated;
+          setUploadingEntries(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(lastEntrySequence);
+            return newSet;
           });
-        }
+
+          if (storedUrl || duration) {
+            setScoringHistory(prev => {
+              const updated = [...prev];
+              const index = updated.findIndex(e => e.sequence === lastEntrySequence);
+              if (index !== -1) {
+                updated[index] = {
+                  ...updated[index],
+                  videoUrl: storedUrl || updated[index].videoUrl,
+                  duration: duration || updated[index].duration,
+                  sizeBytes: blob.size || updated[index].sizeBytes,
+                  uploading: false,
+                };
+              }
+              return updated;
+            });
+          }
+        });
       }
 
       chunksRef.current = [];
@@ -727,20 +733,45 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     }
   };
 
-  const uploadVideoToS3Bucket = async (videoBlob: Blob) => {
+  const UPLOAD_RETRY_DELAYS_MS = [1000, 3000];
+
+  /**
+   * Retries a couple of times on transient/poor-network failures before
+   * giving up. Runs in the background relative to scoring - the point is
+   * already on the board by the time this settles, so a slow or flaky
+   * connection delays a video clip, never the live score.
+   */
+  const uploadVideoToS3Bucket = async (videoBlob: Blob, pointSequence: number): Promise<string | null> => {
     if (!liveMatchId) return null;
 
     const extension = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
-    const filename = `${liveMatchId}/point-${sequenceNumberRef.current}-${Date.now()}.${extension}`;
+    const maxAttempts = UPLOAD_RETRY_DELAYS_MS.length + 1;
 
-    const result = await uploadVideoToS3(videoBlob, filename);
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const filename = `${liveMatchId}/point-${pointSequence}-${Date.now()}.${extension}`;
+      const result = await uploadVideoToS3(videoBlob, filename);
 
-    if (!result) {
-      console.error('Error uploading video to S3');
-      return null;
+      if (result) {
+        networkWarningShownRef.current = false;
+        return result.presignedUrl;
+      }
+
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, UPLOAD_RETRY_DELAYS_MS[attempt]));
+      }
     }
 
-    return result.presignedUrl;
+    console.error(`Error uploading video to S3 for point #${pointSequence} after ${maxAttempts} attempts`);
+
+    if (!networkWarningShownRef.current) {
+      networkWarningShownRef.current = true;
+      showAlert(
+        'Votre connexion réseau semble instable, ce qui affecte l\'envoi des vidéos de points. Le score du match n\'est pas impacté, mais certaines vidéos n\'ont pas pu être envoyées.',
+        { type: 'warning', title: 'Connexion réseau instable' }
+      );
+    }
+
+    return null;
   };
 
   const stopCamera = () => {
