@@ -24,6 +24,20 @@ export function MiniMatchScoreboard({ score, playerName, opponentName, isWinner 
     let opponentSetsWon = 0;
 
     rawSets.forEach(set => {
+      // Super tiebreak decider set, stored as "(10/5)" with no games score of
+      // its own - handle it before the regular-set parsing below, which
+      // would otherwise strip the parens, find nothing left to split on,
+      // and silently drop this set (and its winner) entirely.
+      const superTiebreakMatch = set.match(/^\((\d+)\/(\d+)\)$/);
+      if (superTiebreakMatch) {
+        const playerGames = parseInt(superTiebreakMatch[1]);
+        const opponentGames = parseInt(superTiebreakMatch[2]);
+        if (playerGames > opponentGames) playerSetsWon++;
+        else if (opponentGames > playerGames) opponentSetsWon++;
+        sets.push({ playerGames, opponentGames, playerTB: null, opponentTB: null });
+        return;
+      }
+
       const tiebreakMatch = set.match(/\((\d+)(?:\/(\d+))?\)/);
       const cleanSet = set.replace(/\s*\(.*?\)\s*/g, '').trim();
       const [playerGames, opponentGames] = cleanSet.split('/').map(s => parseInt(s.trim()));

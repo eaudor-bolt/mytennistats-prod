@@ -1226,8 +1226,16 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
             const history = match.scoring_history || [];
             if (history.length === 0) return null;
 
-            // Determine current set for each point and compute per-set stats
+            // Determine current set for each point and compute per-set stats.
+            // `currentSet` is recorded on every point at the moment it's
+            // played, so it stays correct for the whole 3rd-set supertiebreak.
+            // `setScores[2]` can't be used for this: it only gets the
+            // breaker's point tally at the instant it's won, one render
+            // before the match ends, so no history entry ever captures a
+            // non-zero value there - every point of the breaker would
+            // otherwise get misattributed to set 2.
             const getSetIndex = (entry: any): number => {
+              if (typeof entry?.currentSet === 'number') return entry.currentSet;
               if (!entry?.setScores) return 0;
               const { adversaire, famille } = entry.setScores;
               for (let i = 2; i >= 0; i--) {
@@ -1238,8 +1246,11 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
 
             // Determine total sets played
             const lastEntry = history[history.length - 1];
-            let numSets = 1;
-            if (lastEntry?.setScores) {
+            const maxCurrentSet = history.reduce((max: number, entry: any) => (
+              typeof entry?.currentSet === 'number' ? Math.max(max, entry.currentSet) : max
+            ), 0);
+            let numSets = maxCurrentSet + 1;
+            if (numSets === 1 && lastEntry?.setScores) {
               for (let i = 2; i >= 0; i--) {
                 if ((lastEntry.setScores.adversaire[i] || 0) > 0 || (lastEntry.setScores.famille[i] || 0) > 0) {
                   numSets = i + 1;

@@ -69,6 +69,18 @@ export function MatchHistoryPage({ matchId }: MatchHistoryPageProps) {
     let opponentSets = 0;
 
     sets.forEach(set => {
+      // Super tiebreak decider set, stored as "(10/5)" with no games score
+      // of its own - stripping parens like the regular sets below would
+      // leave nothing to split on and silently drop its winner.
+      const superTiebreakMatch = set.match(/^\((\d+)\/(\d+)\)$/);
+      if (superTiebreakMatch) {
+        const player = parseInt(superTiebreakMatch[1]);
+        const opponent = parseInt(superTiebreakMatch[2]);
+        if (player > opponent) playerSets++;
+        else if (opponent > player) opponentSets++;
+        return;
+      }
+
       const cleanSet = set.replace(/\s*\(.*?\)\s*/g, '');
       const [player, opponent] = cleanSet.split('/').map(Number);
       if (player > opponent) {
