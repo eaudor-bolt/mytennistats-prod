@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase, MatchResult } from '../lib/supabase';
 import { MatchResultsTable } from '../components/MatchResultsTable';
 import { AddMatchResultModal } from '../components/AddMatchResultModal';
@@ -28,8 +28,10 @@ export function MatchesPage() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<MatchResult | null>(null);
   const [liveScoreData, setLiveScoreData] = useState<any>(null);
+  const [discardLiveSessionToken, setDiscardLiveSessionToken] = useState(0);
   const [radarDataTypes, setRadarDataTypes] = useState<Record<string, 'win' | 'loss'>>({});
   const [expandedRadars, setExpandedRadars] = useState<Record<string, boolean>>({});
+  const justSavedLiveMatchRef = useRef(false);
 
   useEffect(() => {
     fetchMatchResults();
@@ -112,6 +114,13 @@ export function MatchesPage() {
       await incrementUsage('match_result');
     }
 
+    if (liveScoreData) {
+      // The Live Score session this came from can finally be wiped now that
+      // it's actually saved.
+      justSavedLiveMatchRef.current = true;
+      setDiscardLiveSessionToken((n) => n + 1);
+    }
+
     await fetchMatchResults();
     setEditingMatch(null);
   };
@@ -141,7 +150,17 @@ export function MatchesPage() {
   const handleCloseModal = () => {
     setIsAddMatchModalOpen(false);
     setEditingMatch(null);
+
+    const cameFromLiveScore = !!liveScoreData;
+    const wasJustSaved = justSavedLiveMatchRef.current;
+    justSavedLiveMatchRef.current = false;
     setLiveScoreData(null);
+
+    if (cameFromLiveScore && !wasJustSaved) {
+      // Cancelled out of the Add Match modal without saving - go back to
+      // Live Score with the match exactly as it was.
+      setIsLiveScoreModalOpen(true);
+    }
   };
 
   const totalMatches = matchResults.length;
@@ -587,6 +606,7 @@ export function MatchesPage() {
           setLiveScoreData(matchData);
           setIsAddMatchModalOpen(true);
         }}
+        discardSessionToken={discardLiveSessionToken}
       />
 
       {/* Share Results Modal */}

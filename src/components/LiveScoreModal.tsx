@@ -35,6 +35,13 @@ type LiveScoreModalProps = {
     super_tiebreak?: boolean;
     no_ad?: boolean;
   }) => void;
+  /**
+   * Bumped by the parent once a match handed off via `onMatchFinished` is
+   * actually persisted, so this session's saved state can finally be wiped.
+   * Left untouched while that hand-off is still pending (e.g. the user is on
+   * the Add Match modal, or cancelled out of it) so the match can be resumed.
+   */
+  discardSessionToken?: number;
 };
 
 const getPlaybackUrl = (url: string | null): string | null => {
@@ -42,7 +49,7 @@ const getPlaybackUrl = (url: string | null): string | null => {
   return url;
 };
 
-export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished }: LiveScoreModalProps) {
+export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished, discardSessionToken }: LiveScoreModalProps) {
   const { t } = useLanguage();
   const { players } = usePlayers();
   const { showAlert, AlertComponent } = useAlert();
@@ -111,6 +118,8 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
   const isClosingRef = useRef(false);
+  const skipNextResetRef = useRef(false);
+  const isFirstDiscardTokenRunRef = useRef(true);
 
   const saveMatchState = () => {
     const state = {
@@ -189,6 +198,14 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   useEffect(() => {
     if (isOpen) {
       isClosingRef.current = false;
+
+      if (skipNextResetRef.current) {
+        // Reopening after the Add Match modal was cancelled: this session's
+        // state was deliberately left untouched, so just show it as-is.
+        skipNextResetRef.current = false;
+        return;
+      }
+
       const savedState = loadMatchState();
       if (savedState && !savedState.isMatchFinished) {
         setShowRestorePrompt(true);
@@ -197,6 +214,15 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
       }
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isFirstDiscardTokenRunRef.current) {
+      isFirstDiscardTokenRunRef.current = false;
+      return;
+    }
+    clearMatchState();
+    resetMatch();
+  }, [discardSessionToken]);
 
   useEffect(() => {
     if (matchStartTime && !isMatchFinished) {
@@ -1474,6 +1500,20 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
   };
 
   const handleFinishMatch = async () => {
+    if (!isMatchFinished) {
+      showAlert('La partie n\'est pas terminée. Voulez-vous vraiment y mettre fin ?', {
+        type: 'warning',
+        title: 'Terminer la partie ?',
+        confirmText: 'Terminer',
+        cancelText: 'Annuler',
+        onConfirm: () => finishMatch(),
+      });
+      return;
+    }
+    await finishMatch();
+  };
+
+  const finishMatch = async () => {
     setIsSaving(true);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -1505,13 +1545,18 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished 
     };
 
     setIsSaving(false);
-    clearMatchState();
-    onClose();
-    resetMatch();
 
     if (onMatchFinished) {
+      // The Add Match modal takes over from here; keep this session's state
+      // intact (in memory and in localStorage) in case the user cancels
+      // there and needs to come back to it.
+      skipNextResetRef.current = true;
+      onClose();
       onMatchFinished(matchData);
     } else {
+      clearMatchState();
+      onClose();
+      resetMatch();
       const { error } = await supabase.from('match_results').insert({
         user_id: user.id,
         ...matchData,
