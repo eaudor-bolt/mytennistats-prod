@@ -685,15 +685,28 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
 
   const getSkillColor = (skill: string) => {
     const colors: Record<string, string> = {
-      forehand: '#10b981',
-      backhand: '#3b82f6',
-      volley: '#8b5cf6',
-      service: '#f59e0b',
-      return: '#06b6d4',
-      opponent: '#6b7280',
+      forehand: '#22c55e',
+      backhand: '#f97316',
+      volley: '#3b82f6',
+      service: '#eab308',
+      return: '#9ca3af',
+      opponent: '#ef4444',
       direct: '#000000',
     };
     return colors[skill] || '#6b7280';
+  };
+
+  const renderImpressionEmoji = (mood: 'bad' | 'good' | 'great') => {
+    switch (mood) {
+      case 'great':
+        return <span className="text-4xl" title="Excellent">👍</span>;
+      case 'good':
+        return <span className="text-4xl" title="Bon">😐</span>;
+      case 'bad':
+        return <span className="text-4xl" title="Mauvais">👎</span>;
+      default:
+        return null;
+    }
   };
 
   const stats = useMemo(() => calculateMatchStats(match?.scoring_history || []), [match]);
@@ -701,7 +714,16 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
 
   // Manually-added match results have no time-of-day (just a date), but
   // matches recorded via Live Score have a real timestamp on their first
-  // point - use that to show the actual match time when available.
+  // point - use that for both the date and the time so a match that starts
+  // before midnight and finishes after it still shows the day it started,
+  // not the (later) day it was saved.
+  const matchStartDate = useMemo(() => {
+    const first = match?.scoring_history?.[0] as any;
+    const ts = first ? (first.timestampMs || (first.timestamp && new Date(first.timestamp).getTime()) || (first.datetime && new Date(first.datetime).getTime())) : null;
+    if (ts) return new Date(ts);
+    return match?.date ? new Date(match.date) : null;
+  }, [match]);
+
   const matchTime = useMemo(() => {
     const first = match?.scoring_history?.[0] as any;
     if (!first) return null;
@@ -1099,7 +1121,7 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               Statistiques du Match{match.tournament_name ? ` - ${match.tournament_name}` : ''}
             </h3>
             <p className="text-sm text-gray-400 mt-1">
-              {match.player_name} ({new Date(match.date).toLocaleDateString('fr-FR')}{matchTime ? ` à ${matchTime}` : ''})
+              {match.player_name} ({matchStartDate ? matchStartDate.toLocaleDateString('fr-FR') : ''}{matchTime ? ` à ${matchTime}` : ''})
             </p>
             {match.classement && (
               <span className="inline-flex items-center mt-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs leading-none text-gray-300">
@@ -1180,6 +1202,23 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                   }
                 />
               </div>
+
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Opponent</div>
+                <div className="mt-1 flex gap-3 text-xs">
+                  <span className="text-green-400">{stats.opponentWinners} Winners</span>
+                  <span className="text-red-400">{stats.opponentFaults} Fautes</span>
+                </div>
+                <div className="mt-2">
+                  <GaugeBar
+                    pct={
+                      stats.opponentWinners + stats.opponentFaults > 0
+                        ? Math.round((stats.opponentWinners / (stats.opponentWinners + stats.opponentFaults)) * 100)
+                        : 0
+                    }
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="bg-white/5 rounded-xl shadow-md border-l-4 border-blue-500 p-4 hover:bg-white/10 transition-all">
@@ -1220,6 +1259,37 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               <div className="mt-1 text-sm text-cyan-400 font-medium">par point</div>
             </div>
           </div>
+
+          {match.comments && (
+            <div className="bg-[#C8F135]/10 border-l-4 border-[#C8F135] p-4 rounded">
+              <p className="text-sm text-gray-300 italic">
+                <span className="font-semibold text-white">Commentaires:</span> {match.comments}
+              </p>
+            </div>
+          )}
+
+          {match.impressions && (
+            <div>
+              <h5 className="text-sm font-bold text-white mb-3">Impressions</h5>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { key: 'forehand', label: 'Coup Droit' },
+                  { key: 'backhand', label: 'Revers' },
+                  { key: 'serve', label: 'Service' },
+                  { key: 'return', label: 'Retour' },
+                ].map(({ key, label }) => (
+                  <div key={key} className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      {label}
+                    </p>
+                    <div className="flex items-center justify-center">
+                      {renderImpressionEmoji(match.impressions[key as keyof typeof match.impressions])}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Per-Set Stats Table - Broadcast Style */}
           {(() => {
@@ -1557,23 +1627,28 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                 <div className="space-y-3 mb-4">
                   {selectedGraphType === 'winners-errors' && (
                   <div className="flex flex-wrap gap-2">
-                    {['forehand', 'backhand', 'volley', 'service', 'return', 'opponent'].map(skill => (
-                      <button
-                        key={skill}
-                        onClick={() => toggleSkill(skill)}
-                        className={`px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all duration-200 transform hover:scale-105 ${
-                          selectedShotFilter === skill
-                            ? 'text-white shadow-md hover:shadow-lg'
-                            : 'bg-white/5 text-gray-300 border border-white/20 hover:border-white/40'
-                        }`}
-                        style={{
-                          backgroundColor: selectedShotFilter === skill ? getSkillColor(skill) : undefined,
-                          boxShadow: selectedShotFilter === skill ? `0 4px 12px ${getSkillColor(skill)}30` : undefined,
-                        }}
-                      >
-                        {skill}
-                      </button>
-                    ))}
+                    {['forehand', 'backhand', 'volley', 'service', 'return', 'opponent'].map(skill => {
+                      const color = getSkillColor(skill);
+                      const isSelected = selectedShotFilter === skill;
+                      return (
+                        <button
+                          key={skill}
+                          onClick={() => toggleSkill(skill)}
+                          className={`px-4 py-2 rounded-lg text-xs font-semibold capitalize border transition-all duration-150 ${
+                            isSelected
+                              ? 'text-white shadow-inner scale-95 ring-2 ring-white/70'
+                              : 'text-white transform hover:scale-105 hover:brightness-125'
+                          }`}
+                          style={{
+                            backgroundColor: isSelected ? color : `${color}4D`,
+                            borderColor: color,
+                            boxShadow: isSelected ? `0 4px 12px ${color}30` : undefined,
+                          }}
+                        >
+                          {skill}
+                        </button>
+                      );
+                    })}
                   </div>
                   )}
                   <div className="flex flex-wrap gap-2">

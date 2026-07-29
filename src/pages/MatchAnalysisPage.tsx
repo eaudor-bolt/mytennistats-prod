@@ -198,15 +198,13 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
       const nextPoint = index < points.length - 1 ? points[index + 1] : undefined;
 
       if (shotTypeFilter) {
+        // toggleValue is stored as "<skill>: Gagne"/"<skill>: Faute" with the
+        // English skill key used during Live Score (forehand/backhand/
+        // volley/service/return/opponent) - never the French labels shown in
+        // the UI, which is why matching against them never found anything.
         const toggleValue = point.toggleValue?.toLowerCase() || '';
-        const shotType = shotTypeFilter.toLowerCase();
-
-        if (shotType === 'forehand' && !toggleValue.includes('coup droit')) return false;
-        if (shotType === 'backhand' && !toggleValue.includes('revers')) return false;
-        if (shotType === 'serve' && !toggleValue.includes('service')) return false;
-        if (shotType === 'return' && !toggleValue.includes('retour')) return false;
-        if (shotType === 'volley' && !toggleValue.includes('volée')) return false;
-        if (shotType === 'smash' && !toggleValue.includes('smash')) return false;
+        const skillKey = shotTypeFilter.toLowerCase() === 'serve' ? 'service' : shotTypeFilter.toLowerCase();
+        if (!toggleValue.startsWith(`${skillKey}:`)) return false;
       }
 
       if (pointImportanceFilter) {
@@ -233,19 +231,19 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
       const toggleValue = point.toggleValue?.toLowerCase() || '';
       const isWin = point.player === 'famille' || toggleValue.includes('gagne');
 
-      if (toggleValue.includes('coup droit')) {
+      if (toggleValue.startsWith('forehand:')) {
         skills.forehand.total++;
         if (isWin) skills.forehand.winners++;
-      } else if (toggleValue.includes('revers')) {
+      } else if (toggleValue.startsWith('backhand:')) {
         skills.backhand.total++;
         if (isWin) skills.backhand.winners++;
-      } else if (toggleValue.includes('service')) {
+      } else if (toggleValue.startsWith('service:')) {
         skills.service.total++;
         if (isWin) skills.service.winners++;
-      } else if (toggleValue.includes('volée')) {
+      } else if (toggleValue.startsWith('volley:')) {
         skills.volley.total++;
         if (isWin) skills.volley.winners++;
-      } else if (toggleValue.includes('retour')) {
+      } else if (toggleValue.startsWith('return:')) {
         skills.return.total++;
         if (isWin) skills.return.winners++;
       }
@@ -264,6 +262,18 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
       return: skills.return.total > 0 ? (skills.return.winners / skills.return.total) * 100 : 0,
       opponent: skills.opponent.total > 0 ? (skills.opponent.winners / skills.opponent.total) * 100 : 0,
     };
+  };
+
+  const getShotColor = (shot: string): string => {
+    const colors: Record<string, string> = {
+      forehand: '#22c55e',
+      backhand: '#f97316',
+      volley: '#3b82f6',
+      serve: '#eab308',
+      return: '#9ca3af',
+      opponent: '#ef4444',
+    };
+    return colors[shot] || '#6b7280';
   };
 
   const toggleShotTypeFilter = (filter: string) => {
@@ -411,24 +421,33 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
             <div>
               <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Type de Coup</h3>
               <div className="flex flex-wrap gap-2">
-                {(['forehand', 'backhand', 'serve', 'return', 'volley', 'smash'] as const).map(shot => (
-                  <button
-                    key={shot}
-                    onClick={() => toggleShotTypeFilter(shot)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      shotTypeFilter === shot
-                        ? 'bg-green-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {shot === 'forehand' && 'Coup Droit'}
-                    {shot === 'backhand' && 'Revers'}
-                    {shot === 'serve' && 'Service'}
-                    {shot === 'return' && 'Retour'}
-                    {shot === 'volley' && 'Volée'}
-                    {shot === 'smash' && 'Smash'}
-                  </button>
-                ))}
+                {(['forehand', 'backhand', 'serve', 'return', 'volley', 'smash'] as const).map(shot => {
+                  const color = getShotColor(shot);
+                  const isSelected = shotTypeFilter === shot;
+                  return (
+                    <button
+                      key={shot}
+                      onClick={() => toggleShotTypeFilter(shot)}
+                      className={`px-4 py-2 rounded-lg font-medium border transition-all duration-150 ${
+                        isSelected
+                          ? 'text-white shadow-inner scale-95 ring-2 ring-white/70'
+                          : 'text-white hover:brightness-125'
+                      }`}
+                      style={{
+                        backgroundColor: isSelected ? color : `${color}4D`,
+                        borderColor: color,
+                        boxShadow: isSelected ? `0 4px 12px ${color}30` : undefined,
+                      }}
+                    >
+                      {shot === 'forehand' && 'Coup Droit'}
+                      {shot === 'backhand' && 'Revers'}
+                      {shot === 'serve' && 'Service'}
+                      {shot === 'return' && 'Retour'}
+                      {shot === 'volley' && 'Volée'}
+                      {shot === 'smash' && 'Smash'}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
