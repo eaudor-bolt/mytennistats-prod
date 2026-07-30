@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Play, ChevronLeft, Loader2, AlertCircle, Camera, Clock, CheckCircle, Star } from 'lucide-react';
-import { Bar, Radar as RadarChart } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, RadialLinearScale, Filler } from 'chart.js';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,6 +41,7 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
   const [pointImportanceFilter, setPointImportanceFilter] = useState<'breakPoints' | 'gamePoints' | 'setPoints' | null>(null);
   const [highlightedPointIndex, setHighlightedPointIndex] = useState<number | null>(null);
   const [favoriteVideos, setFavoriteVideos] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<'order' | 'duration'>('order');
 
   const historyContainerRef = useRef<HTMLDivElement>(null);
   const pointRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -217,53 +218,6 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
     });
   };
 
-  const calculateSkillStats = (points: ScoringPoint[]) => {
-    const skills = {
-      forehand: { winners: 0, total: 0 },
-      backhand: { winners: 0, total: 0 },
-      service: { winners: 0, total: 0 },
-      volley: { winners: 0, total: 0 },
-      return: { winners: 0, total: 0 },
-      opponent: { winners: 0, total: 0 }
-    };
-
-    points.forEach(point => {
-      const toggleValue = point.toggleValue?.toLowerCase() || '';
-      const isWin = point.player === 'famille' || toggleValue.includes('gagne');
-
-      if (toggleValue.startsWith('forehand:')) {
-        skills.forehand.total++;
-        if (isWin) skills.forehand.winners++;
-      } else if (toggleValue.startsWith('backhand:')) {
-        skills.backhand.total++;
-        if (isWin) skills.backhand.winners++;
-      } else if (toggleValue.startsWith('service:')) {
-        skills.service.total++;
-        if (isWin) skills.service.winners++;
-      } else if (toggleValue.startsWith('volley:')) {
-        skills.volley.total++;
-        if (isWin) skills.volley.winners++;
-      } else if (toggleValue.startsWith('return:')) {
-        skills.return.total++;
-        if (isWin) skills.return.winners++;
-      }
-
-      if (!isWin) {
-        skills.opponent.total++;
-        skills.opponent.winners++;
-      }
-    });
-
-    return {
-      forehand: skills.forehand.total > 0 ? (skills.forehand.winners / skills.forehand.total) * 100 : 0,
-      backhand: skills.backhand.total > 0 ? (skills.backhand.winners / skills.backhand.total) * 100 : 0,
-      service: skills.service.total > 0 ? (skills.service.winners / skills.service.total) * 100 : 0,
-      volley: skills.volley.total > 0 ? (skills.volley.winners / skills.volley.total) * 100 : 0,
-      return: skills.return.total > 0 ? (skills.return.winners / skills.return.total) * 100 : 0,
-      opponent: skills.opponent.total > 0 ? (skills.opponent.winners / skills.opponent.total) * 100 : 0,
-    };
-  };
-
   const getShotColor = (shot: string): string => {
     const colors: Record<string, string> = {
       forehand: '#22c55e',
@@ -389,6 +343,9 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
 
   const pointsWithVideos = getPointsWithVideos(selectedMatch);
   const filteredPoints = getFilteredPoints(pointsWithVideos);
+  const displayedPoints = sortBy === 'duration'
+    ? [...filteredPoints].sort((a, b) => parseFloat(String(a.duration ?? 0)) - parseFloat(String(b.duration ?? 0)))
+    : filteredPoints;
 
   return (
     <>
@@ -557,7 +514,7 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
                 </div>
 
                 <div className="bg-slate-800 rounded-lg border border-slate-700">
-                  <div className="px-6 py-4 border-b border-slate-700">
+                  <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between flex-wrap gap-3">
                     <h3 className="text-lg font-bold text-white">
                       Historique des Points
                       {(shotTypeFilter || pointImportanceFilter) && (
@@ -579,15 +536,38 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
                         </span>
                       )}
                     </h3>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-400">Trier par :</span>
+                      <button
+                        onClick={() => setSortBy('order')}
+                        className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                          sortBy === 'order'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        Ordre
+                      </button>
+                      <button
+                        onClick={() => setSortBy('duration')}
+                        className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                          sortBy === 'duration'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        Durée
+                      </button>
+                    </div>
                   </div>
                   <div ref={historyContainerRef} className="p-4 max-h-[500px] overflow-y-auto">
                     <div className="space-y-3">
-                      {filteredPoints.length === 0 ? (
+                      {displayedPoints.length === 0 ? (
                         <div className="text-center py-8 text-slate-400 text-sm italic">
                           Aucun point trouvé pour ce filtre
                         </div>
                       ) : (
-                        filteredPoints.map((point, index) => {
+                        displayedPoints.map((point, index) => {
                           const originalIndex = pointsWithVideos.indexOf(point);
                           const player = point.player || (point.toggleValue?.includes('Gagne') ? 'famille' : 'adversaire');
                           const isHighlighted = highlightedPointIndex === originalIndex;
@@ -613,7 +593,7 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
                               <div className="w-20 h-20 bg-black rounded flex items-center justify-center shrink-0 overflow-hidden relative">
                                 {point.videoUrl ? (
                                   <>
-                                    <video src={point.videoUrl} className="w-full h-full object-cover" muted playsInline />
+                                    <video src={point.videoUrl} preload="none" className="w-full h-full object-cover" muted playsInline />
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/50 transition-colors">
                                       <Play className="text-white w-8 h-8 opacity-80 fill-white" />
                                     </div>
@@ -691,88 +671,6 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
                   </div>
                 </div>
 
-                {(shotTypeFilter || pointImportanceFilter) && filteredPoints.length > 0 && (
-                  <div className="mt-6 bg-slate-800 rounded-lg border border-slate-700 p-4">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wider">
-                      Points Filtrés: {[shotTypeFilter, pointImportanceFilter].filter(Boolean).map((filter, i) => (
-                        <span key={filter}>
-                          {i > 0 && ' + '}
-                          {filter === 'forehand' && 'Coup Droit'}
-                          {filter === 'backhand' && 'Revers'}
-                          {filter === 'serve' && 'Service'}
-                          {filter === 'return' && 'Retour'}
-                          {filter === 'volley' && 'Volée'}
-                          {filter === 'smash' && 'Smash'}
-                          {filter === 'breakPoints' && 'Break Points'}
-                          {filter === 'gamePoints' && 'Game Points'}
-                          {filter === 'setPoints' && 'Set Points'}
-                        </span>
-                      ))}
-                    </h3>
-
-                    {pointImportanceFilter && (() => {
-                      const skillStats = calculateSkillStats(filteredPoints);
-                      return (
-                        <div className="flex justify-center items-center py-4">
-                          <div className="w-32 h-32">
-                            <RadarChart
-                              data={{
-                                labels: ['Forehand', 'Backhand', 'Service', 'Volley', 'Return', 'Opponent'],
-                                datasets: [
-                                  {
-                                    label: 'Win %',
-                                    data: [
-                                      skillStats.forehand,
-                                      skillStats.backhand,
-                                      skillStats.service,
-                                      skillStats.volley,
-                                      skillStats.return,
-                                      skillStats.opponent,
-                                    ],
-                                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                                    borderColor: 'rgba(34, 197, 94, 1)',
-                                    borderWidth: 2,
-                                    pointBackgroundColor: 'rgba(34, 197, 94, 1)',
-                                    pointBorderColor: '#fff',
-                                    pointHoverBackgroundColor: '#fff',
-                                    pointHoverBorderColor: 'rgba(34, 197, 94, 1)',
-                                  },
-                                ],
-                              }}
-                              options={{
-                                responsive: true,
-                                maintainAspectRatio: true,
-                                scales: {
-                                  r: {
-                                    beginAtZero: true,
-                                    max: 100,
-                                    ticks: { stepSize: 25, color: '#94a3b8', font: { size: 8 }, backdropColor: 'transparent' },
-                                    grid: { color: 'rgba(148, 163, 184, 0.3)' },
-                                    angleLines: { color: 'rgba(148, 163, 184, 0.3)' },
-                                    pointLabels: { color: '#cbd5e1', font: { size: 9, weight: 'bold' } },
-                                  },
-                                },
-                                plugins: {
-                                  legend: { display: false },
-                                  tooltip: {
-                                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                                    titleColor: '#e2e8f0',
-                                    bodyColor: '#e2e8f0',
-                                    borderColor: '#475569',
-                                    borderWidth: 1,
-                                    callbacks: {
-                                      label: (context) => `${context.label}: ${context.parsed.r.toFixed(1)}%`,
-                                    },
-                                  },
-                                },
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
               </>
             );
           })()}
