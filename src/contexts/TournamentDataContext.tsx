@@ -29,7 +29,7 @@ export function TournamentDataProvider({ children }: { children: ReactNode }) {
     const [regResult, convResult] = await Promise.all([
       supabase
         .from('tournament_registrations')
-        .select('*')
+        .select('*, tournaments(*)')
         .eq('user_id', user.id),
       supabase
         .from('convocations')
@@ -45,9 +45,14 @@ export function TournamentDataProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
+  // Depend on the id, not the user object - Supabase mints a new session
+  // object (new `user` reference) on every token refresh, including the one
+  // it runs automatically whenever a backgrounded tab regains focus.
+  // Depending on `user` itself would refetch on every one of those even
+  // though it's still the same signed-in user.
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user?.id]);
 
   return (
     <TournamentDataContext.Provider value={{

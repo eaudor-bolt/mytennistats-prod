@@ -2,11 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { MatchResult, supabase, Tournament, CustomTournamentEvent } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
-
-type RegistrationRow = {
-  player_id: string;
-  tournaments: Tournament | null;
-};
+import { useTournamentData } from '../contexts/TournamentDataContext';
 
 type AddMatchResultModalProps = {
   isOpen: boolean;
@@ -32,6 +28,7 @@ type AddMatchResultModalProps = {
 
 export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, initialData }: AddMatchResultModalProps) {
   const { players } = usePlayers();
+  const { registrations } = useTournamentData();
   const [formData, setFormData] = useState({
     date: '',
     player_name: '',
@@ -50,7 +47,6 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
     no_ad: false,
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [registrations, setRegistrations] = useState<RegistrationRow[]>([]);
   const [customEvents, setCustomEvents] = useState<CustomTournamentEvent[]>([]);
   const [isAddingCustomEvent, setIsAddingCustomEvent] = useState(false);
 
@@ -95,33 +91,14 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
     setIsAddingCustomEvent(false);
   }, [editingMatch, isOpen, initialData]);
 
-  // Fetch every player's tournament registrations AND their manually-added
-  // custom events in two fixed requests when the modal opens, instead of
-  // re-querying per player selected in the dropdown.
+  // Tournament registrations come from the app-wide TournamentDataContext
+  // (already fetched once on login) rather than a query of our own here.
+  // Custom events still need their own fetch, once per time the modal opens.
   useEffect(() => {
     if (isOpen) {
-      loadAllTournamentRegistrations();
       loadAllCustomEvents();
     }
   }, [isOpen]);
-
-  const loadAllTournamentRegistrations = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('tournament_registrations')
-      .select('player_id, tournaments(*)')
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error loading tournament registrations:', error);
-      setRegistrations([]);
-      return;
-    }
-
-    setRegistrations((data || []) as unknown as RegistrationRow[]);
-  };
 
   const loadAllCustomEvents = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -147,7 +124,8 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
   // événement" (stored in custom_tournament_events, independent of the
   // tournaments/tournament_registrations catalogue so this also works for
   // players who never use the Tournaments page). Derived client-side from
-  // the two fetches above, so switching players never triggers a new request.
+  // the shared context data and the custom-events fetch above, so switching
+  // players never triggers a new request.
   const playerEvents = useMemo(() => {
     const selectedPlayer = players.find(p => p.first_name === formData.player_name);
     if (!selectedPlayer) return [];

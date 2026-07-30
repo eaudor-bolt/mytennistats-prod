@@ -46,10 +46,13 @@ export function MatchAnalysisPage({ onClose, inline = false }: { onClose: () => 
   const historyContainerRef = useRef<HTMLDivElement>(null);
   const pointRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // Depend on the id, not the user object - Supabase mints a new session
+  // object (new `user` reference) on every token refresh, including the one
+  // it runs automatically whenever a backgrounded tab regains focus.
   useEffect(() => {
     loadMatches();
     loadFavorites();
-  }, [user]);
+  }, [user?.id]);
 
   const loadMatches = async () => {
     if (!user) return;

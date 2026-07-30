@@ -376,11 +376,14 @@ export function VideosPage() {
     }
   };
 
+  // Depend on the id, not the user object - Supabase mints a new session
+  // object (new `user` reference) on every token refresh, including the one
+  // it runs automatically whenever a backgrounded tab regains focus.
   useEffect(() => {
     setHasMore(true);
     loadVideos(false);
     loadTags();
-  }, [user]);
+  }, [user?.id]);
 
   const loadMoreVideos = () => {
     if (!loadingMore && hasMore) {

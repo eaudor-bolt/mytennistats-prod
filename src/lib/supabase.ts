@@ -135,6 +135,10 @@ export type TournamentRegistration = {
   registered_at: string;
   created_at: string;
   paid: boolean;
+  // Only present when fetched with the `tournaments(*)` embed (see
+  // TournamentDataContext) - shared app-wide so components needing the
+  // joined tournament details don't each run their own query.
+  tournaments?: Tournament | null;
 };
 
 export type CustomTournamentEvent = {
