@@ -122,6 +122,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
   const skipNextResetRef = useRef(false);
   const isFirstDiscardTokenRunRef = useRef(true);
   const pushedHistoryRef = useRef(false);
+  const skipNextHistoryPushRef = useRef(false);
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
@@ -242,8 +243,17 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
   useEffect(() => {
     if (!isOpen) return;
 
-    window.history.pushState({ modalOpen: true }, '');
-    pushedHistoryRef.current = true;
+    if (skipNextHistoryPushRef.current) {
+      // Reopening after the Add Match modal was cancelled: the history entry
+      // pushed when this session originally opened was deliberately left
+      // un-popped for this exact hand-off, so there's nothing new to push -
+      // doing so anyway would leave two entries for what the user sees as
+      // one continuous Live Score session.
+      skipNextHistoryPushRef.current = false;
+    } else {
+      window.history.pushState({ modalOpen: true }, '');
+      pushedHistoryRef.current = true;
+    }
 
     const handlePopState = () => {
       pushedHistoryRef.current = false;
@@ -1537,9 +1547,14 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     if (onMatchFinished) {
       // The Add Match modal takes over from here; keep this session's state
       // intact (in memory and in localStorage) in case the user cancels
-      // there and needs to come back to it.
+      // there and needs to come back to it. Also leave the history entry
+      // pushed when this session opened untouched (raw onClose, not
+      // handleClose) - Add Match pushes its own on top, and if the user
+      // cancels back into this modal, skipNextHistoryPushRef below avoids
+      // double-pushing for what is still the same continuous session.
       skipNextResetRef.current = true;
-      handleClose();
+      skipNextHistoryPushRef.current = true;
+      onClose();
       onMatchFinished(matchData);
     } else {
       clearMatchState();
