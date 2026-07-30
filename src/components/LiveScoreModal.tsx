@@ -621,17 +621,20 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
 
         const actionText = pendingAction.isWin ? 'Gagne' : 'Faute';
 
-        // Calculate what the score will be AFTER this point
-        const nextGameScore = calculateNextGameScore(gameScore, player);
-        const { setScores: nextSetScores, newServer } = calculateNextSetScores(gameScore, setScores, player);
-
-        // Detect special points based on the NEXT score (after this point)
-        const hasGamePoint = isGamePoint(nextGameScore);
-        const hasBreakPoint = isBreakPoint(nextGameScore);
-        const familleSetPoint = isSetPoint(nextGameScore, nextSetScores, 'famille');
-        const adversaireSetPoint = isSetPoint(nextGameScore, nextSetScores, 'adversaire');
-        const familleMatchPoint = isMatchPoint(nextGameScore, nextSetScores, 'famille');
-        const adversaireMatchPoint = isMatchPoint(nextGameScore, nextSetScores, 'adversaire');
+        // Detect special points against the score as it stood going into this
+        // point - the same score stored on this entry (gameScore/setScores
+        // below). Evaluating against the score that results AFTER this point
+        // (as before) attached the wrong point's flags to this entry: e.g. a
+        // point played at 0-30 would get flagged as a break point because
+        // the *next* point (at 0-40) would be one, while the point that
+        // actually reached 0-40 lost the flag since a game-ending point's
+        // "next" score resets to 0-0 for the following game.
+        const hasGamePoint = isGamePoint(gameScore);
+        const hasBreakPoint = isBreakPoint(gameScore);
+        const familleSetPoint = isSetPoint(gameScore, setScores, 'famille');
+        const adversaireSetPoint = isSetPoint(gameScore, setScores, 'adversaire');
+        const familleMatchPoint = isMatchPoint(gameScore, setScores, 'famille');
+        const adversaireMatchPoint = isMatchPoint(gameScore, setScores, 'adversaire');
 
         const newEntry = {
           player: player,
@@ -1008,43 +1011,6 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     return false;
   };
 
-  const calculateNextGameScore = (currentGameScore: GameScore, scoringPlayer: 'adversaire' | 'famille'): GameScore => {
-    const newScore = { ...currentGameScore };
-    const opponent = scoringPlayer === 'adversaire' ? 'famille' : 'adversaire';
-    let newTotalAd = currentGameScore.totalAd || 0;
-
-    if (isTiebreak) {
-      newScore[scoringPlayer] = currentGameScore[scoringPlayer] + 1;
-    } else {
-      if (currentGameScore[scoringPlayer] === 3 && currentGameScore[opponent] === 3) {
-        if (gameFormat.noAd) {
-          return { adversaire: 0, famille: 0, totalAd: 0 };
-        } else {
-          newScore[scoringPlayer] = 4;
-          // Don't increment when leaving 3-3 to go to AD
-        }
-      } else if (currentGameScore[scoringPlayer] === 3 && currentGameScore[opponent] === 4) {
-        newScore[scoringPlayer] = 3;
-        newScore[opponent] = 3;
-        // Increment when REACHING 3-3 (back to deuce from AD)
-        newTotalAd += 1;
-      } else if (currentGameScore[scoringPlayer] === 4 && currentGameScore[opponent] === 3) {
-        return { adversaire: 0, famille: 0, totalAd: 0 };
-      } else if (currentGameScore[scoringPlayer] === 3 && currentGameScore[opponent] < 3) {
-        return { adversaire: 0, famille: 0, totalAd: 0 };
-      } else {
-        newScore[scoringPlayer] = currentGameScore[scoringPlayer] + 1;
-        // Check if this point brings us to 3-3 for the first time (deuce)
-        if (newScore[scoringPlayer] === 3 && newScore[opponent] === 3) {
-          newTotalAd += 1;
-        }
-      }
-    }
-
-    newScore.totalAd = newTotalAd;
-    return newScore;
-  };
-
   // Check if this point will win a game
   const willWinGame = (currentGameScore: GameScore, scoringPlayer: 'adversaire' | 'famille'): boolean => {
     const opponent = scoringPlayer === 'adversaire' ? 'famille' : 'adversaire';
@@ -1066,53 +1032,6 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
       if (currentGameScore[scoringPlayer] === 4 && currentGameScore[opponent] === 3) return true;
       return false;
     }
-  };
-
-  // Calculate what set scores will be after this point
-  const calculateNextSetScores = (
-    currentGameScore: GameScore,
-    currentSetScores: SetScores,
-    scoringPlayer: 'adversaire' | 'famille'
-  ): { setScores: SetScores; newSet: boolean; newServer: 'famille' | 'adversaire' | null } => {
-    const newSetScores = JSON.parse(JSON.stringify(currentSetScores)) as SetScores;
-    const opponent = scoringPlayer === 'adversaire' ? 'famille' : 'adversaire';
-    let newSet = false;
-    let newServer: 'famille' | 'adversaire' | null = null;
-
-    // Check if this point wins a game
-    if (willWinGame(currentGameScore, scoringPlayer)) {
-      newSetScores[scoringPlayer][currentSet] = newSetScores[scoringPlayer][currentSet] + 1;
-      const playerGames = newSetScores[scoringPlayer][currentSet];
-      const opponentGames = newSetScores[opponent][currentSet];
-
-      // Check if this wins a set (in tiebreak)
-      if (isTiebreak) {
-        if (shouldStartSupertiebreak() && currentSet === 2) {
-          newSetScores[scoringPlayer][currentSet] = currentGameScore[scoringPlayer] + 1;
-          newSetScores[opponent][currentSet] = currentGameScore[opponent];
-        } else if (gameFormat.tiebreakAt > 0) {
-          newSetScores[scoringPlayer][currentSet] = gameFormat.tiebreakAt + 1;
-          newSetScores[opponent][currentSet] = gameFormat.tiebreakAt;
-        } else if (gameFormat.threeGames) {
-          newSetScores[scoringPlayer][currentSet] = 3;
-          newSetScores[opponent][currentSet] = 2;
-        } else if (gameFormat.fourGames) {
-          newSetScores[scoringPlayer][currentSet] = 4;
-          newSetScores[opponent][currentSet] = 3;
-        } else if (gameFormat.fiveGames) {
-          newSetScores[scoringPlayer][currentSet] = 5;
-          newSetScores[opponent][currentSet] = 4;
-        } else {
-          newSetScores[scoringPlayer][currentSet] = 7;
-          newSetScores[opponent][currentSet] = 6;
-        }
-        newSet = true;
-      } else if (isSetWon(playerGames, opponentGames)) {
-        newSet = true;
-      }
-    }
-
-    return { setScores: newSetScores, newSet, newServer };
   };
 
   // Detect if this is a game point (for the server)
@@ -1189,17 +1108,16 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         ? ((Date.now() - pointStartTimeRef.current) / 1000).toFixed(1)
         : null;
 
-      // Calculate what the score will be AFTER this point
-      const nextGameScore = calculateNextGameScore(gameScore, player);
-      const { setScores: nextSetScores, newServer } = calculateNextSetScores(gameScore, setScores, player);
-
-      // Detect special points based on the NEXT score (after this point)
-      const hasGamePoint = isGamePoint(nextGameScore);
-      const hasBreakPoint = isBreakPoint(nextGameScore);
-      const familleSetPoint = isSetPoint(nextGameScore, nextSetScores, 'famille');
-      const adversaireSetPoint = isSetPoint(nextGameScore, nextSetScores, 'adversaire');
-      const familleMatchPoint = isMatchPoint(nextGameScore, nextSetScores, 'famille');
-      const adversaireMatchPoint = isMatchPoint(nextGameScore, nextSetScores, 'adversaire');
+      // Detect special points against the score as it stood going into this
+      // point - the same score stored on this entry (gameScore/setScores
+      // below), not the score that results after it (see the sibling branch
+      // above for why that was wrong).
+      const hasGamePoint = isGamePoint(gameScore);
+      const hasBreakPoint = isBreakPoint(gameScore);
+      const familleSetPoint = isSetPoint(gameScore, setScores, 'famille');
+      const adversaireSetPoint = isSetPoint(gameScore, setScores, 'adversaire');
+      const familleMatchPoint = isMatchPoint(gameScore, setScores, 'famille');
+      const adversaireMatchPoint = isMatchPoint(gameScore, setScores, 'adversaire');
 
       sequenceNumberRef.current += 1;
       const newEntry = {
@@ -1369,17 +1287,16 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         ? ((Date.now() - pointStartTimeRef.current) / 1000).toFixed(1)
         : null;
 
-      // Calculate what the score will be AFTER this point
-      const nextGameScore = calculateNextGameScore(gameScore, player);
-      const { setScores: nextSetScores, newServer } = calculateNextSetScores(gameScore, setScores, player);
-
-      // Detect special points based on the NEXT score (after this point)
-      const hasGamePoint = isGamePoint(nextGameScore);
-      const hasBreakPoint = isBreakPoint(nextGameScore);
-      const familleSetPoint = isSetPoint(nextGameScore, nextSetScores, 'famille');
-      const adversaireSetPoint = isSetPoint(nextGameScore, nextSetScores, 'adversaire');
-      const familleMatchPoint = isMatchPoint(nextGameScore, nextSetScores, 'famille');
-      const adversaireMatchPoint = isMatchPoint(nextGameScore, nextSetScores, 'adversaire');
+      // Detect special points against the score as it stood going into this
+      // point - the same score stored on this entry (gameScore/setScores
+      // below), not the score that results after it (see the sibling branch
+      // above for why that was wrong).
+      const hasGamePoint = isGamePoint(gameScore);
+      const hasBreakPoint = isBreakPoint(gameScore);
+      const familleSetPoint = isSetPoint(gameScore, setScores, 'famille');
+      const adversaireSetPoint = isSetPoint(gameScore, setScores, 'adversaire');
+      const familleMatchPoint = isMatchPoint(gameScore, setScores, 'famille');
+      const adversaireMatchPoint = isMatchPoint(gameScore, setScores, 'adversaire');
 
       sequenceNumberRef.current += 1;
       const newEntry = {
@@ -1428,17 +1345,16 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         ? ((Date.now() - pointStartTimeRef.current) / 1000).toFixed(1)
         : null;
 
-      // Calculate what the score will be AFTER this point
-      const nextGameScore = calculateNextGameScore(gameScore, player);
-      const { setScores: nextSetScores, newServer } = calculateNextSetScores(gameScore, setScores, player);
-
-      // Detect special points based on the NEXT score (after this point)
-      const hasGamePoint = isGamePoint(nextGameScore);
-      const hasBreakPoint = isBreakPoint(nextGameScore);
-      const familleSetPoint = isSetPoint(nextGameScore, nextSetScores, 'famille');
-      const adversaireSetPoint = isSetPoint(nextGameScore, nextSetScores, 'adversaire');
-      const familleMatchPoint = isMatchPoint(nextGameScore, nextSetScores, 'famille');
-      const adversaireMatchPoint = isMatchPoint(nextGameScore, nextSetScores, 'adversaire');
+      // Detect special points against the score as it stood going into this
+      // point - the same score stored on this entry (gameScore/setScores
+      // below), not the score that results after it (see the sibling branch
+      // above for why that was wrong).
+      const hasGamePoint = isGamePoint(gameScore);
+      const hasBreakPoint = isBreakPoint(gameScore);
+      const familleSetPoint = isSetPoint(gameScore, setScores, 'famille');
+      const adversaireSetPoint = isSetPoint(gameScore, setScores, 'adversaire');
+      const familleMatchPoint = isMatchPoint(gameScore, setScores, 'famille');
+      const adversaireMatchPoint = isMatchPoint(gameScore, setScores, 'adversaire');
 
       sequenceNumberRef.current += 1;
       const newEntry = {
