@@ -2162,7 +2162,7 @@ export function VideosPage() {
 
       {selectedVideo && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 sm:p-6" onClick={closeVideoPlayer}>
-          <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] border border-white/20" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[calc(100vh-3rem)] sm:h-[calc(100vh-4rem)] max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] border border-white/20" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/80 shrink-0">
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-white">Lecture</h2>
@@ -2229,11 +2229,11 @@ export function VideosPage() {
 
             <div
               ref={videoAreaRef}
-              className="flex-1 bg-black flex items-center justify-center overflow-hidden relative group"
+              className="flex-1 min-h-0 min-w-0 bg-black flex items-center justify-center overflow-hidden relative group"
               onMouseMove={resetControlsTimer}
               onTouchStart={resetControlsTimer}
             >
-              <div className="relative w-full h-full flex items-center justify-center">
+              <div className="relative w-full h-full min-h-0 min-w-0 flex items-center justify-center">
                 <video
                   ref={videoPlayerRef}
                   src={selectedVideo.url}
@@ -2256,7 +2256,7 @@ export function VideosPage() {
                   onCanPlay={() => {
                     console.log('Video can play');
                   }}
-                  className="w-full h-full object-contain z-10"
+                  className="w-full h-full min-h-0 min-w-0 object-contain z-10"
                   style={{ backgroundColor: '#000' }}
                 />
                 <canvas

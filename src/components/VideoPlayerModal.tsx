@@ -588,11 +588,11 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
 
         <div
           ref={videoAreaRef}
-          className="flex-1 bg-black flex items-center justify-center overflow-hidden relative group"
+          className="flex-1 min-h-0 min-w-0 bg-black flex items-center justify-center overflow-hidden relative group"
           onMouseMove={resetControlsTimer}
           onTouchStart={resetControlsTimer}
         >
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full min-h-0 min-w-0 flex items-center justify-center">
             <video
               ref={videoRef}
               src={videoUrl}
@@ -605,7 +605,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
               onLoadedMetadata={handleLoadedMetadata}
               onEnded={handleEnded}
               onPlay={() => { setAutoplayBlocked(false); setIsPlaying(true); }}
-              className="w-full h-full object-contain z-10"
+              className="w-full h-full min-h-0 min-w-0 object-contain z-10"
               style={{ backgroundColor: '#000' }}
             />
             <canvas
