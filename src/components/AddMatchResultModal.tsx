@@ -208,6 +208,13 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
     }
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [isOpen]);
+
   // Handle browser back button / gesture on mobile: closing the modal any
   // way (X, Cancel, backdrop, or back button) should consume exactly the one
   // history entry pushed on open. Kept independent of `onClose`'s identity

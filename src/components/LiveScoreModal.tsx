@@ -121,6 +121,9 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
   const networkWarningShownRef = useRef(false);
   const skipNextResetRef = useRef(false);
   const isFirstDiscardTokenRunRef = useRef(true);
+  const pushedHistoryRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   const saveMatchState = () => {
     const state = {
@@ -224,6 +227,44 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     clearMatchState();
     resetMatch();
   }, [discardSessionToken]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [isOpen]);
+
+  // Handle browser back button / gesture on mobile: whether the restore
+  // prompt ("Match en cours détecté") or the live scoreboard itself is
+  // showing, back should close this modal and return to the Matches page,
+  // not navigate the app away. Mirrors AddMatchResultModal's handling.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    window.history.pushState({ modalOpen: true }, '');
+    pushedHistoryRef.current = true;
+
+    const handlePopState = () => {
+      pushedHistoryRef.current = false;
+      onCloseRef.current();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOpen]);
+
+  const handleClose = () => {
+    const hadPushedHistory = pushedHistoryRef.current;
+    pushedHistoryRef.current = false;
+    onClose();
+    if (hadPushedHistory) {
+      window.history.back();
+    }
+  };
 
   useEffect(() => {
     if (matchStartTime && !isMatchFinished) {
@@ -1498,11 +1539,11 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
       // intact (in memory and in localStorage) in case the user cancels
       // there and needs to come back to it.
       skipNextResetRef.current = true;
-      onClose();
+      handleClose();
       onMatchFinished(matchData);
     } else {
       clearMatchState();
-      onClose();
+      handleClose();
       resetMatch();
       const { error } = await supabase.from('match_results').insert({
         user_id: user.id,
@@ -1531,38 +1572,38 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     return (
       <>
         <AlertComponent />
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => {
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => {
         stopCamera();
         setShowRestorePrompt(false);
         resetMatch();
       }}>
-        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-gradient-to-br from-[#0a1628] to-[#050d1a] rounded-xl shadow-2xl border border-white/10 max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900">Match en cours détecté</h3>
+            <h3 className="text-xl font-bold text-white">Match en cours détecté</h3>
             <button onClick={() => {
               stopCamera();
               setShowRestorePrompt(false);
               resetMatch();
-            }} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <X className="w-5 h-5" />
+            }} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <X className="w-5 h-5 text-gray-300" />
             </button>
           </div>
 
           <div className="mb-6">
-            <p className="text-gray-700 mb-4">
+            <p className="text-gray-300 mb-4">
               Nous avons détecté un match qui n'a pas été sauvegardé. Voulez-vous le reprendre où vous l'avez laissé ?
             </p>
             {savedState && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-                <p className="text-sm text-blue-900">
-                  <span className="font-semibold">Joueur:</span> {savedState.selectedPlayer || 'Non défini'}
+              <div className="bg-[#C8F135]/10 border border-[#C8F135]/30 rounded-lg p-4 space-y-2">
+                <p className="text-sm text-gray-200">
+                  <span className="font-semibold text-[#C8F135]">Joueur:</span> {savedState.selectedPlayer || 'Non défini'}
                 </p>
-                <p className="text-sm text-blue-900">
-                  <span className="font-semibold">Score:</span> {savedState.setScores?.famille?.join('-')} / {savedState.setScores?.adversaire?.join('-')}
+                <p className="text-sm text-gray-200">
+                  <span className="font-semibold text-[#C8F135]">Score:</span> {savedState.setScores?.famille?.join('-')} / {savedState.setScores?.adversaire?.join('-')}
                 </p>
                 {savedState.scoringHistory && savedState.scoringHistory.length > 0 && (
-                  <p className="text-sm text-blue-900">
-                    <span className="font-semibold">Points enregistrés:</span> {savedState.scoringHistory.length}
+                  <p className="text-sm text-gray-200">
+                    <span className="font-semibold text-[#C8F135]">Points enregistrés:</span> {savedState.scoringHistory.length}
                   </p>
                 )}
               </div>
@@ -1580,7 +1621,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
                   }
                 }
               }}
-              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+              className="w-full px-4 py-3 bg-[#C8F135] text-[#050d1a] rounded-lg font-bold hover:bg-[#b5d930] transition-colors"
             >
               Reprendre le match
             </button>
@@ -1591,7 +1632,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
                 setShowRestorePrompt(false);
                 resetMatch();
               }}
-              className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              className="w-full px-4 py-3 bg-white/10 text-white border border-white/20 rounded-lg font-medium hover:bg-white/20 transition-colors"
             >
               Commencer un nouveau match
             </button>
@@ -1610,7 +1651,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         isClosingRef.current = true;
         stopCamera();
         saveMatchState();
-        onClose();
+        handleClose();
         setTimeout(() => {
           isClosingRef.current = false;
         }, 500);
@@ -1622,7 +1663,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
               isClosingRef.current = true;
               stopCamera();
               saveMatchState();
-              onClose();
+              handleClose();
               setTimeout(() => {
                 isClosingRef.current = false;
               }, 500);
@@ -1822,7 +1863,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
               }
               isClosingRef.current = true;
               stopCamera();
-              onClose();
+              handleClose();
               setTimeout(() => {
                 isClosingRef.current = false;
               }, 500);
