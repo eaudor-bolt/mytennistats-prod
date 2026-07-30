@@ -58,7 +58,11 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
   const [showZAxis, setShowZAxis] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoAreaRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const graphCanvasRef = useRef<HTMLCanvasElement>(null);
   const graphContainerRef = useRef<HTMLDivElement>(null);
@@ -364,7 +368,10 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
   };
 
   const toggleFullscreen = () => {
-    const container = videoRef.current?.closest('.fixed');
+    // Fullscreen the video area itself, not the whole modal card - the
+    // modal has its own padding/border/rounded corners, which stayed
+    // visible around the edges when those were what went fullscreen.
+    const container = videoAreaRef.current;
     if (!container) return;
     if (!document.fullscreenElement) {
       container.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
@@ -372,6 +379,19 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
       document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
     }
   };
+
+  const resetControlsTimer = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2000);
+  }, []);
+
+  useEffect(() => {
+    resetControlsTimer();
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [resetControlsTimer]);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
@@ -566,7 +586,12 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
           </div>
         </div>
 
-        <div className="flex-1 bg-black flex items-center justify-center overflow-hidden relative group">
+        <div
+          ref={videoAreaRef}
+          className="flex-1 bg-black flex items-center justify-center overflow-hidden relative group"
+          onMouseMove={resetControlsTimer}
+          onTouchStart={resetControlsTimer}
+        >
           <div className="relative w-full h-full flex items-center justify-center">
             <video
               ref={videoRef}
@@ -580,7 +605,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
               onLoadedMetadata={handleLoadedMetadata}
               onEnded={handleEnded}
               onPlay={() => { setAutoplayBlocked(false); setIsPlaying(true); }}
-              className="max-w-full max-h-full w-full h-auto object-contain z-10"
+              className="w-full h-full object-contain z-10"
               style={{ backgroundColor: '#000' }}
             />
             <canvas
@@ -589,7 +614,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
             />
 
             {metadata && (
-              <div className="absolute top-4 left-4 z-30 bg-slate-900/90 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-slate-700 shadow-2xl opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-300">
+              <div className={`absolute top-4 left-4 z-30 bg-slate-900/90 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-slate-700 shadow-2xl transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <div className="grid grid-cols-1 gap-2 sm:gap-3">
                   {metadata.playerName && (
                     <div className="flex flex-col gap-1">
@@ -653,7 +678,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
 
             <button
               onClick={(e) => { e.stopPropagation(); frameStep('backward'); }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-sm text-white rounded-lg transition-all opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 hover:scale-110 border border-slate-700"
+              className={`absolute left-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-sm text-white rounded-lg transition-all hover:scale-110 border border-slate-700 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
               title="Previous Frame"
             >
               <ChevronLeft size={28} strokeWidth={2.5} />
@@ -661,7 +686,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
 
             <button
               onClick={(e) => { e.stopPropagation(); frameStep('forward'); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-sm text-white rounded-lg transition-all opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 hover:scale-110 border border-slate-700"
+              className={`absolute right-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-sm text-white rounded-lg transition-all hover:scale-110 border border-slate-700 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
               title="Next Frame"
             >
               <ChevronRight size={28} strokeWidth={2.5} />
@@ -808,7 +833,7 @@ export function VideoPlayerModal({ videoUrl, onClose, title = 'Video du Point', 
             )}
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent z-40 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-300">
+          <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent z-40 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <div className="flex flex-col gap-2">
               <input
                 type="range"
