@@ -10,6 +10,7 @@ import { VideosPage } from './pages/VideosPage';
 import { RulesPage } from './pages/RulesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LoginPage } from './pages/LoginPage';
+import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { LandingPage } from './pages/LandingPage';
 import { LiveMatchPage } from './pages/LiveMatchPage';
 import { MatchHistoryPage } from './pages/MatchHistoryPage';
@@ -32,6 +33,7 @@ function App() {
   const [sharedResultsId, setSharedResultsId] = useState<string | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [loginMode, setLoginMode] = useState<'signin' | 'signup'>('signin');
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
 
   useEffect(() => {
     const checkAndClearBadSession = async () => {
@@ -96,6 +98,22 @@ function App() {
 
       const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 
+      if (cleanPath === 'reset-password') {
+        // The Supabase recovery link redirects here after establishing a
+        // session from the token in the URL (detectSessionInUrl handles
+        // that automatically) - show the "set a new password" modal instead
+        // of silently falling through to the logged-in app.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          setSession(session);
+          setShowResetPasswordModal(true);
+          setLoading(false);
+        }).catch((error) => {
+          console.error('Auth error:', error);
+          setLoading(false);
+        });
+        return;
+      }
+
       if (authenticatedPages.includes(cleanPath)) {
         supabase.auth.getSession().then(({ data: { session } }) => {
           setSession(session);
@@ -135,6 +153,8 @@ function App() {
         trackUserAction('logout');
       } else if (event === 'USER_UPDATED') {
         trackUserAction('profile_update');
+      } else if (event === 'PASSWORD_RECOVERY') {
+        setShowResetPasswordModal(true);
       }
     });
 
@@ -221,6 +241,16 @@ function App() {
         <div className="flex items-center justify-center min-h-screen bg-[#040c1a]">
           <Loader2 className="w-12 h-12 text-[#C8F135] animate-spin" />
         </div>
+      )}
+
+      {!loading && showResetPasswordModal && (
+        <ResetPasswordModal
+          onDone={() => {
+            setShowResetPasswordModal(false);
+            window.history.replaceState(null, '', '/');
+            setCurrentPage('home');
+          }}
+        />
       )}
 
       {!loading && liveMatchId && <LiveMatchPage matchId={liveMatchId} />}

@@ -18,22 +18,19 @@ export function PlayersProvider({ children }: { children: ReactNode }) {
   // automatically on signup, so if a brand new user's first stop is Live
   // Score or Add Match (rather than Settings, which used to be the only
   // place this happened), create a default player here instead.
+  //
+  // This goes through an RPC (see migration ...atomic_ensure_default_player)
+  // rather than a client-side "select, then insert if empty" because that
+  // check-then-insert isn't atomic: on a fresh signup this component's mount
+  // effect and the auth-state-change listener below both call this in quick
+  // succession, and a plain client-side check would let both see zero
+  // players and both insert - the RPC serializes concurrent calls per-user
+  // so only one default player is ever created.
   const ensureDefaultPlayer = async (userId: string) => {
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('first_name, last_name, birth_year')
-      .eq('id', userId)
-      .maybeSingle();
-
-    await supabase
-      .from('user_players')
-      .insert({
-        user_id: userId,
-        first_name: profile?.first_name || 'Player',
-        last_name: profile?.last_name || '',
-        birth_year: profile?.birth_year || new Date().getFullYear() - 30,
-        license_number: '',
-      });
+    const { error } = await supabase.rpc('ensure_default_player', { p_user_id: userId });
+    if (error) {
+      console.error('Error ensuring default player:', error);
+    }
   };
 
   const loadPlayers = async () => {
