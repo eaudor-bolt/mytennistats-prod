@@ -1,13 +1,10 @@
-import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, Download, LogOut, Database, Share2, ExternalLink, HardDrive } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, LogOut, Database, Share2, ExternalLink, HardDrive } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { supabase, UserPlayer } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useAuth } from '../contexts/AuthContext';
-// import { runClubImport } from '../utils/importClubsDetailed';
-// import { importTournamentsFromJson } from '../utils/importTournamentsFromJson';
-// import { importMatchResults } from '../utils/importMatchResults';
 import { importTenupMatchResults } from '../utils/importTenupMatchResults';
 import { ImportPlayerSelectionModal } from '../components/ImportPlayerSelectionModal';
 import { useAlert } from '../hooks/useAlert';
@@ -62,9 +59,6 @@ export function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importUrl, setImportUrl] = useState('');
-  const [importing, setImporting] = useState(false);
   const [showDeletePlayerModal, setShowDeletePlayerModal] = useState(false);
   const [playerToDelete, setPlayerToDelete] = useState<UserPlayer | null>(null);
   const [deletingPlayer, setDeletingPlayer] = useState(false);
@@ -74,14 +68,7 @@ export function SettingsPage() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
-  // const [importingDetailedClubs, setImportingDetailedClubs] = useState(false);
-  // const [detailedClubImportResult, setDetailedClubImportResult] = useState<string>('');
-  // const [importingTournaments, setImportingTournaments] = useState(false);
-  // const [tournamentImportResult, setTournamentImportResult] = useState<string>('');
-  const [isMatchImportModalOpen, setIsMatchImportModalOpen] = useState(false);
   const [isTenupImportModalOpen, setIsTenupImportModalOpen] = useState(false);
-  const [pendingJsonData, setPendingJsonData] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [sharedLinks, setSharedLinks] = useState<Array<{
     id: string;
     type: 'Live Score' | 'Match Result';
@@ -321,187 +308,6 @@ export function SettingsPage() {
     setShowAddPlayer(false);
   };
 
-  const handleImportFromUrl = async () => {
-    if (!importUrl) {
-      showAlert(t('settings.importPlayer.errorNoUrl'), { type: 'warning' });
-      return;
-    }
-
-    setImporting(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showAlert(t('settings.importPlayer.errorNotLoggedIn'), { type: 'warning' });
-        return;
-      }
-
-      const shareIdMatch = importUrl.match(/\/match-history\/([a-f0-9-]+)/);
-      const sharedResultsMatch = importUrl.match(/\/shared-results\/([a-f0-9-]+)/);
-
-      if (shareIdMatch) {
-        const matchId = shareIdMatch[1];
-        const { data: matchData, error: matchError } = await supabase
-          .from('match_results')
-          .select('*')
-          .eq('id', matchId)
-          .maybeSingle();
-
-        if (matchError || !matchData) {
-          showAlert(t('settings.importPlayer.errorLoadMatch'), { type: 'error' });
-          return;
-        }
-
-        const existingPlayer = players.find(p =>
-          p.first_name === matchData.player_name.split(' ')[0]
-        );
-
-        let playerId = existingPlayer?.id;
-
-        if (!existingPlayer) {
-          const nameParts = matchData.player_name.split(' ');
-          const firstName = nameParts[0] || 'Player';
-          const lastName = nameParts.slice(1).join(' ') || '';
-
-          const { data: newPlayer, error: playerError } = await supabase
-            .from('user_players')
-            .insert({
-              user_id: user.id,
-              first_name: firstName,
-              last_name: lastName,
-              birth_year: new Date().getFullYear() - 30,
-              license_number: '',
-            })
-            .select()
-            .single();
-
-          if (playerError || !newPlayer) {
-            showAlert(t('settings.importPlayer.errorCreatingPlayer'), { type: 'error' });
-            return;
-          }
-
-          playerId = newPlayer.id;
-          await incrementUsage('player');
-        }
-
-        const { error: insertError } = await supabase
-          .from('match_results')
-          .insert({
-            user_id: user.id,
-            date: matchData.date,
-            player_name: matchData.player_name,
-            tournament_name: matchData.tournament_name,
-            score: matchData.score,
-            classement: matchData.classement,
-            impressions: matchData.impressions,
-            scoring_history: matchData.scoring_history,
-            event_details: matchData.event_details,
-            comments: matchData.comments,
-          });
-
-        if (insertError) {
-          showAlert(t('settings.importPlayer.errorImportingMatch'), { type: 'error' });
-          return;
-        }
-
-        await refreshPlayers();
-        showAlert(t('settings.importPlayer.successSingle'), { type: 'success' });
-        setShowImportModal(false);
-        setImportUrl('');
-
-      } else if (sharedResultsMatch) {
-        const shareId = sharedResultsMatch[1];
-        const { data: shareData, error: shareError } = await supabase
-          .from('shared_match_results')
-          .select('*')
-          .eq('id', shareId)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (shareError || !shareData) {
-          showAlert(t('settings.importPlayer.errorLoadShared'), { type: 'error' });
-          return;
-        }
-
-        const { data: matchesData, error: matchesError } = await supabase
-          .from('match_results')
-          .select('*')
-          .in('id', shareData.match_results_ids);
-
-        if (matchesError || !matchesData || matchesData.length === 0) {
-          showAlert(t('settings.importPlayer.errorLoadMatches'), { type: 'error' });
-          return;
-        }
-
-        const firstMatch = matchesData[0];
-        const nameParts = firstMatch.player_name.split(' ');
-        const firstName = nameParts[0] || 'Player';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        const existingPlayer = players.find(p =>
-          p.first_name === firstName && p.last_name === lastName
-        );
-
-        let playerId = existingPlayer?.id;
-
-        if (!existingPlayer) {
-          const { data: newPlayer, error: playerError } = await supabase
-            .from('user_players')
-            .insert({
-              user_id: user.id,
-              first_name: firstName,
-              last_name: lastName,
-              birth_year: new Date().getFullYear() - 30,
-              license_number: '',
-            })
-            .select()
-            .single();
-
-          if (playerError || !newPlayer) {
-            showAlert(t('settings.importPlayer.errorCreatingPlayer'), { type: 'error' });
-            return;
-          }
-
-          playerId = newPlayer.id;
-          await incrementUsage('player');
-        }
-
-        let successCount = 0;
-        for (const match of matchesData) {
-          const { error: insertError } = await supabase
-            .from('match_results')
-            .insert({
-              user_id: user.id,
-              date: match.date,
-              player_name: match.player_name,
-              tournament_name: match.tournament_name,
-              score: match.score,
-              classement: match.classement,
-              impressions: match.impressions,
-              scoring_history: match.scoring_history,
-              event_details: match.event_details,
-              comments: match.comments,
-            });
-
-          if (!insertError) {
-            successCount++;
-          }
-        }
-
-        await refreshPlayers();
-        showAlert(t('settings.importPlayer.successMultiple').replace('{n}', String(successCount)), { type: 'success' });
-        setShowImportModal(false);
-        setImportUrl('');
-      } else {
-        showAlert(t('settings.importPlayer.errorInvalidUrl'), { type: 'warning' });
-      }
-    } catch (error) {
-      console.error('Error importing:', error);
-      showAlert(t('settings.importPlayer.errorGeneric'), { type: 'error' });
-    } finally {
-      setImporting(false);
-    }
-  };
-
   const handleChangePassword = async () => {
     setPasswordError('');
 
@@ -632,80 +438,8 @@ export function SettingsPage() {
     }
   };
 
-  /*
-  const handleImportDetailedClubs = async () => {
-    setImportingDetailedClubs(true);
-    setDetailedClubImportResult('');
-
-    try {
-      console.log('Starting detailed club import with multiple installations...');
-      const result = await runClubImport();
-
-      if (result.success) {
-        const errorsPart = result.errorCount > 0 ? t('settings.dataImport.clubs.errorsOccurred').replace('{n}', String(result.errorCount)) : '';
-        const message = t('settings.dataImport.clubs.successMessage')
-          .replace('{new}', String(result.newClubsCount))
-          .replace('{updated}', String(result.updatedClubsCount))
-          .replace('{errors}', errorsPart);
-        setDetailedClubImportResult(message);
-        showAlert(message + (result.errors ? `\n\nErrors:\n${result.errors.join('\n')}` : ''), { type: 'success' });
-      } else {
-        const errorMsg = t('settings.dataImport.clubs.failedMessage').replace('{msg}', result.message);
-        setDetailedClubImportResult(errorMsg);
-        showAlert(errorMsg, { type: 'error' });
-      }
-    } catch (error) {
-      console.error('Error importing detailed clubs:', error);
-      const errorMsg = t('settings.dataImport.clubs.errorMessage').replace('{msg}', error instanceof Error ? error.message : 'Unknown error');
-      setDetailedClubImportResult(errorMsg);
-      showAlert(errorMsg, { type: 'error' });
-    } finally {
-      setImportingDetailedClubs(false);
-    }
-  };
-
-  const handleImportTournaments = async () => {
-    setImportingTournaments(true);
-    setTournamentImportResult('');
-
-    try {
-      console.log('Opening browser console to view detailed logs...');
-      const result = await importTournamentsFromJson();
-
-      if (result.success) {
-        const message = t('settings.dataImport.tournaments.successMessage')
-          .replace('{imported}', String(result.imported))
-          .replace('{updated}', String(result.updated))
-          .replace('{skipped}', String(result.skipped));
-        setTournamentImportResult(message);
-        showAlert(message, { type: 'success' });
-      } else {
-        const errorMsg = t('settings.dataImport.tournaments.failedMessage').replace('{error}', result.error ? String(result.error) : 'Unknown error');
-        setTournamentImportResult(errorMsg);
-        showAlert(errorMsg, { type: 'error' });
-      }
-    } catch (error) {
-      console.error('Error importing tournaments:', error);
-      const errorMsg = t('settings.dataImport.tournaments.errorMessage').replace('{msg}', error instanceof Error ? error.message : 'Unknown error');
-      setTournamentImportResult(errorMsg);
-      showAlert(errorMsg, { type: 'error' });
-    } finally {
-      setImportingTournaments(false);
-    }
-  };
-
-  const handleMatchImportClick = () => {
-    setIsMatchImportModalOpen(true);
-  };
-  */
-
   const handleTenupImportClick = () => {
     setIsTenupImportModalOpen(true);
-  };
-
-  const handleMatchPlayerSelected = (playerId: string, playerName: string) => {
-    fileInputRef.current?.click();
-    setPendingJsonData({ playerId, playerName });
   };
 
   const handleTenupPlayerSelected = async (playerId: string, playerName: string) => {
@@ -722,35 +456,6 @@ export function SettingsPage() {
       showAlert(t('settings.dataImport.tenup.errorMessage'), { type: 'error' });
     }
   };
-
-  /*
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const jsonData = JSON.parse(text);
-
-      if (pendingJsonData) {
-        const result = await importMatchResults(jsonData, pendingJsonData.playerId, pendingJsonData.playerName);
-        if (result) {
-          showAlert(t('settings.dataImport.matchResults.successMessage')
-            .replace('{success}', String(result.successCount))
-            .replace('{errors}', String(result.errorCount)), { type: 'success' });
-        }
-        setPendingJsonData(null);
-      }
-    } catch (error) {
-      console.error('Error parsing JSON file:', error);
-      showAlert(t('settings.dataImport.matchResults.errorReadingFile'), { type: 'error' });
-    }
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-  */
 
   const loadSharedLinks = async () => {
     setLoadingSharedLinks(true);
@@ -1205,13 +910,6 @@ export function SettingsPage() {
                   <Plus className="w-5 h-5 mr-2" />
                   {t('settings.addPlayer')}
                 </button>
-                <button
-                  onClick={() => setShowImportModal(true)}
-                  className="w-full px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-blue-400/30 flex items-center justify-center"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  {t('settings.playersSection.importFromUrl')}
-                </button>
               </div>
             )}
             </div>
@@ -1297,93 +995,7 @@ export function SettingsPage() {
               <h3 className="text-lg font-semibold text-white">{t('settings.dataImport.title')}</h3>
             </div>
             <div className="space-y-6">
-            {/*
             <div>
-              <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.clubs.title')}</h4>
-              <p className={`text-sm mb-4 text-gray-400`}>
-                {t('settings.dataImport.clubs.desc')}
-              </p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-red-800 mb-2"><strong>{t('settings.dataImport.clubs.howItWorks')}</strong></p>
-                <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                  <li>{t('settings.dataImport.clubs.bullet1')}</li>
-                  <li>{t('settings.dataImport.clubs.bullet2')}</li>
-                  <li>{t('settings.dataImport.clubs.bullet3')}</li>
-                  <li>{t('settings.dataImport.clubs.bullet4')}</li>
-                </ul>
-              </div>
-              {detailedClubImportResult && (
-                <div className={`mb-4 p-3 rounded-lg text-sm max-h-48 overflow-y-auto ${
-                  detailedClubImportResult.includes('failed') || detailedClubImportResult.includes('Error')
-                    ? 'bg-red-50 text-red-700 border border-red-200'
-                    : 'bg-green-50 text-green-700 border border-green-200'
-                }`}>
-                  <pre className="whitespace-pre-wrap font-mono text-xs">{detailedClubImportResult}</pre>
-                </div>
-              )}
-              <button
-                onClick={handleImportDetailedClubs}
-                disabled={importingDetailedClubs}
-                className="w-full px-6 py-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-purple-400/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {importingDetailedClubs ? t('settings.dataImport.clubs.importing') : t('settings.dataImport.clubs.importButton')}
-              </button>
-            </div>
-
-            <div className={`border-t pt-6 ${false ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.tournaments.title')}</h4>
-              <p className={`text-sm mb-4 text-gray-400`}>
-                {t('settings.dataImport.tournaments.desc')}
-              </p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-red-800 mb-2"><strong>{t('settings.dataImport.tournaments.howToViewLogs')}</strong></p>
-                <ol className="text-sm text-red-700 list-decimal list-inside space-y-1">
-                  <li>{t('settings.dataImport.tournaments.step1')}</li>
-                  <li>{t('settings.dataImport.tournaments.step2')}</li>
-                  <li>{t('settings.dataImport.tournaments.step3')}</li>
-                  <li>{t('settings.dataImport.tournaments.step4')}</li>
-                </ol>
-              </div>
-              {tournamentImportResult && (
-                <div className={`mb-4 p-3 rounded-lg text-sm max-h-48 overflow-y-auto ${
-                  tournamentImportResult.includes('failed') || tournamentImportResult.includes('Error')
-                    ? 'bg-red-50 text-red-700 border border-red-200'
-                    : 'bg-green-50 text-green-700 border border-green-200'
-                }`}>
-                  <pre className="whitespace-pre-wrap font-mono text-xs">{tournamentImportResult}</pre>
-                </div>
-              )}
-              <button
-                onClick={handleImportTournaments}
-                disabled={importingTournaments}
-                className="w-full px-6 py-3 bg-[#C8F135] text-[#040c1a] font-bold rounded-full hover:bg-white transition-all duration-300 hover:scale-105 shadow-lg shadow-[#C8F135]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {importingTournaments ? t('settings.dataImport.tournaments.importing') : t('settings.dataImport.tournaments.importButton')}
-              </button>
-            </div>
-
-            <div className={`border-t pt-6 ${false ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.matchResults.title')}</h4>
-              <p className={`text-sm mb-4 text-gray-400`}>
-                {t('settings.dataImport.matchResults.desc')}
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <button
-                onClick={handleMatchImportClick}
-                className="w-full px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-blue-400/30"
-              >
-                {t('settings.dataImport.matchResults.importButton')}
-              </button>
-            </div>
-            */}
-
-            <div className={`border-t pt-6 ${false ? 'border-gray-700' : 'border-gray-200'}`}>
               <h4 className={`font-semibold mb-2 text-white`}>{t('settings.dataImport.tenup.title')}</h4>
               <p className={`text-sm mb-4 text-gray-400`}>
                 {t('settings.dataImport.tenup.desc')}
@@ -1949,71 +1561,6 @@ export function SettingsPage() {
         </div>
       )}
 
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#0a1628] border border-[#1A6FC4]/30 rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">{t('settings.importPlayer.title')}</h3>
-              <button
-                onClick={() => {
-                  setShowImportModal(false);
-                  setImportUrl('');
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
-                {t('settings.importPlayer.desc')}
-              </p>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {t('settings.importPlayer.urlLabel')}
-                </label>
-                <input
-                  type="url"
-                  value={importUrl}
-                  onChange={(e) => setImportUrl(e.target.value)}
-                  placeholder="https://tennis-tournament-or-06an.bolt.host/match-history/..."
-                  className="w-full px-3 py-2 border border-[#1A6FC4]/30 bg-[#0d1a2d] text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  disabled={importing}
-                />
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-xs text-blue-800">
-                  <strong>{t('settings.importPlayer.noteLabel')}</strong> {t('settings.importPlayer.note')}
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowImportModal(false);
-                    setImportUrl('');
-                  }}
-                  className="flex-1 px-6 py-3 border-2 border-white/20 bg-transparent text-gray-300 font-bold rounded-full hover:bg-white/10 hover:border-white/30 transition-all duration-300"
-                  disabled={importing}
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={handleImportFromUrl}
-                  className="flex-1 px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold rounded-full transition-all duration-300 hover:scale-105 border border-blue-400/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                  disabled={importing || !importUrl}
-                >
-                  {importing ? t('settings.importPlayer.importing') : t('settings.importPlayer.importButton')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showDeletePlayerModal && playerToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-[#0a1628] border border-[#1A6FC4]/30 rounded-xl shadow-2xl max-w-md w-full">
@@ -2082,12 +1629,6 @@ export function SettingsPage() {
           </div>
         </div>
       )}
-
-      <ImportPlayerSelectionModal
-        isOpen={isMatchImportModalOpen}
-        onClose={() => setIsMatchImportModalOpen(false)}
-        onSelectPlayer={handleMatchPlayerSelected}
-      />
 
       <ImportPlayerSelectionModal
         isOpen={isTenupImportModalOpen}

@@ -313,14 +313,9 @@ export function HomePage() {
               </p>
               <div className="flex flex-wrap gap-4 justify-center">
                 <button
-                  onClick={() => window.location.hash = '#/tournaments'}
-                  className="px-6 py-3 bg-[#C8F135] text-[#050d1a] rounded-full font-bold hover:bg-white transition-all duration-300 hover:scale-105"
-                >
-                  Browse Tournaments
-                </button>
-                <button
                   onClick={() => window.location.hash = '#/matches'}
-                  className="px-6 py-3 border-2 border-[#C8F135] text-[#C8F135] rounded-full font-bold hover:bg-[#C8F135]/10 transition-all duration-300"
+                  className="px-6 py-3 bg-[#C8F135] text-[#050d1a] rounded-full font-bold hover:bg-white transition-all duration-300 hover:scale-105"
+
                 >
                   Record Match
                 </button>
