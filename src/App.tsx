@@ -15,6 +15,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LiveMatchPage } from './pages/LiveMatchPage';
 import { MatchHistoryPage } from './pages/MatchHistoryPage';
 import { SharedMatchResultsPage } from './pages/SharedMatchResultsPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import VideoEditorPage from './pages/VideoEditorPage';
 import { PlayersProvider } from './contexts/PlayersContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -31,6 +32,7 @@ function App() {
   const [liveMatchId, setLiveMatchId] = useState<string | null>(null);
   const [matchHistoryId, setMatchHistoryId] = useState<string | null>(null);
   const [sharedResultsId, setSharedResultsId] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [loginMode, setLoginMode] = useState<'signin' | 'signup'>('signin');
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
@@ -69,18 +71,21 @@ function App() {
       const sharedResults = path.match(/^\/shared-results\/([a-f0-9-]+)$/);
 
       if (liveMatch) {
+        setNotFound(false);
         setLiveMatchId(liveMatch[1]);
         setLoading(false);
         return;
       }
 
       if (matchHistory) {
+        setNotFound(false);
         setMatchHistoryId(matchHistory[1]);
         setLoading(false);
         return;
       }
 
       if (sharedResults) {
+        setNotFound(false);
         setSharedResultsId(sharedResults[1]);
         setLoading(false);
         return;
@@ -113,6 +118,7 @@ function App() {
         const otpType = searchParams.get('type');
 
         const finish = (session: Session | null, error?: string) => {
+          setNotFound(false);
           setSession(session);
           setResetPasswordError(session ? null : (error || 'This password reset link is invalid or has expired. Please request a new one.'));
           setShowResetPasswordModal(true);
@@ -138,6 +144,7 @@ function App() {
       }
 
       if (authenticatedPages.includes(cleanPath)) {
+        setNotFound(false);
         supabase.auth.getSession().then(({ data: { session } }) => {
           setSession(session);
           if (session) {
@@ -152,17 +159,27 @@ function App() {
         return;
       }
 
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session);
-        if (pageParam && session) {
-          setCurrentPage(pageParam);
-        }
-        setLoading(false);
-      }).catch((error) => {
-        console.error('Auth error:', error);
-        setSession(null);
-        setLoading(false);
-      });
+      if (cleanPath === '') {
+        // The bare root - the legitimate landing/home route, not a bad URL.
+        setNotFound(false);
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          setSession(session);
+          if (pageParam && session) {
+            setCurrentPage(pageParam);
+          }
+          setLoading(false);
+        }).catch((error) => {
+          console.error('Auth error:', error);
+          setSession(null);
+          setLoading(false);
+        });
+        return;
+      }
+
+      // Anything else doesn't correspond to any known route - a malformed
+      // /live/, /match-history/, /shared-results/ id, or just a bad link.
+      setNotFound(true);
+      setLoading(false);
     };
 
     handleRouting();
@@ -278,13 +295,15 @@ function App() {
         />
       )}
 
+      {!loading && notFound && <NotFoundPage />}
+
       {!loading && liveMatchId && <LiveMatchPage matchId={liveMatchId} />}
 
       {!loading && matchHistoryId && <MatchHistoryPage matchId={matchHistoryId} />}
 
       {!loading && sharedResultsId && <SharedMatchResultsPage shareId={sharedResultsId} />}
 
-      {!loading && !liveMatchId && !matchHistoryId && !sharedResultsId && !session && (
+      {!loading && !notFound && !liveMatchId && !matchHistoryId && !sharedResultsId && !session && (
         <>
           {showLogin ? (
             <LoginPage
@@ -306,7 +325,7 @@ function App() {
         </>
       )}
 
-      {!loading && !liveMatchId && !matchHistoryId && !sharedResultsId && session && (
+      {!loading && !notFound && !liveMatchId && !matchHistoryId && !sharedResultsId && session && (
         <AuthProvider>
           <SubscriptionProvider>
             <TournamentDataProvider>
