@@ -34,6 +34,7 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [loginMode, setLoginMode] = useState<'signin' | 'signup'>('signin');
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAndClearBadSession = async () => {
@@ -99,18 +100,40 @@ function App() {
       const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 
       if (cleanPath === 'reset-password') {
-        // The Supabase recovery link redirects here after establishing a
-        // session from the token in the URL (detectSessionInUrl handles
-        // that automatically) - show the "set a new password" modal instead
-        // of silently falling through to the logged-in app.
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        // The recovery email links straight here with a `token_hash` (see
+        // supabase/templates/recovery.html), not to Supabase's own /verify
+        // redirect. verifyOtp redeems it server-side and returns a session
+        // directly - unlike the PKCE code-exchange flow this app's client
+        // otherwise uses, this doesn't depend on a code verifier stored in
+        // this same browser, so it still works when the reset was requested
+        // on one device and the email opened on another (the previous
+        // ConfirmationURL-based link produced "Auth session missing!" for
+        // exactly that reason).
+        const tokenHash = searchParams.get('token_hash');
+        const otpType = searchParams.get('type');
+
+        const finish = (session: Session | null, error?: string) => {
           setSession(session);
+          setResetPasswordError(session ? null : (error || 'This password reset link is invalid or has expired. Please request a new one.'));
           setShowResetPasswordModal(true);
           setLoading(false);
-        }).catch((error) => {
-          console.error('Auth error:', error);
-          setLoading(false);
-        });
+        };
+
+        if (tokenHash && otpType === 'recovery') {
+          supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' }).then(({ data, error }) => {
+            finish(data.session, error?.message);
+          });
+        } else {
+          // Older emails already sent may still use the ConfirmationURL
+          // link, which detectSessionInUrl exchanges automatically - fall
+          // back to checking for that session.
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            finish(session);
+          }).catch((error) => {
+            console.error('Auth error:', error);
+            finish(null);
+          });
+        }
         return;
       }
 
@@ -245,8 +268,10 @@ function App() {
 
       {!loading && showResetPasswordModal && (
         <ResetPasswordModal
+          initialError={resetPasswordError}
           onDone={() => {
             setShowResetPasswordModal(false);
+            setResetPasswordError(null);
             window.history.replaceState(null, '', '/');
             setCurrentPage('home');
           }}
