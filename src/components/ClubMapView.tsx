@@ -135,12 +135,16 @@ export function ClubMapView({ clubs, selectedClub, onSelectClub, userLocation, o
       <MapContainer
         center={defaultCenter}
         zoom={12}
+        minZoom={2}
+        maxBounds={[[-90, -180], [90, 180]]}
+        maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          noWrap={true}
         />
 
         <MapUpdater selectedClub={selectedClub} defaultCenter={defaultCenter} defaultZoom={12} />
