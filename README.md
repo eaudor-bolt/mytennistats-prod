@@ -175,29 +175,29 @@ This is the part most likely to need changes, so it is documented end to end.
 flowchart TD
     A["Browser<br/>VideosPage upload or LiveScoreModal point clip"] -->|"POST action: presign-*"| B["Edge function<br/>presign-upload"]
     B -->|"presigned PUT URL"| A
-    A -->|"PUT bytes direct to S3"| C["S3<br/>import/ prefix"]
-    C -->|"S3 event"| D["External transcode<br/>ffmpeg Lambda - separate repo"]
-    D --> E["S3<br/>ffmpeg/ prefix - mp4 + jpg poster"]
+    A -->|"PUT bytes direct to S3"| C["S3<br/>mytennistats-import/ prefix"]
+    C -->|"S3 event"| D["External transcode<br/>Lambda - separate repo"]
+    D --> E["S3<br/>mytennistats/ prefix - mp4 + jpg poster"]
     E --> F["CloudFront<br/>d2g92movh621e9.cloudfront.net"]
-    A -->|"INSERT row with ffmpeg/ URL"| G["Postgres<br/>videos / live_matches.scoring_history"]
+    A -->|"INSERT row with mytennistats/ URL"| G["Postgres<br/>videos / live_matches.scoring_history"]
     F --> H["Playback"]
     G --> H
 ```
 
-### The `import/` → `ffmpeg/` convention
+### The `mytennistats-import/` → `mytennistats/` convention
 
 This is the single most important thing to understand.
 
-- Uploads always land under the **`import/`** prefix.
+- Uploads always land under the **`mytennistats-import/`** prefix.
 - An external Lambda (in the `ffmpeg-cdk-lambda-s3cloudfront` AWS stack — **not in this
   repo**) watches that prefix, transcodes the file, and writes the result under the
-  **`ffmpeg/`** prefix, mirroring the rest of the key.
+  **`mytennistats/`** prefix, mirroring the rest of the key.
 - The app never waits for that. It takes the CloudFront URL it was given and does a plain
   string replace before storing it:
 
 ```ts
 // src/pages/VideosPage.tsx:778
-const videoUrl = s3Result.presignedUrl.replace('/import/', '/ffmpeg/');
+const videoUrl = s3Result.presignedUrl.replace('/mytennistats-import/', '/mytennistats/');
 // poster comes from the same pipeline, same key with a .jpg extension
 const posterImageUrl = videoUrl.replace(/\.(mp4|webm|mov|avi)$/i, '.jpg');
 ```
@@ -215,16 +215,17 @@ it in **all three** call sites above *and* in the Lambda stack.
 
 Two callers, both going through [`src/utils/s3Upload.ts`](src/utils/s3Upload.ts):
 
-**1. Manual library upload** — `VideosPage`. Filename has no `/`, so it lands in
-`recorded-videos`. Duration and storage are checked client-side before upload starts, then a
-`videos` row is inserted and `increment_usage_stat` is called.
+**1. Manual library upload** — `VideosPage`. Filename has no `/`, so it's treated as
+`recorded-videos` and scoped under the uploader's own user id (see below). Duration and
+storage are checked client-side before upload starts, then a `videos` row is inserted and
+`increment_usage_stat` is called.
 
 **2. Live Score point clips** — `LiveScoreModal`. Filename is
 `` `${liveMatchId}/point-${sequence}-${Date.now()}.${ext}` ``. The leading UUID segment groups
-a match's clips together. Uploads run in the background with retry
-(`UPLOAD_RETRY_DELAYS_MS`) and never block the scoreboard; the clip URL is patched into the
-`scoring_history` entry when it resolves. No `videos` row is created — the URL lives inside
-the scoring history JSON.
+a match's clips together under `match-videos/{liveMatchId}/`. Uploads run in the background
+with retry (`UPLOAD_RETRY_DELAYS_MS`) and never block the scoreboard; the clip URL is patched
+into the `scoring_history` entry when it resolves. No `videos` row is created — the URL lives
+inside the scoring history JSON.
 
 Transfer mode is chosen by size in `s3Upload.ts`:
 
@@ -244,9 +245,18 @@ The client's filename is **not** used as a path. `buildS3Key()` in
 uses it only to pick the folder and the extension, then generates a fresh UUID leaf name:
 
 ```
-import/recorded-videos/{uuid}.{ext}                  # manual upload
-import/match-videos/{matchId-uuid}/{uuid}.{ext}      # live score clip
+mytennistats-import/recorded-videos/{userId}/{uuid}.{ext}    # manual upload — scoped per uploader
+mytennistats-import/match-videos/{liveMatchId}/{uuid}.{ext}  # live score clip — scoped per match
 ```
+
+Every key is scoped under a UUID folder, so uploads from different users (or different
+matches) can never collide or land in the same directory:
+
+- `match-videos/{liveMatchId}/…` — the `{liveMatchId}/` segment comes from the client (it's
+  how Live Score groups a match's point clips), validated as a UUID before use.
+- `recorded-videos/{userId}/…` — the `{userId}/` segment is **never taken from the client**.
+  `presign-upload` resolves it from the caller's own session (`requireUser`) and passes it
+  into `buildS3Key(filename, user.id)`, so a user can only ever write under their own folder.
 
 Constraints enforced there:
 
@@ -268,16 +278,37 @@ Two deliberate behaviours worth knowing before you change anything:
 
 ### Deletion
 
-[`src/utils/s3Delete.ts`](src/utils/s3Delete.ts) sends a **`videoId`**, never a key. The
-`delete-video-from-s3` function looks the row up filtered by `user_id = auth.uid()` and derives
-the S3 key from the stored URL, so the key is never client-supplied.
+Three separate paths remove videos, and one known gap is not yet closed:
+
+**1. Single video** — [`src/utils/s3Delete.ts`](src/utils/s3Delete.ts) sends a **`videoId`**,
+never a key. The `delete-video-from-s3` function looks the row up filtered by
+`user_id = auth.uid()` and derives the S3 key from the stored (`mytennistats/…`) URL, so the
+key is never client-supplied.
+
+**2. Account deletion** — `delete-account` (see [Edge functions](#edge-functions)) runs
+*before* the account's rows are removed. It collects every video URL the user has — `videos`
+rows plus every `videoUrl` embedded in `live_matches`/`match_results` `scoring_history` — and
+batch-deletes them from S3 (`DeleteObjectsCommand`, up to 1000 keys per call) before handing
+off to the `delete_user_account` Postgres RPC that removes the rows themselves. A failed S3
+delete is logged but never blocks the account deletion — losing a stray object is preferable
+to trapping a user who wants to leave.
+
+**3. `mytennistats-import/` staging objects are never deleted by the app.** The pre-transcode
+original stays in the bucket forever once its transcoded copy exists under `mytennistats/` —
+neither `delete-video-from-s3` nor `delete-account` know that key (they only ever learn the
+*post-transcode* URL, which is the only one ever stored in Postgres). **This should be closed
+with an S3 lifecycle rule** that expires objects under `mytennistats-import/` after ~24–48h,
+rather than by trying to track and delete the staging key from application code — a
+lifecycle rule also cleans up originals for uploads that failed transcoding or were abandoned
+mid-flow, which the app could never reliably detect on its own. Not implemented yet; needs to
+be added on the AWS side alongside the Lambda stack.
 
 ### Playback
 
-CloudFront serves the `ffmpeg/` objects. URLs are unsigned and the distribution is public —
-anyone holding a URL can fetch the file indefinitely. URLs are no longer enumerable (the
-`videos` table is not readable anonymously), but if you need real revocation you will have to
-move to signed CloudFront URLs, which is not implemented today.
+CloudFront serves the `mytennistats/` objects. URLs are unsigned and the distribution is
+public — anyone holding a URL can fetch the file indefinitely. URLs are no longer enumerable
+(the `videos` table is not readable anonymously), but if you need real revocation you will
+have to move to signed CloudFront URLs, which is not implemented today.
 
 ### Changing the video upload — checklist
 
@@ -285,11 +316,12 @@ move to signed CloudFront URLs, which is not implemented today.
 | --- | --- |
 | Size threshold / part size | `src/utils/s3Upload.ts` (`MULTIPART_THRESHOLD`, `PART_SIZE`) |
 | Allowed file types | `ALLOWED_EXTENSIONS` + `ALLOWED_CONTENT_TYPES` in `presign-upload`, and the `accept` attribute in `VideosPage` |
-| Key layout / folders | `buildS3Key()` **and** `KEY_PATTERN` in `presign-upload`, **and** the Lambda stack |
+| Key layout / folders / prefixes | `buildS3Key()` **and** `KEY_PATTERN` in `presign-upload`, **and** the Lambda stack — keep the `mytennistats-import/` → `mytennistats/` prefix pair and the per-user/per-match scoping in sync on both sides |
 | Duration / storage caps | `FREE_LIMITS` / `PREMIUM_LIMITS` in `SubscriptionContext.tsx` |
 | CloudFront host | `CLOUDFRONT_HOST` edge function secret (falls back to a hardcoded default) |
 | Presigned URL lifetime | `expiresIn` in `presign-upload` (currently 3600 s) |
 | Transcode behaviour, poster generation | The external `ffmpeg-cdk-lambda-s3cloudfront` stack — not in this repo |
+| Staging-object cleanup | S3 lifecycle rule on `mytennistats-import/` — not implemented yet, see [Deletion](#deletion) |
 
 After editing any edge function: `supabase functions deploy <name>`. Editing the file alone
 changes nothing in production.
@@ -303,7 +335,8 @@ All live in `supabase/functions/`. Shared helpers are in `_shared/`.
 | Function | Auth | Purpose |
 | --- | --- | --- |
 | `presign-upload` | `requireUser` | Issues presigned S3 PUT URLs (single + multipart) |
-| `delete-video-from-s3` | `requireUser` | Deletes a video the caller owns |
+| `delete-video-from-s3` | `requireUser` | Deletes a single video the caller owns |
+| `delete-account` | `requireUser` | Batch-deletes every video a user owns from S3, then calls `delete_user_account` |
 | `tennis-rules-chat` | `requireUser` + rate limit | RAG chat over the ITF rules via Mistral |
 | `transcribe-audio` | `requireUser` + rate limit | Groq Whisper transcription |
 | `process-tennis-rules-pdf` | admin secret | Indexes a rules PDF into pgvector |
@@ -376,8 +409,11 @@ supabase secrets set \
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the
 platform automatically.
 
-The IAM user behind `AWS_ACCESS_KEY_ID` needs `s3:PutObject`, `s3:DeleteObject` and the
-multipart permissions on the `import/` prefix of the bucket. Scope it to that prefix.
+The IAM user behind `AWS_ACCESS_KEY_ID` needs `s3:PutObject` and the multipart permissions on
+the `mytennistats-import/` prefix (where `presign-upload` writes), and `s3:DeleteObject` on
+the `mytennistats/` prefix (where `delete-video-from-s3` and `delete-account` delete from,
+since only the post-transcode URL is ever stored). Scope the policy to those two prefixes,
+not the whole bucket.
 
 ### Stripe
 

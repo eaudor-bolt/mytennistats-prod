@@ -25,9 +25,13 @@ const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
  * (presign-parts / list-parts / complete / abort) take a key from the client,
  * so it is re-checked against this before being handed to S3 - otherwise a
  * caller could name any object in the bucket and have us sign a write to it.
+ *
+ * Every key is scoped under a UUID folder: the live match id for
+ * match-videos, or the uploader's user id for recorded-videos. See
+ * README.md ("Video pipeline") for the full staged/final key layout.
  */
 const KEY_PATTERN = new RegExp(
-  `^import/(match-videos|recorded-videos)/(${UUID}/)?${UUID}\\.[a-z0-9]{1,5}$`,
+  `^mytennistats-import/(match-videos|recorded-videos)/${UUID}/${UUID}\\.[a-z0-9]{1,5}$`,
 );
 
 function getS3Client() {
@@ -52,11 +56,16 @@ function getS3Client() {
  * server-generated UUID, so a caller cannot aim an upload at an object that
  * already exists (which is how another user's video could be overwritten).
  *
- * The `{group}/` segment is preserved because Live Score groups a match's
- * clips under its match id, and the downstream transcode mirrors the key
- * shape from `import/` to `ffmpeg/`. It is only kept when it is a UUID.
+ * Every key is scoped under a UUID folder so uploads from different users
+ * (or different matches) never land in the same directory:
+ *   - match-videos/{liveMatchId}/{uuid}.ext - the `{liveMatchId}/` segment
+ *     comes from the client (Live Score groups a match's point clips under
+ *     its match id) and is validated as a UUID below.
+ *   - recorded-videos/{userId}/{uuid}.ext - the `{userId}/` segment is never
+ *     taken from the client; it's the authenticated caller's own id, so a
+ *     user can only ever write under their own folder.
  */
-function buildS3Key(filename: string): { key: string } | { error: string } {
+function buildS3Key(filename: string, userId: string): { key: string } | { error: string } {
   const raw = String(filename);
 
   if (raw.includes("..") || raw.includes("\\") || raw.startsWith("/")) {
@@ -83,7 +92,8 @@ function buildS3Key(filename: string): { key: string } | { error: string } {
   }
 
   const leafName = `${crypto.randomUUID()}.${extension}`;
-  return { key: group ? `import/${folder}/${group}/${leafName}` : `import/${folder}/${leafName}` };
+  const scope = group ?? userId;
+  return { key: `mytennistats-import/${folder}/${scope}/${leafName}` };
 }
 
 function assertOwnKey(key: unknown): string | null {
@@ -99,6 +109,7 @@ Deno.serve(async (req: Request) => {
   // anon key that ships in the bundle is not one.
   const auth = await requireUser(req);
   if (auth.response) return auth.response;
+  const { user } = auth;
 
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
@@ -113,7 +124,7 @@ Deno.serve(async (req: Request) => {
         return jsonError("Unsupported content type", 400);
       }
 
-      const built = buildS3Key(filename);
+      const built = buildS3Key(filename, user.id);
       if ("error" in built) return jsonError(built.error, 400);
       const s3Key = built.key;
 

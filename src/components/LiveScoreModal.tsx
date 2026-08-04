@@ -721,8 +721,8 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         pointStartTimeRef.current = Date.now();
 
         uploadVideoToS3Bucket(blob, entrySequence).then((videoUrl) => {
-          // Replace /import/ with /ffmpeg/ for the stored URL
-          const storedUrl = videoUrl?.replace('/import/', '/ffmpeg/') || null;
+          // Replace the staging prefix with the transcoded-output prefix for the stored URL
+          const storedUrl = videoUrl?.replace('/mytennistats-import/', '/mytennistats/') || null;
 
           setUploadingEntries(prev => {
             const newSet = new Set(prev);
@@ -744,8 +744,8 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         setUploadingEntries(prev => new Set(prev).add(lastEntrySequence));
 
         uploadVideoToS3Bucket(blob, lastEntrySequence).then((videoUrl) => {
-          // Replace /import/ with /ffmpeg/ for the stored URL
-          const storedUrl = videoUrl?.replace('/import/', '/ffmpeg/') || null;
+          // Replace the staging prefix with the transcoded-output prefix for the stored URL
+          const storedUrl = videoUrl?.replace('/mytennistats-import/', '/mytennistats/') || null;
 
           setUploadingEntries(prev => {
             const newSet = new Set(prev);
