@@ -171,15 +171,44 @@ This is the part most likely to need changes, so it is documented end to end.
 
 ### Overview
 
+Five steps, three of which are in this repo and two of which are not (the AWS side lives in
+the separate `cdk-lambda-ffmpeg` CDK stack):
+
+1. **Browser upload** — `VideosPage` (manual library upload) or `LiveScoreModal` (a point
+   clip) has a video `Blob` and wants it in S3. Neither ever holds an AWS credential.
+2. **Edge function issues a presigned URL** — the browser calls the `presign-upload` Supabase
+   edge function (authenticated with the user's own session, nothing else). It resolves the
+   caller's identity, builds the destination key server-side, and returns a short-lived
+   presigned S3 PUT URL — this repo's code never sees an AWS access key.
+3. **Browser uploads straight to S3** — the PUT goes directly from the browser to S3 using
+   that presigned URL, under the **`mytennistats-import/`** staging prefix:
+   - `mytennistats-import/recorded-videos/{userId}/{video-id}.ext` — manual upload, grouped
+     by the uploader's own user id.
+   - `mytennistats-import/match-videos/{matchId}/{video-id}.ext` — Live Score point clip,
+     grouped by the live match id.
+
+   (`{video-id}` is a server-generated UUID leaf, not anything the client chose — see
+   [Key construction](#key-construction-server-side-authoritative).)
+4. **AWS processes the video (not in this repo)** — an S3 event on that prefix triggers the
+   external Lambda pipeline: it transcodes to a web-friendly mp4 and generates a jpg poster
+   frame (or, for already-playable Live Score clips, just copies them through unchanged), and
+   writes the result under the **`mytennistats/`** prefix, mirroring the same
+   `{folder}/{scope}/{video-id}` shape.
+5. **Supabase is updated** — the browser never waits for step 4. It already has the final
+   CloudFront URL predicted from the presigned response (see the prefix-swap convention
+   below) and writes it straight away: a new row in `videos` for a manual upload, or a patched
+   `videoUrl` inside the `scoring_history` entry for a Live Score point. The clip can 404 for
+   the few seconds until step 4 actually finishes.
+
 ```mermaid
 flowchart TD
-    A["Browser<br/>VideosPage upload or LiveScoreModal point clip"] -->|"POST action: presign-*"| B["Edge function<br/>presign-upload"]
-    B -->|"presigned PUT URL"| A
-    A -->|"PUT bytes direct to S3"| C["S3<br/>mytennistats-import/ prefix"]
-    C -->|"S3 event"| D["External transcode<br/>Lambda - separate repo"]
-    D --> E["S3<br/>mytennistats/ prefix - mp4 + jpg poster"]
+    A["Browser<br/>VideosPage upload or LiveScoreModal point clip"] -->|"1: has a Blob"| B["Edge function<br/>presign-upload"]
+    B -->|"2: presigned PUT URL"| A
+    A -->|"3: PUT bytes direct to S3"| C["S3<br/>mytennistats-import/{folder}/{userId or matchId}/"]
+    C -->|"S3 event"| D["4: External transcode<br/>Lambda - separate repo"]
+    D --> E["S3<br/>mytennistats/{folder}/{scope}/ - mp4 + jpg poster"]
     E --> F["CloudFront<br/>d2g92movh621e9.cloudfront.net"]
-    A -->|"INSERT row with mytennistats/ URL"| G["Postgres<br/>videos / live_matches.scoring_history"]
+    A -->|"5: INSERT/UPDATE row with mytennistats/ URL"| G["Postgres<br/>videos / live_matches.scoring_history"]
     F --> H["Playback"]
     G --> H
 ```
@@ -361,9 +390,25 @@ signature is rejected before the body is parsed.
 
 The site is a static SPA. Vercel builds with `npm run build` and serves `dist/`.
 [`vercel.json`](vercel.json) rewrites all paths to `index.html` so deep links survive a refresh.
+Pushing to the default branch triggers a deploy.
 
-Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and `VITE_STRIPE_PRICE_ID` in the Vercel
-project's environment variables. Pushing to the default branch triggers a deploy.
+**This is the entire environment configuration Vercel needs** — Project Settings →
+Environment Variables:
+
+| Variable | Value | Notes |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | `https://<project-ref>.supabase.co` | Same project as local dev |
+| `VITE_SUPABASE_ANON_KEY` | the project's anon key | Public by design — safe in a browser bundle |
+| `VITE_STRIPE_PRICE_ID` | `price_xxx` | The Premium subscription price |
+
+That's it — **the web app never needs an S3 bucket name, an AWS region or a CloudFront
+hostname.** It only ever talks to Supabase; Supabase's `presign-upload` edge function is the
+only thing that knows about AWS, and it hands the frontend a ready-to-use presigned URL and a
+finished CloudFront URL, not raw bucket/region details. Those three AWS values are
+[edge function secrets](#edge-functions-1), configured on the Supabase side, not here. If you
+ever find yourself wanting to add `VITE_AWS_*` variables to make a video feature work, that's
+a sign the change belongs in `presign-upload` instead of the frontend — see
+[Video pipeline](#video-pipeline).
 
 ### Database migrations
 
@@ -408,6 +453,20 @@ supabase secrets set \
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the
 platform automatically.
+
+This is the **only** place the app is told which S3 bucket and CloudFront distribution to
+use — both are read exclusively by `presign-upload` (and its `AWS_S3_BUCKET` /
+`AWS_REGION` / credentials by `delete-video-from-s3` and `delete-account` too):
+
+| Secret | Value | Read by |
+| --- | --- | --- |
+| `AWS_S3_BUCKET` | the bucket name from the CDK stack (`s3BucketName` in `cdk-ffmpeg-lambda-stack.ts`) | `presign-upload`, `delete-video-from-s3`, `delete-account` |
+| `AWS_REGION` | that bucket's region, e.g. `eu-west-1` | same three |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | an IAM user scoped to that bucket (see permissions note below) | same three |
+| `CLOUDFRONT_HOST` | the distribution's domain, e.g. `d2g92movh621e9.cloudfront.net` | `presign-upload` only, to build the URL it hands back to the browser |
+
+Changing buckets, regions or CloudFront distributions is a `supabase secrets set` call —
+nothing in the frontend or its Vercel config ever needs to change for that.
 
 The IAM user behind `AWS_ACCESS_KEY_ID` needs `s3:PutObject` and the multipart permissions on
 the `mytennistats-import/` prefix (where `presign-upload` writes), and `s3:DeleteObject` on
