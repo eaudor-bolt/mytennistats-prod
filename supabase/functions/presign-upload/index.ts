@@ -9,6 +9,7 @@ import {
   ListPartsCommand,
 } from "npm:@aws-sdk/client-s3@3.980.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.980.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.39.3";
 import { corsHeaders, jsonOk, jsonError } from "../_shared/http.ts";
 import { requireUser } from "../_shared/auth.ts";
 
@@ -60,12 +61,16 @@ function getS3Client() {
  * (or different matches) never land in the same directory:
  *   - match-videos/{liveMatchId}/{uuid}.ext - the `{liveMatchId}/` segment
  *     comes from the client (Live Score groups a match's point clips under
- *     its match id) and is validated as a UUID below.
+ *     its match id). Being a UUID is not enough: live match ids are public,
+ *     they appear in every /live/{id} share link, so the caller's ownership
+ *     of that match is checked against the database before it is used.
  *   - recorded-videos/{userId}/{uuid}.ext - the `{userId}/` segment is never
  *     taken from the client; it's the authenticated caller's own id, so a
  *     user can only ever write under their own folder.
  */
-function buildS3Key(filename: string, userId: string): { key: string } | { error: string } {
+type ParsedUpload = { folder: (typeof ALLOWED_FOLDERS)[number]; group: string | null; extension: string };
+
+function parseUpload(filename: string): ParsedUpload | { error: string } {
   const raw = String(filename);
 
   if (raw.includes("..") || raw.includes("\\") || raw.startsWith("/")) {
@@ -91,13 +96,53 @@ function buildS3Key(filename: string, userId: string): { key: string } | { error
     return { error: "Invalid filename" };
   }
 
-  const leafName = `${crypto.randomUUID()}.${extension}`;
-  const scope = group ?? userId;
-  return { key: `mytennistats-import/${folder}/${scope}/${leafName}` };
+  return { folder, group, extension };
 }
 
-function assertOwnKey(key: unknown): string | null {
-  return typeof key === "string" && KEY_PATTERN.test(key) ? key : null;
+/** Is this live match the caller's own? Match ids are public, so this is the
+ *  only thing standing between a caller and another user's match folder. */
+async function ownsLiveMatch(
+  supabase: SupabaseClient,
+  userId: string,
+  matchId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("live_matches")
+    .select("id")
+    .eq("id", matchId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("live match ownership check failed:", error);
+    return false;
+  }
+  return !!data;
+}
+
+function buildS3Key(parsed: ParsedUpload, scope: string): string {
+  return `mytennistats-import/${parsed.folder}/${scope}/${crypto.randomUUID()}.${parsed.extension}`;
+}
+
+/**
+ * Validates a key supplied by the client on a multipart continuation action.
+ * Checks both that the key has the shape we issue *and* that its scope folder
+ * belongs to this caller - for recorded-videos that the folder is their own
+ * user id, for match-videos that they own the live match.
+ */
+async function assertCallerKey(
+  key: unknown,
+  userId: string,
+  supabase: SupabaseClient,
+): Promise<string | null> {
+  if (typeof key !== "string" || !KEY_PATTERN.test(key)) return null;
+
+  const [, folder, group] = key.split("/");
+
+  if (folder === "recorded-videos") {
+    return group === userId ? key : null;
+  }
+  return (await ownsLiveMatch(supabase, userId, group)) ? key : null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -109,7 +154,7 @@ Deno.serve(async (req: Request) => {
   // anon key that ships in the bundle is not one.
   const auth = await requireUser(req);
   if (auth.response) return auth.response;
-  const { user } = auth;
+  const { user, supabase } = auth;
 
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
@@ -124,9 +169,16 @@ Deno.serve(async (req: Request) => {
         return jsonError("Unsupported content type", 400);
       }
 
-      const built = buildS3Key(filename, user.id);
-      if ("error" in built) return jsonError(built.error, 400);
-      const s3Key = built.key;
+      const parsed = parseUpload(filename);
+      if ("error" in parsed) return jsonError(parsed.error, 400);
+
+      // match-videos groups under a live match id, which is public - so prove
+      // the caller owns that match before writing into its folder.
+      if (parsed.group && !(await ownsLiveMatch(supabase, user.id, parsed.group))) {
+        return jsonError("Unknown live match", 403);
+      }
+
+      const s3Key = buildS3Key(parsed, parsed.group ?? user.id);
 
       if (action === "presign-single") {
         const command = new PutObjectCommand({ Bucket: bucket, Key: s3Key, ContentType: contentType });
@@ -142,7 +194,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "presign-parts") {
       const { key, uploadId, partNumbers } = body;
-      const safeKey = assertOwnKey(key);
+      const safeKey = await assertCallerKey(key, user.id, supabase);
       if (!safeKey || !uploadId || !Array.isArray(partNumbers) || partNumbers.length === 0) {
         return jsonError("Missing or invalid key, uploadId or partNumbers", 400);
       }
@@ -167,7 +219,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "list-parts") {
       const { key, uploadId } = body;
-      const safeKey = assertOwnKey(key);
+      const safeKey = await assertCallerKey(key, user.id, supabase);
       if (!safeKey || !uploadId) return jsonError("Missing or invalid key or uploadId", 400);
 
       const result = await client.send(
@@ -180,7 +232,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "complete-multipart") {
       const { key, uploadId, parts } = body;
-      const safeKey = assertOwnKey(key);
+      const safeKey = await assertCallerKey(key, user.id, supabase);
       if (!safeKey || !uploadId || !parts) {
         return jsonError("Missing or invalid key, uploadId or parts", 400);
       }
@@ -199,7 +251,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "abort-multipart") {
       const { key, uploadId } = body;
-      const safeKey = assertOwnKey(key);
+      const safeKey = await assertCallerKey(key, user.id, supabase);
       if (!safeKey || !uploadId) return jsonError("Missing or invalid key or uploadId", 400);
 
       await client.send(

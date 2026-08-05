@@ -382,6 +382,42 @@ real user from the token and rejects a bare anon key.
 only authentication it can have. There is no unsigned path — a request without a valid
 signature is rejected before the body is parsed.
 
+### Database functions: two rules, both mandatory
+
+Postgres grants `EXECUTE` to `PUBLIC` on every new function, and `PUBLIC` includes `anon`.
+A `SECURITY DEFINER` function bypasses RLS by design. Together that means **every new
+`SECURITY DEFINER` function is callable by anyone holding the public anon key until you
+explicitly revoke it** — `GRANT ... TO authenticated` does not remove PUBLIC's grant.
+
+Every migration that creates one must end with:
+
+```sql
+REVOKE ALL ON FUNCTION public.my_function(args) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.my_function(args) TO authenticated;  -- or service_role
+```
+
+And ownership guards must be NULL-safe. For an anonymous caller `auth.uid()` is NULL, and
+`NULL != 'anything'` evaluates to NULL — not TRUE — so `IF auth.uid() != p_user_id THEN
+RAISE` never fires and execution falls straight through to the body:
+
+```sql
+IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
+  RAISE EXCEPTION 'You can only ... your own account';
+END IF;
+```
+
+Also set `SET search_path = public, pg_temp` (not just `public`).
+
+These three omissions together are what made `delete_user_account` deletable-by-anyone; see
+`20260802000000_fix_null_unsafe_function_guards.sql`. To audit what is currently reachable:
+
+```sql
+SELECT p.oid::regprocedure AS fn, p.prosecdef AS security_definer
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public' AND has_function_privilege('anon', p.oid, 'EXECUTE')
+ORDER BY 1;
+```
+
 ---
 
 ## Deployment
