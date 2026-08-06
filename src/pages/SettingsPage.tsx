@@ -75,6 +75,7 @@ export function SettingsPage() {
     url: string;
     created_at: string;
     player_names?: string[];
+    view_count: number;
   }>>([]);
   const [loadingSharedLinks, setLoadingSharedLinks] = useState(false);
   const [videoUsage, setVideoUsage] = useState<{ totalBytes: number; totalSeconds: number; count: number } | null>(null);
@@ -475,11 +476,12 @@ export function SettingsPage() {
         url: string;
         created_at: string;
         player_names?: string[];
+        view_count: number;
       }> = [];
 
       const { data: liveMatches, error: liveError } = await supabase
         .from('live_matches')
-        .select('id, player_name, created_at, user_id')
+        .select('id, player_name, created_at, user_id, view_count')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -494,7 +496,8 @@ export function SettingsPage() {
               type: 'Live Score',
               url: `${window.location.origin}/live/${match.id}`,
               created_at: match.created_at,
-              player_names: [match.player_name]
+              player_names: [match.player_name],
+              view_count: match.view_count || 0
             });
           });
         }
@@ -502,7 +505,7 @@ export function SettingsPage() {
 
       const { data: sharedResults, error: sharedError } = await supabase
         .from('shared_match_results')
-        .select('id, player_names, created_at, user_id')
+        .select('id, player_names, created_at, user_id, view_count')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -517,7 +520,8 @@ export function SettingsPage() {
               type: 'Match Result',
               url: `${window.location.origin}/shared-results/${result.id}`,
               created_at: result.created_at,
-              player_names: result.player_names || []
+              player_names: result.player_names || [],
+              view_count: result.view_count || 0
             });
           });
         }
@@ -1075,6 +1079,7 @@ export function SettingsPage() {
                       <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colPlayers')}</th>
                       <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colCreated')}</th>
                       <th className={`text-left py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colUrl')}</th>
+                      <th className={`text-center py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colViews')}</th>
                       <th className={`text-center py-3 px-2 text-sm font-semibold text-gray-300`}>{t('settings.sharedLinks.colActions')}</th>
                     </tr>
                   </thead>
@@ -1107,6 +1112,12 @@ export function SettingsPage() {
                             <span className="truncate max-w-[150px]">{link.url.substring(link.url.lastIndexOf('/') + 1)}</span>
                             <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
                           </a>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="flex items-center justify-center gap-1 text-sm font-medium text-gray-300">
+                            <Eye className="w-3.5 h-3.5 text-gray-500" />
+                            {link.view_count}
+                          </span>
                         </td>
                         <td className="py-3 px-2">
                           <div className="flex items-center justify-center space-x-2">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Loader2, Trophy, RefreshCw } from 'lucide-react';
 import { MatchHistoryDisplay } from '../components/MatchHistoryDisplay';
@@ -38,9 +38,19 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+  const viewCountedRef = useRef(false);
 
   useEffect(() => {
     loadMatch();
+
+    // Count this as one "view" of the shared link - once per page load, not
+    // once per poll/realtime update, and not tied to whether the fetch above
+    // succeeds (a load error doesn't mean the link wasn't opened).
+    if (!viewCountedRef.current) {
+      viewCountedRef.current = true;
+      supabase.rpc('increment_live_match_views', { p_match_id: matchId })
+        .then(({ error }) => { if (error) console.error('Error recording view:', error); });
+    }
 
     const channel = supabase
       .channel(`live-match-${matchId}`)
