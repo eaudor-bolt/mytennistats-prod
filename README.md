@@ -407,6 +407,23 @@ REVOKE ALL ON FUNCTION public.my_function(args) FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.my_function(args) TO authenticated;  -- or service_role
 ```
 
+An event trigger (`lock_down_new_functions_trg`, added in
+`20260806140000`) does the REVOKE automatically at `CREATE FUNCTION`, so a new function is
+born locked and you only need the GRANT. Write both anyway — the trigger needs superuser to
+install and is refused on a hosted project where the migration role is not one. Check the
+migration's output: `event trigger installed` means it is active, a `WARNING` means it is not.
+
+Either way, `npm run check:grants` is the backstop that always works. It reads every
+migration in order and fails if a function would be left with its default grant, so it
+catches the omission before deploy rather than after.
+
+**Default privileges cannot do this job.** `ALTER DEFAULT PRIVILEGES … REVOKE EXECUTE ON
+FUNCTIONS FROM anon` looks like the right fix and is not: `pg_default_acl` stores only the
+*extra* grants layered over PostgreSQL's built-in default, and the built-in default for a
+function is `EXECUTE TO PUBLIC` — which `anon` is a member of. Verified on PG 15 and 17:
+after revoking, `pg_default_acl` holds zero rows and a new function still reports
+`has_function_privilege('anon', …, 'EXECUTE') = true`. Hence the event trigger.
+
 And ownership guards must be NULL-safe. For an anonymous caller `auth.uid()` is NULL, and
 `NULL != 'anything'` evaluates to NULL — not TRUE — so `IF auth.uid() != p_user_id THEN
 RAISE` never fires and execution falls straight through to the body:
