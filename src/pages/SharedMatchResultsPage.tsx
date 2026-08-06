@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase, MatchResult } from '../lib/supabase';
 import { Loader2, Share2, BarChart3 } from 'lucide-react';
 import { MatchStatsModal } from '../components/MatchStatsModal';
@@ -17,9 +17,19 @@ export function SharedMatchResultsPage({ shareId }: SharedMatchResultsPageProps)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedMatch, setSelectedMatch] = useState<MatchResult | null>(null);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const viewCountedRef = useRef(false);
 
   useEffect(() => {
     loadSharedResults();
+
+    // Count this as one "view" of the shared link - once per page load, not
+    // tied to whether the fetch above succeeds (a load error doesn't mean
+    // the link wasn't opened).
+    if (!viewCountedRef.current) {
+      viewCountedRef.current = true;
+      supabase.rpc('increment_shared_result_views', { p_share_id: shareId })
+        .then(({ error }) => { if (error) console.error('Error recording view:', error); });
+    }
   }, [shareId]);
 
   const loadSharedResults = async () => {
