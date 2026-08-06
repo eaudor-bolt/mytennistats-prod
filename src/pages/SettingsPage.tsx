@@ -71,7 +71,7 @@ export function SettingsPage() {
   const [isTenupImportModalOpen, setIsTenupImportModalOpen] = useState(false);
   const [sharedLinks, setSharedLinks] = useState<Array<{
     id: string;
-    type: 'Live Score' | 'Match Result';
+    type: 'Live Score' | 'Match Result' | 'Match History';
     url: string;
     created_at: string;
     player_names?: string[];
@@ -472,7 +472,7 @@ export function SettingsPage() {
 
       const links: Array<{
         id: string;
-        type: 'Live Score' | 'Match Result';
+        type: 'Live Score' | 'Match Result' | 'Match History';
         url: string;
         created_at: string;
         player_names?: string[];
@@ -494,7 +494,7 @@ export function SettingsPage() {
             links.push({
               id: match.id,
               type: 'Live Score',
-              url: `${window.location.origin}/live/${match.id}`,
+              url: `${window.location.origin}/shared-livescore/${match.id}`,
               created_at: match.created_at,
               player_names: [match.player_name],
               view_count: match.view_count || 0
@@ -522,6 +522,34 @@ export function SettingsPage() {
               created_at: result.created_at,
               player_names: result.player_names || [],
               view_count: result.view_count || 0
+            });
+          });
+        }
+      }
+
+      // Individual match shares ("shared-game" links) have no dedicated
+      // share-event table - shared_at on the match itself is what marks it
+      // as ever having been shared (see MatchesPage's onShareIndividual).
+      const { data: sharedGames, error: sharedGameError } = await supabase
+        .from('match_results')
+        .select('id, player_name, created_at, shared_at, user_id, view_count')
+        .eq('user_id', user.id)
+        .not('shared_at', 'is', null)
+        .order('shared_at', { ascending: false });
+
+      if (sharedGameError) {
+        console.error('Error fetching shared games:', sharedGameError);
+      } else {
+        console.log('Shared games found:', sharedGames?.length || 0);
+        if (sharedGames) {
+          sharedGames.forEach(match => {
+            links.push({
+              id: match.id,
+              type: 'Match History',
+              url: `${window.location.origin}/shared-game/${match.id}`,
+              created_at: match.shared_at || match.created_at,
+              player_names: [match.player_name],
+              view_count: match.view_count || 0
             });
           });
         }
@@ -592,7 +620,7 @@ export function SettingsPage() {
     }
   };
 
-  const deleteSharedLink = async (id: string, type: 'Live Score' | 'Match Result') => {
+  const deleteSharedLink = async (id: string, type: 'Live Score' | 'Match Result' | 'Match History') => {
     showAlert(t('settings.sharedLinks.deleteConfirmMessage'), {
       type: 'warning',
       title: t('settings.sharedLinks.deleteConfirmTitle'),
@@ -600,14 +628,23 @@ export function SettingsPage() {
       cancelText: t('common.cancel'),
       onConfirm: async () => {
         try {
-          const tableName = type === 'Live Score' ? 'live_matches' : 'shared_match_results';
-
-          const { error } = await supabase
-            .from(tableName)
-            .delete()
-            .eq('id', id);
-
-          if (error) throw error;
+          if (type === 'Match History') {
+            // There's no separate row for this share - the match itself
+            // (match_results) is what's shared, via shared_at. "Deleting
+            // the link" means un-sharing it, not deleting the match.
+            const { error } = await supabase
+              .from('match_results')
+              .update({ shared_at: null })
+              .eq('id', id);
+            if (error) throw error;
+          } else {
+            const tableName = type === 'Live Score' ? 'live_matches' : 'shared_match_results';
+            const { error } = await supabase
+              .from(tableName)
+              .delete()
+              .eq('id', id);
+            if (error) throw error;
+          }
 
           setSharedLinks(prev => prev.filter(link => link.id !== id));
           showAlert(t('settings.sharedLinks.deleteSuccess'), { type: 'success' });
@@ -1090,9 +1127,15 @@ export function SettingsPage() {
                           <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${
                             link.type === 'Live Score'
                               ? 'bg-green-100 text-green-700'
-                              : 'bg-blue-100 text-blue-700'
+                              : link.type === 'Match Result'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-purple-100 text-purple-700'
                           }`}>
-                            {link.type === 'Live Score' ? t('settings.sharedLinks.typeLiveScore') : t('settings.sharedLinks.typeMatchResult')}
+                            {link.type === 'Live Score'
+                              ? t('settings.sharedLinks.typeLiveScore')
+                              : link.type === 'Match Result'
+                              ? t('settings.sharedLinks.typeMatchResult')
+                              : t('settings.sharedLinks.typeMatchHistory')}
                           </span>
                         </td>
                         <td className={`py-3 px-2 text-sm text-gray-300`}>

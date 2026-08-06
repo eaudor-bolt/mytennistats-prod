@@ -971,7 +971,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
 
   const handleShare = async () => {
     if (liveMatchId) {
-      const url = `${window.location.origin}/live/${liveMatchId}`;
+      const url = `${window.location.origin}/shared-livescore/${liveMatchId}`;
       setShareUrl(url);
       await navigator.clipboard.writeText(url);
       setIsSharing(true);
@@ -995,7 +995,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
       const newLiveMatchId = await createLiveMatch();
 
       if (newLiveMatchId) {
-        const url = `${window.location.origin}/live/${newLiveMatchId}`;
+        const url = `${window.location.origin}/shared-livescore/${newLiveMatchId}`;
         setShareUrl(url);
         await navigator.clipboard.writeText(url);
         setIsSharing(true);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase, MatchResult } from '../lib/supabase';
 import { Loader2, Trophy, Calendar, MapPin, BarChart3 } from 'lucide-react';
 import { MatchStatsModal } from '../components/MatchStatsModal';
@@ -13,9 +13,18 @@ export function MatchHistoryPage({ matchId }: MatchHistoryPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const viewCountedRef = useRef(false);
 
   useEffect(() => {
     loadMatch();
+
+    // Count this as one "view" of the shared link - once per page load, not
+    // tied to whether the fetch above succeeds.
+    if (!viewCountedRef.current) {
+      viewCountedRef.current = true;
+      supabase.rpc('increment_match_result_views', { p_match_id: matchId })
+        .then(({ error }) => { if (error) console.error('Error recording view:', error); });
+    }
   }, [matchId]);
 
   const loadMatch = async () => {

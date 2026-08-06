@@ -12,7 +12,7 @@ type MatchResultsTableProps = {
   onDeleteMatch: (matchId: string) => void;
   onLiveScore?: () => void;
   onShareResults?: () => void;
-  onShareIndividual?: () => Promise<void>;
+  onShareIndividual?: (matchId: string) => Promise<void>;
 };
 
 export function MatchResultsTable({ matchResults, onAddMatch, onEditMatch, onDeleteMatch, onLiveScore, onShareResults, onShareIndividual }: MatchResultsTableProps) {
@@ -200,10 +200,10 @@ export function MatchResultsTable({ matchResults, onAddMatch, onEditMatch, onDel
   };
 
   const handleShare = async (matchId: string) => {
-    const url = `${window.location.origin}/match-history/${matchId}`;
+    const url = `${window.location.origin}/shared-game/${matchId}`;
     try {
       if (onShareIndividual) {
-        await onShareIndividual();
+        await onShareIndividual(matchId);
       }
       await navigator.clipboard.writeText(url);
       showAlert('Lien copié dans le presse-papiers! Partagez-le pour montrer les résultats de ce match.', {

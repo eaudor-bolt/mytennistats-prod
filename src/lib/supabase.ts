@@ -11,7 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // no timeout for getSession() calls, which run on every query. If one tab's
 // lock acquisition ever stalls (a frozen/throttled background tab, a dropped
 // request mid token-refresh), every other tab sharing this origin — including
-// anonymous /live/:matchId viewers — hangs forever waiting for the same lock,
+// anonymous /shared-livescore/:matchId viewers — hangs forever waiting for the same lock,
 // only resolved by closing the stuck tab. Cap the wait and fall back to
 // running without exclusivity instead of hanging indefinitely.
 const TAB_LOCK_TIMEOUT_MS = 3000;
@@ -184,6 +184,8 @@ export type MatchResult = {
   game_per_set?: 3 | 4 | 6;
   super_tiebreak?: boolean;
   no_ad?: boolean;
+  shared_at?: string | null;
+  view_count?: number;
   created_at: string;
   updated_at: string;
 };

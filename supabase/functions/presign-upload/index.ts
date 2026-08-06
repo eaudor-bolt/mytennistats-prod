@@ -64,7 +64,7 @@ function getS3Client() {
  *   - match-videos/{userId}/{liveMatchId}/{uuid}.ext - the `{liveMatchId}/`
  *     segment comes from the client (Live Score groups a match's point clips
  *     under its match id). Being a UUID is not enough on its own: live match
- *     ids are public, they appear in every /live/{id} share link, so the
+ *     ids are public, they appear in every /shared-livescore/{id} share link, so the
  *     caller's ownership of that match is checked against the database
  *     before it is used.
  */

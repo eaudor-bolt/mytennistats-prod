@@ -66,8 +66,13 @@ function App() {
       const searchParams = new URLSearchParams(window.location.search || hash.split('?')[1]);
       const pageParam = searchParams.get('page');
 
-      const liveMatch = path.match(/^\/live\/([a-f0-9-]+)$/);
-      const matchHistory = path.match(/^\/match-history\/([a-f0-9-]+)$/);
+      // Current paths are /shared-livescore/ and /shared-game/ (renamed from
+      // /live/ and /match-history/) - the old forms are still matched here
+      // so links already shared under the old names keep working. Only the
+      // new names are ever generated going forward (see MatchResultsTable,
+      // LiveScoreModal, SettingsPage).
+      const liveMatch = path.match(/^\/(?:shared-livescore|live)\/([a-f0-9-]+)$/);
+      const matchHistory = path.match(/^\/(?:shared-game|match-history)\/([a-f0-9-]+)$/);
       const sharedResults = path.match(/^\/shared-results\/([a-f0-9-]+)$/);
 
       if (liveMatch) {
@@ -177,7 +182,7 @@ function App() {
       }
 
       // Anything else doesn't correspond to any known route - a malformed
-      // /live/, /match-history/, /shared-results/ id, or just a bad link.
+      // /shared-livescore/, /shared-game/, /shared-results/ id, or just a bad link.
       setNotFound(true);
       setLoading(false);
     };
@@ -226,13 +231,13 @@ function App() {
 
   useEffect(() => {
     if (liveMatchId) {
-      trackPageView(`/live/${liveMatchId}`, 'LiveScore');
+      trackPageView(`/shared-livescore/${liveMatchId}`, 'LiveScore');
     }
   }, [liveMatchId]);
 
   useEffect(() => {
     if (matchHistoryId) {
-      trackPageView(`/match-history/${matchHistoryId}`, 'MatchStats');
+      trackPageView(`/shared-game/${matchHistoryId}`, 'MatchStats');
     }
   }, [matchHistoryId]);
 

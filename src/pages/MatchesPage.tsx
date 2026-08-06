@@ -572,13 +572,22 @@ export function MatchesPage() {
               trackMatchAction('share', undefined, { share_type: 'results' });
               setIsShareModalOpen(true);
             }}
-            onShareIndividual={async () => {
+            onShareIndividual={async (matchId) => {
               if (!canShareMatch) {
                 showAlert(t('matches.premium.shareLimitReached'), { type: 'warning' });
                 return;
               }
               trackMatchAction('share', undefined, { share_type: 'individual' });
               await incrementUsage('share');
+              // Nothing else marks a match as "shared" - Settings -> Shared
+              // Links reads this to list /shared-game/ links at all.
+              const { error } = await supabase
+                .from('match_results')
+                .update({ shared_at: new Date().toISOString() })
+                .eq('id', matchId);
+              if (error) {
+                console.error('Error marking match as shared:', error);
+              }
             }}
           />
         </div>

@@ -1,7 +1,9 @@
 User-agent: *
 Allow: /
+Disallow: /shared-livescore/
+Disallow: /shared-game/
+Disallow: /shared-results/
 Disallow: /live/
 Disallow: /match-history/
-Disallow: /shared-results/
 
 Sitemap: https://mytennistats.com/sitemap.xml

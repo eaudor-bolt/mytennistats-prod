@@ -67,16 +67,22 @@ npm run typecheck  # tsc --noEmit
 ### Routing
 
 There is no router library. [`src/App.tsx`](src/App.tsx) reads `window.location` directly and
-listens for `hashchange`. It supports both hash (`#/live/<id>`) and path (`/live/<id>`) forms —
-`vercel.json` rewrites every path to `index.html` so deep links work on refresh.
+listens for `hashchange`. It supports both hash (`#/shared-livescore/<id>`) and path
+(`/shared-livescore/<id>`) forms — `vercel.json` rewrites every path to `index.html` so deep
+links work on refresh.
 
 Three routes are **public** (no session required):
 
 | Route | Page | Data source |
 | --- | --- | --- |
-| `/live/{matchId}` | `LiveMatchPage` | `get_live_match(uuid)` RPC |
-| `/match-history/{matchId}` | `MatchHistoryPage` | `get_public_match_result(uuid)` RPC |
+| `/shared-livescore/{matchId}` | `LiveMatchPage` | `get_live_match(uuid)` RPC |
+| `/shared-game/{matchId}` | `MatchHistoryPage` | `get_public_match_result(uuid)` RPC |
 | `/shared-results/{shareId}` | `SharedMatchResultsPage` | `get_shared_match_results(uuid)` RPC |
+
+`/live/{matchId}` and `/match-history/{matchId}` (their names before this rename) still route
+correctly too — links already shared under the old names keep working — but every place that
+generates a link (`MatchResultsTable`, `LiveScoreModal`, `SettingsPage`) only ever produces the
+new form.
 
 Everything else requires a session. Without one the visitor gets `LandingPage` or `LoginPage`.
 
@@ -116,8 +122,8 @@ Each point is appended to a `scoring_history` array persisted on the `live_match
 when the match is saved, on the `match_results` row. If point recording is enabled, each point
 also produces a video clip (see [Video pipeline](#video-pipeline)).
 
-Public viewers of `/live/{id}` poll every 15 seconds. They do not use Realtime — anonymous
-visitors have no SELECT path on `live_matches`, and Realtime enforces RLS.
+Public viewers of `/shared-livescore/{id}` poll every 15 seconds. They do not use Realtime —
+anonymous visitors have no SELECT path on `live_matches`, and Realtime enforces RLS.
 
 ### Data model
 
@@ -294,7 +300,7 @@ own folder:
 - `recorded-videos/{userId}/…` — that's the whole scope, one level deep.
 - `match-videos/{userId}/{liveMatchId}/…` — nests one level further under the live match id.
   Being a UUID isn't enough on its own to gate this: live match ids are public (they appear in
-  every `/live/{id}` share link), so `presign-upload` also checks `live_matches.user_id`
+  every `/shared-livescore/{id}` share link), so `presign-upload` also checks `live_matches.user_id`
   matches the caller before it will sign anything for that match — `ownsLiveMatch()` in the
   same file.
 
