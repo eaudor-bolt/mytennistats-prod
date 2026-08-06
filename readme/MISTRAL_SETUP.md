@@ -44,8 +44,8 @@ After setting up the API key, you need to index the official ITF rules:
 pip install PyPDF2 requests
 
 # Export environment variables
-export VITE_SUPABASE_URL=https://teckcldrmwfxoxcinlhb.supabase.co
-export VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlY2tjbGRybXdmeG94Y2lubGhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4MTAzNDAsImV4cCI6MjA3ODM4NjM0MH0.oAV5xMejeYyPlvFxpgMoIVy6a_AKf3s1LI9mywWy040
+export VITE_SUPABASE_URL=
+export VITE_SUPABASE_ANON_KEY=
 
 # Run the processing script
 python scripts/process_tennis_rules_pdfs.py

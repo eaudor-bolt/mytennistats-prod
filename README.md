@@ -171,15 +171,44 @@ This is the part most likely to need changes, so it is documented end to end.
 
 ### Overview
 
+Five steps, three of which are in this repo and two of which are not (the AWS side lives in
+the separate `cdk-lambda-ffmpeg` CDK stack):
+
+1. **Browser upload** — `VideosPage` (manual library upload) or `LiveScoreModal` (a point
+   clip) has a video `Blob` and wants it in S3. Neither ever holds an AWS credential.
+2. **Edge function issues a presigned URL** — the browser calls the `presign-upload` Supabase
+   edge function (authenticated with the user's own session, nothing else). It resolves the
+   caller's identity, builds the destination key server-side, and returns a short-lived
+   presigned S3 PUT URL — this repo's code never sees an AWS access key.
+3. **Browser uploads straight to S3** — the PUT goes directly from the browser to S3 using
+   that presigned URL, under the **`mytennistats-import/`** staging prefix. Every key starts
+   with the uploader's own user id, whichever folder it's in:
+   - `mytennistats-import/recorded-videos/{userId}/{video-id}.ext` — manual upload.
+   - `mytennistats-import/match-videos/{userId}/{matchId}/{video-id}.ext` — Live Score point
+     clip, nesting the live match id one level further in.
+
+   (`{video-id}` is a server-generated UUID leaf, not anything the client chose — see
+   [Key construction](#key-construction-server-side-authoritative).)
+4. **AWS processes the video (not in this repo)** — an S3 event on that prefix triggers the
+   external Lambda pipeline: it transcodes to a web-friendly mp4 and generates a jpg poster
+   frame (or, for already-playable Live Score clips, just copies them through unchanged), and
+   writes the result under the **`mytennistats/`** prefix, mirroring the exact same path that
+   followed the staging prefix (only that first segment changes — see the convention below).
+5. **Supabase is updated** — the browser never waits for step 4. It already has the final
+   CloudFront URL predicted from the presigned response (see the prefix-swap convention
+   below) and writes it straight away: a new row in `videos` for a manual upload, or a patched
+   `videoUrl` inside the `scoring_history` entry for a Live Score point. The clip can 404 for
+   the few seconds until step 4 actually finishes.
+
 ```mermaid
 flowchart TD
-    A["Browser<br/>VideosPage upload or LiveScoreModal point clip"] -->|"POST action: presign-*"| B["Edge function<br/>presign-upload"]
-    B -->|"presigned PUT URL"| A
-    A -->|"PUT bytes direct to S3"| C["S3<br/>mytennistats-import/ prefix"]
-    C -->|"S3 event"| D["External transcode<br/>Lambda - separate repo"]
-    D --> E["S3<br/>mytennistats/ prefix - mp4 + jpg poster"]
+    A["Browser<br/>VideosPage upload or LiveScoreModal point clip"] -->|"1: has a Blob"| B["Edge function<br/>presign-upload"]
+    B -->|"2: presigned PUT URL"| A
+    A -->|"3: PUT bytes direct to S3"| C["S3<br/>mytennistats-import/{folder}/{userId}/[{matchId}/]"]
+    C -->|"S3 event"| D["4: External transcode<br/>Lambda - separate repo"]
+    D --> E["S3<br/>mytennistats/{folder}/{userId}/[{matchId}/] - mp4 + jpg poster"]
     E --> F["CloudFront<br/>d2g92movh621e9.cloudfront.net"]
-    A -->|"INSERT row with mytennistats/ URL"| G["Postgres<br/>videos / live_matches.scoring_history"]
+    A -->|"5: INSERT/UPDATE row with mytennistats/ URL"| G["Postgres<br/>videos / live_matches.scoring_history"]
     F --> H["Playback"]
     G --> H
 ```
@@ -192,24 +221,33 @@ This is the single most important thing to understand.
 - An external Lambda (in the `ffmpeg-cdk-lambda-s3cloudfront` AWS stack — **not in this
   repo**) watches that prefix, transcodes the file, and writes the result under the
   **`mytennistats/`** prefix, mirroring the rest of the key.
-- The app never waits for that. It takes the CloudFront URL it was given and does a plain
-  string replace before storing it:
+- The app never waits for that. It takes the CloudFront URL it was given and predicts the
+  final one before storing it, through **one shared helper** — every call site that needs
+  this (`VideosPage`'s manual upload, and both branches of `LiveScoreModal`'s point-clip
+  upload) goes through it rather than repeating the string substitution inline:
 
 ```ts
-// src/pages/VideosPage.tsx:778
-const videoUrl = s3Result.presignedUrl.replace('/mytennistats-import/', '/mytennistats/');
+// src/utils/s3Upload.ts
+const STAGING_PREFIX = '/mytennistats-import/';
+const FINAL_PREFIX = '/mytennistats/';
+
+export function toFinalVideoUrl(stagingUrl: string): string {
+  return stagingUrl.replace(STAGING_PREFIX, FINAL_PREFIX);
+}
+```
+
+```ts
+// src/pages/VideosPage.tsx
+const videoUrl = toFinalVideoUrl(s3Result.presignedUrl);
 // poster comes from the same pipeline, same key with a .jpg extension
 const posterImageUrl = videoUrl.replace(/\.(mp4|webm|mov|avi)$/i, '.jpg');
 ```
 
-The same replace happens for Live Score clips at
-[`LiveScoreModal.tsx:725`](src/components/LiveScoreModal.tsx#L725) and
-[`:748`](src/components/LiveScoreModal.tsx#L748).
-
 **Consequence:** the URL stored in the database is a *prediction*. It becomes valid only once
-the Lambda finishes. A clip played immediately after upload can 404 until then. If you change
-the prefix naming, the extension the Lambda emits, or the poster convention, you must change
-it in **all three** call sites above *and* in the Lambda stack.
+the Lambda finishes. A clip played immediately after upload can 404 until then. If you ever
+need to change the prefix naming, `toFinalVideoUrl()` is the **only** place to edit on this
+side — *and* the Lambda stack has to keep writing to whatever `FINAL_PREFIX` says, or every
+predicted URL 404s forever instead of just for a few seconds.
 
 ### Upload paths
 
@@ -222,10 +260,10 @@ storage are checked client-side before upload starts, then a `videos` row is ins
 
 **2. Live Score point clips** — `LiveScoreModal`. Filename is
 `` `${liveMatchId}/point-${sequence}-${Date.now()}.${ext}` ``. The leading UUID segment groups
-a match's clips together under `match-videos/{liveMatchId}/`. Uploads run in the background
-with retry (`UPLOAD_RETRY_DELAYS_MS`) and never block the scoreboard; the clip URL is patched
-into the `scoring_history` entry when it resolves. No `videos` row is created — the URL lives
-inside the scoring history JSON.
+a match's clips together under `match-videos/{userId}/{liveMatchId}/`. Uploads run in the
+background with retry (`UPLOAD_RETRY_DELAYS_MS`) and never block the scoreboard; the clip URL
+is patched into the `scoring_history` entry when it resolves. No `videos` row is created — the
+URL lives inside the scoring history JSON.
 
 Transfer mode is chosen by size in `s3Upload.ts`:
 
@@ -240,23 +278,25 @@ Single uploads use `presign-single`. Multipart runs `initiate-multipart` →
 
 ### Key construction (server-side, authoritative)
 
-The client's filename is **not** used as a path. `buildS3Key()` in
+The client's filename is **not** used as a path. `buildS3Key()` (fed by `parseUpload()`) in
 [`supabase/functions/presign-upload/index.ts`](supabase/functions/presign-upload/index.ts)
 uses it only to pick the folder and the extension, then generates a fresh UUID leaf name:
 
 ```
-mytennistats-import/recorded-videos/{userId}/{uuid}.{ext}    # manual upload — scoped per uploader
-mytennistats-import/match-videos/{liveMatchId}/{uuid}.{ext}  # live score clip — scoped per match
+mytennistats-import/recorded-videos/{userId}/{uuid}.{ext}               # manual upload
+mytennistats-import/match-videos/{userId}/{liveMatchId}/{uuid}.{ext}    # live score clip
 ```
 
-Every key is scoped under a UUID folder, so uploads from different users (or different
-matches) can never collide or land in the same directory:
+Every key starts with `{userId}/` — never taken from the client, always the authenticated
+caller's own id (`buildS3Key(parsed, user.id)`) — so a user can only ever write under their
+own folder:
 
-- `match-videos/{liveMatchId}/…` — the `{liveMatchId}/` segment comes from the client (it's
-  how Live Score groups a match's point clips), validated as a UUID before use.
-- `recorded-videos/{userId}/…` — the `{userId}/` segment is **never taken from the client**.
-  `presign-upload` resolves it from the caller's own session (`requireUser`) and passes it
-  into `buildS3Key(filename, user.id)`, so a user can only ever write under their own folder.
+- `recorded-videos/{userId}/…` — that's the whole scope, one level deep.
+- `match-videos/{userId}/{liveMatchId}/…` — nests one level further under the live match id.
+  Being a UUID isn't enough on its own to gate this: live match ids are public (they appear in
+  every `/live/{id}` share link), so `presign-upload` also checks `live_matches.user_id`
+  matches the caller before it will sign anything for that match — `ownsLiveMatch()` in the
+  same file.
 
 Constraints enforced there:
 
@@ -266,7 +306,7 @@ Constraints enforced there:
 | `ALLOWED_EXTENSIONS` | `mp4`, `webm`, `mov`, `avi`, `m4v`, `jpg`, `jpeg`, `png` |
 | `ALLOWED_CONTENT_TYPES` | `video/*` or `image/*` |
 | `KEY_PATTERN` | re-validates any client-supplied key on multipart continuation |
-| Rejected outright | `..`, `\`, leading `/`, more than 2 path segments |
+| Rejected outright | `..`, `\`, leading `/`, more than 2 path segments in the *client-supplied* filename (the match id, if any, plus the leaf) |
 
 Two deliberate behaviours worth knowing before you change anything:
 
@@ -353,6 +393,42 @@ real user from the token and rejects a bare anon key.
 only authentication it can have. There is no unsigned path — a request without a valid
 signature is rejected before the body is parsed.
 
+### Database functions: two rules, both mandatory
+
+Postgres grants `EXECUTE` to `PUBLIC` on every new function, and `PUBLIC` includes `anon`.
+A `SECURITY DEFINER` function bypasses RLS by design. Together that means **every new
+`SECURITY DEFINER` function is callable by anyone holding the public anon key until you
+explicitly revoke it** — `GRANT ... TO authenticated` does not remove PUBLIC's grant.
+
+Every migration that creates one must end with:
+
+```sql
+REVOKE ALL ON FUNCTION public.my_function(args) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.my_function(args) TO authenticated;  -- or service_role
+```
+
+And ownership guards must be NULL-safe. For an anonymous caller `auth.uid()` is NULL, and
+`NULL != 'anything'` evaluates to NULL — not TRUE — so `IF auth.uid() != p_user_id THEN
+RAISE` never fires and execution falls straight through to the body:
+
+```sql
+IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
+  RAISE EXCEPTION 'You can only ... your own account';
+END IF;
+```
+
+Also set `SET search_path = public, pg_temp` (not just `public`).
+
+These three omissions together are what made `delete_user_account` deletable-by-anyone; see
+`20260802000000_fix_null_unsafe_function_guards.sql`. To audit what is currently reachable:
+
+```sql
+SELECT p.oid::regprocedure AS fn, p.prosecdef AS security_definer
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public' AND has_function_privilege('anon', p.oid, 'EXECUTE')
+ORDER BY 1;
+```
+
 ---
 
 ## Deployment
@@ -361,9 +437,25 @@ signature is rejected before the body is parsed.
 
 The site is a static SPA. Vercel builds with `npm run build` and serves `dist/`.
 [`vercel.json`](vercel.json) rewrites all paths to `index.html` so deep links survive a refresh.
+Pushing to the default branch triggers a deploy.
 
-Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and `VITE_STRIPE_PRICE_ID` in the Vercel
-project's environment variables. Pushing to the default branch triggers a deploy.
+**This is the entire environment configuration Vercel needs** — Project Settings →
+Environment Variables:
+
+| Variable | Value | Notes |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | `https://<project-ref>.supabase.co` | Same project as local dev |
+| `VITE_SUPABASE_ANON_KEY` | the project's anon key | Public by design — safe in a browser bundle |
+| `VITE_STRIPE_PRICE_ID` | `price_xxx` | The Premium subscription price |
+
+That's it — **the web app never needs an S3 bucket name, an AWS region or a CloudFront
+hostname.** It only ever talks to Supabase; Supabase's `presign-upload` edge function is the
+only thing that knows about AWS, and it hands the frontend a ready-to-use presigned URL and a
+finished CloudFront URL, not raw bucket/region details. Those three AWS values are
+[edge function secrets](#edge-functions-1), configured on the Supabase side, not here. If you
+ever find yourself wanting to add `VITE_AWS_*` variables to make a video feature work, that's
+a sign the change belongs in `presign-upload` instead of the frontend — see
+[Video pipeline](#video-pipeline).
 
 ### Database migrations
 
@@ -408,6 +500,20 @@ supabase secrets set \
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by the
 platform automatically.
+
+This is the **only** place the app is told which S3 bucket and CloudFront distribution to
+use — both are read exclusively by `presign-upload` (and its `AWS_S3_BUCKET` /
+`AWS_REGION` / credentials by `delete-video-from-s3` and `delete-account` too):
+
+| Secret | Value | Read by |
+| --- | --- | --- |
+| `AWS_S3_BUCKET` | the bucket name from the CDK stack (`s3BucketName` in `cdk-ffmpeg-lambda-stack.ts`) | `presign-upload`, `delete-video-from-s3`, `delete-account` |
+| `AWS_REGION` | that bucket's region, e.g. `eu-west-1` | same three |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | an IAM user scoped to that bucket (see permissions note below) | same three |
+| `CLOUDFRONT_HOST` | the distribution's domain, e.g. `d2g92movh621e9.cloudfront.net` | `presign-upload` only, to build the URL it hands back to the browser |
+
+Changing buckets, regions or CloudFront distributions is a `supabase secrets set` call —
+nothing in the frontend or its Vercel config ever needs to change for that.
 
 The IAM user behind `AWS_ACCESS_KEY_ID` needs `s3:PutObject` and the multipart permissions on
 the `mytennistats-import/` prefix (where `presign-upload` writes), and `s3:DeleteObject` on

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, ArrowLeft, Trophy, Share2, Lock, Unlock, Camera, StopCircle, Settings, Clock, Upload, CheckCircle, Eye, EyeOff, Play } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
-import { uploadVideoToS3 } from '../utils/s3Upload';
+import { uploadVideoToS3, toFinalVideoUrl } from '../utils/s3Upload';
 import { MiniScoreboard } from './MiniScoreboard';
 import { VideoPlayerModal } from './VideoPlayerModal';
 import { GaugeBar } from './GaugeBar';
@@ -125,6 +125,14 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
   const skipNextHistoryPushRef = useRef(false);
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  // VideoPlayerModal (rendered nested below when a point's clip is playing)
+  // registers its own popstate listener too. A single history.back() - from
+  // either modal's own close action - fires BOTH listeners at once, so this
+  // one must no-op while the video player is open: otherwise closing the
+  // video (via its X button or a physical back) also closes this whole Live
+  // Score modal, dropping the user back on the Matches page.
+  const playingVideoUrlRef = useRef<string | null>(null);
+  useEffect(() => { playingVideoUrlRef.current = playingVideoUrl; }, [playingVideoUrl]);
 
   const saveMatchState = () => {
     const state = {
@@ -203,6 +211,13 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
   useEffect(() => {
     if (isOpen) {
       isClosingRef.current = false;
+      // This component instance is never unmounted (the parent always
+      // renders it, just gated by isOpen) - so without this, a video left
+      // open from a previous session (e.g. the primary bugfix above no
+      // longer applies once the whole modal *is* legitimately closed and
+      // reopened) would still be sitting in state and resurface as soon as
+      // the user resumes, instead of showing the live scoreboard.
+      setPlayingVideoUrl(null);
 
       if (skipNextResetRef.current) {
         // Reopening after the Add Match modal was cancelled: this session's
@@ -256,6 +271,12 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     }
 
     const handlePopState = () => {
+      if (playingVideoUrlRef.current) {
+        // The nested VideoPlayerModal owns this pop: it pushed its own
+        // history entry on top of ours and has its own listener that will
+        // close just the video. Don't also close the Live Score modal.
+        return;
+      }
       pushedHistoryRef.current = false;
       onCloseRef.current();
     };
@@ -721,8 +742,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         pointStartTimeRef.current = Date.now();
 
         uploadVideoToS3Bucket(blob, entrySequence).then((videoUrl) => {
-          // Replace the staging prefix with the transcoded-output prefix for the stored URL
-          const storedUrl = videoUrl?.replace('/mytennistats-import/', '/mytennistats/') || null;
+          const storedUrl = videoUrl ? toFinalVideoUrl(videoUrl) : null;
 
           setUploadingEntries(prev => {
             const newSet = new Set(prev);
@@ -744,8 +764,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         setUploadingEntries(prev => new Set(prev).add(lastEntrySequence));
 
         uploadVideoToS3Bucket(blob, lastEntrySequence).then((videoUrl) => {
-          // Replace the staging prefix with the transcoded-output prefix for the stored URL
-          const storedUrl = videoUrl?.replace('/mytennistats-import/', '/mytennistats/') || null;
+          const storedUrl = videoUrl ? toFinalVideoUrl(videoUrl) : null;
 
           setUploadingEntries(prev => {
             const newSet = new Set(prev);
