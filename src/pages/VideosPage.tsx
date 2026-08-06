@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePlayers } from '../contexts/PlayersContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { MatchAnalysisPage } from './MatchAnalysisPage';
-import { uploadVideoToS3 } from '../utils/s3Upload';
+import { uploadVideoToS3, toFinalVideoUrl } from '../utils/s3Upload';
 import { deleteVideoFromS3 } from '../utils/s3Delete';
 import CourtBackground from '../components/landing/CourtBackground';
 import { trackVideoAction, trackButtonClick, trackFilterAction } from '../utils/analytics';
@@ -774,8 +774,8 @@ export function VideosPage() {
         throw new Error(s3ErrorMessage || 'Failed to upload video to S3');
       }
 
-      // Use the presigned URL from S3 and replace /import/ with /ffmpeg/
-      const videoUrl = s3Result.presignedUrl.replace('/import/', '/ffmpeg/');
+      // Use the presigned URL from S3, pointing at the transcoded-output prefix
+      const videoUrl = toFinalVideoUrl(s3Result.presignedUrl);
 
       // Create poster image URL by replacing .mp4 with .jpg
       const posterImageUrl = videoUrl.replace(/\.(mp4|webm|mov|avi)$/i, '.jpg');

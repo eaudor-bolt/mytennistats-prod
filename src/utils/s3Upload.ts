@@ -9,6 +9,23 @@ const MULTIPART_THRESHOLD = 10 * 1024 * 1024;
 const PART_SIZE = 10 * 1024 * 1024;
 const PRESIGN_URL = functionUrl('presign-upload');
 
+// Uploads land under this staging prefix; the external transcode pipeline
+// (cdk-lambda-ffmpeg, not in this repo) mirrors the finished file under this
+// output prefix once it's done. This is the one and only place that
+// staging-to-final substitution happens - see README.md ("Video pipeline").
+const STAGING_PREFIX = '/mytennistats-import/';
+const FINAL_PREFIX = '/mytennistats/';
+
+/**
+ * Converts the CloudFront URL handed back by presign-upload (still pointing
+ * at the staging prefix, since the file hasn't been transcoded yet) into the
+ * URL it will resolve to once that finishes. The predicted URL is stored
+ * immediately - the app never waits for the transcode to complete.
+ */
+export function toFinalVideoUrl(stagingUrl: string): string {
+  return stagingUrl.replace(STAGING_PREFIX, FINAL_PREFIX);
+}
+
 async function callPresignApi(body: Record<string, unknown>): Promise<any> {
   const res = await fetch(PRESIGN_URL, {
     method: 'POST',

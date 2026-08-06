@@ -27,12 +27,13 @@ const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
  * so it is re-checked against this before being handed to S3 - otherwise a
  * caller could name any object in the bucket and have us sign a write to it.
  *
- * Every key is scoped under a UUID folder: the live match id for
- * match-videos, or the uploader's user id for recorded-videos. See
- * README.md ("Video pipeline") for the full staged/final key layout.
+ * Every key starts with the uploader's own user id, so recorded-videos and
+ * match-videos are both scoped per-user; match-videos nests the live match
+ * id one level further in. See README.md ("Video pipeline") for the full
+ * staged/final key layout.
  */
 const KEY_PATTERN = new RegExp(
-  `^mytennistats-import/(match-videos|recorded-videos)/${UUID}/${UUID}\\.[a-z0-9]{1,5}$`,
+  `^mytennistats-import/(recorded-videos/${UUID}|match-videos/${UUID}/${UUID})/${UUID}\\.[a-z0-9]{1,5}$`,
 );
 
 function getS3Client() {
@@ -57,16 +58,15 @@ function getS3Client() {
  * server-generated UUID, so a caller cannot aim an upload at an object that
  * already exists (which is how another user's video could be overwritten).
  *
- * Every key is scoped under a UUID folder so uploads from different users
- * (or different matches) never land in the same directory:
- *   - match-videos/{liveMatchId}/{uuid}.ext - the `{liveMatchId}/` segment
- *     comes from the client (Live Score groups a match's point clips under
- *     its match id). Being a UUID is not enough: live match ids are public,
- *     they appear in every /live/{id} share link, so the caller's ownership
- *     of that match is checked against the database before it is used.
- *   - recorded-videos/{userId}/{uuid}.ext - the `{userId}/` segment is never
- *     taken from the client; it's the authenticated caller's own id, so a
- *     user can only ever write under their own folder.
+ * Every key starts with `{userId}/` - never taken from the client, always
+ * the authenticated caller's own id - so every folder is scoped per-user:
+ *   - recorded-videos/{userId}/{uuid}.ext
+ *   - match-videos/{userId}/{liveMatchId}/{uuid}.ext - the `{liveMatchId}/`
+ *     segment comes from the client (Live Score groups a match's point clips
+ *     under its match id). Being a UUID is not enough on its own: live match
+ *     ids are public, they appear in every /live/{id} share link, so the
+ *     caller's ownership of that match is checked against the database
+ *     before it is used.
  */
 type ParsedUpload = { folder: (typeof ALLOWED_FOLDERS)[number]; group: string | null; extension: string };
 
@@ -120,15 +120,16 @@ async function ownsLiveMatch(
   return !!data;
 }
 
-function buildS3Key(parsed: ParsedUpload, scope: string): string {
+function buildS3Key(parsed: ParsedUpload, userId: string): string {
+  const scope = parsed.group ? `${userId}/${parsed.group}` : userId;
   return `mytennistats-import/${parsed.folder}/${scope}/${crypto.randomUUID()}.${parsed.extension}`;
 }
 
 /**
  * Validates a key supplied by the client on a multipart continuation action.
- * Checks both that the key has the shape we issue *and* that its scope folder
- * belongs to this caller - for recorded-videos that the folder is their own
- * user id, for match-videos that they own the live match.
+ * Checks both that the key has the shape we issue *and* that its `{userId}/`
+ * segment belongs to this caller - for match-videos, that they also own the
+ * live match nested one level further in.
  */
 async function assertCallerKey(
   key: unknown,
@@ -137,12 +138,11 @@ async function assertCallerKey(
 ): Promise<string | null> {
   if (typeof key !== "string" || !KEY_PATTERN.test(key)) return null;
 
-  const [, folder, group] = key.split("/");
+  const [, folder, keyUserId, matchId] = key.split("/");
+  if (keyUserId !== userId) return null;
 
-  if (folder === "recorded-videos") {
-    return group === userId ? key : null;
-  }
-  return (await ownsLiveMatch(supabase, userId, group)) ? key : null;
+  if (folder === "recorded-videos") return key;
+  return (await ownsLiveMatch(supabase, userId, matchId)) ? key : null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -178,7 +178,7 @@ Deno.serve(async (req: Request) => {
         return jsonError("Unknown live match", 403);
       }
 
-      const s3Key = buildS3Key(parsed, parsed.group ?? user.id);
+      const s3Key = buildS3Key(parsed, user.id);
 
       if (action === "presign-single") {
         const command = new PutObjectCommand({ Bucket: bucket, Key: s3Key, ContentType: contentType });
