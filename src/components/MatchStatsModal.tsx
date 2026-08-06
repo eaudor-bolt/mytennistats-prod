@@ -1172,6 +1172,13 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                   if (player > opponent) playerSets++;
                   else if (opponent > player) opponentSets++;
                 });
+                // A real completed match always reaches exactly 2 sets - if
+                // neither side has, the score alone doesn't show a finished
+                // match (retirement mid-set), so defer to who retired.
+                if (playerSets >= 2) return true;
+                if (opponentSets >= 2) return false;
+                if (match.retirement_player === 'adversaire') return true;
+                if (match.retirement_player === 'famille') return false;
                 return playerSets > opponentSets;
               })()}
               showWinnerIcon={true}

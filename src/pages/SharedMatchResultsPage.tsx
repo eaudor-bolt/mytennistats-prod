@@ -135,7 +135,7 @@ export function SharedMatchResultsPage({ shareId }: SharedMatchResultsPageProps)
     }
   };
 
-  const getMatchResult = (score: string) => {
+  const getMatchResult = (score: string, retirementPlayer?: 'adversaire' | 'famille' | null) => {
     if (!score) return 'unknown';
 
     const sets = score.split(' - ');
@@ -163,6 +163,17 @@ export function SharedMatchResultsPage({ shareId }: SharedMatchResultsPageProps)
         opponentSets++;
       }
     });
+
+    // A real completed match always has a winner at exactly 2 sets (never 1) -
+    // so reaching that is a reliable signal the score alone settles it.
+    if (playerSets >= 2) return 'win';
+    if (opponentSets >= 2) return 'loss';
+
+    // Fewer than 2 sets either way means the score alone doesn't show a
+    // finished match (retirement mid-set, or before either side reached 2) -
+    // whoever DIDN'T retire is the winner regardless of games/sets banked.
+    if (retirementPlayer === 'adversaire') return 'win';
+    if (retirementPlayer === 'famille') return 'loss';
 
     if (playerSets > opponentSets) return 'win';
     if (opponentSets > playerSets) return 'loss';
@@ -293,7 +304,7 @@ export function SharedMatchResultsPage({ shareId }: SharedMatchResultsPageProps)
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {sortedMatches.map((match) => {
-                    const matchResult = getMatchResult(match.score);
+                    const matchResult = getMatchResult(match.score, match.retirement_player);
                     const rowClass = matchResult === 'win'
                       ? 'bg-green-500/10 hover:bg-green-500/20'
                       : matchResult === 'loss'
