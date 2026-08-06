@@ -6,10 +6,12 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+dist-ssr/
 
 .vscode/*
 !.vscode/extensions.json
@@ -21,3 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Local-only snapshots of the remote Supabase project (schema dump, auth
+# config, storage buckets, secret name/hash manifest, edge function source
+# as actually deployed). Kept on disk for reference, never pushed - this repo
+# is public, and even the redacted versions of these files reveal more about
+# prod infra than should be public. Regenerate with the same commands
+# whenever you want a fresh snapshot; delete old dated folders as you like.
+supabase/backups/

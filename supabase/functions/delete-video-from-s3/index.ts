@@ -1,7 +1,17 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { S3Client, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.980.0";
+import { S3Client, DeleteObjectsCommand } from "npm:@aws-sdk/client-s3@3.980.0";
 import { corsHeaders, jsonOk, jsonError } from "../_shared/http.ts";
 import { requireUser } from "../_shared/auth.ts";
+
+function keyFromUrl(url: unknown): string | null {
+  if (typeof url !== "string" || !url) return null;
+  try {
+    const key = new URL(url).pathname.substring(1);
+    return key || null;
+  } catch {
+    return null;
+  }
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -36,7 +46,7 @@ Deno.serve(async (req: Request) => {
      * still accepted as a lookup hint for older clients, but it is matched
      * against the row rather than trusted.
      */
-    let query = supabase.from("videos").select("id, url").eq("user_id", user.id);
+    let query = supabase.from("videos").select("id, url, poster_image").eq("user_id", user.id);
     if (videoId) {
       query = query.eq("id", videoId);
     } else {
@@ -57,19 +67,29 @@ Deno.serve(async (req: Request) => {
       return jsonError("Video not found", 404);
     }
 
-    let s3Key: string;
-    try {
-      s3Key = new URL(video.url).pathname.substring(1);
-    } catch {
-      return jsonError("Stored video URL is not usable", 422);
-    }
-
+    const s3Key = keyFromUrl(video.url);
     if (!s3Key) {
       return jsonError("Stored video URL is not usable", 422);
     }
 
+    // The poster thumbnail (.jpg) is generated and stored alongside the mp4
+    // at transcode time - delete it too, or it's left orphaned in S3 forever.
+    // Older rows may predate poster generation, so this can be null.
+    const posterKey = keyFromUrl(video.poster_image);
+
+    const keys = posterKey ? [s3Key, posterKey] : [s3Key];
     const s3Client = new S3Client({ region, credentials: { accessKeyId, secretAccessKey } });
-    await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: s3Key }));
+    const result = await s3Client.send(
+      new DeleteObjectsCommand({
+        Bucket: bucket,
+        Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+      }),
+    );
+
+    if (result.Errors && result.Errors.length > 0) {
+      console.error("Error deleting video/poster from S3:", result.Errors);
+      return jsonError("Failed to delete video", 500);
+    }
 
     return jsonOk({ success: true });
   } catch (error: any) {
