@@ -5,7 +5,7 @@ import { MatchHistoryDisplay } from '../components/MatchHistoryDisplay';
 import { LiveMatchStats } from '../components/LiveMatchStats';
 import { VideoPlayerModal } from '../components/VideoPlayerModal';
 
-type GameScore = { adversaire: number; famille: number };
+type GameScore = { adversaire: number; famille: number; totalAd?: number };
 type SetScores = { adversaire: number[]; famille: number[] };
 type GameFormat = {
   threeGames: boolean;
@@ -31,6 +31,91 @@ type LiveMatch = {
   scoring_history: any[];
   updated_at: string;
 };
+
+/*
+ * Game/break/set/match point + deuce-count badges, mirroring
+ * LiveScoreModal.tsx's own isSetWon/willWinGame/isGamePoint/isBreakPoint/
+ * isSetPoint/isMatchPoint exactly (same formulas), as plain functions
+ * instead of closures - this is a read-only public viewer with no scoring
+ * state of its own, everything it needs comes from the polled `match` row.
+ */
+function isSetWon(playerGames: number, opponentGames: number, gameFormat: GameFormat): boolean {
+  if (gameFormat?.tiebreakAt && gameFormat.tiebreakAt > 0 && playerGames === gameFormat.tiebreakAt + 1 && opponentGames === gameFormat.tiebreakAt) {
+    return true;
+  }
+  if (gameFormat?.threeGames) return playerGames >= 3 && playerGames - opponentGames >= 2;
+  if (gameFormat?.fourGames) return playerGames >= 4 && playerGames - opponentGames >= 2;
+  if (gameFormat?.fiveGames) return playerGames >= 5 && playerGames - opponentGames >= 2;
+  if (gameFormat?.sixGames) return playerGames >= 6 && playerGames - opponentGames >= 2;
+  return playerGames >= 6 && playerGames - opponentGames >= 2;
+}
+
+function shouldStartSupertiebreak(setScores: SetScores, gameFormat: GameFormat): boolean {
+  if (!gameFormat?.supertiebreak) return false;
+  let adversaireSets = 0;
+  let familleSets = 0;
+  for (let i = 0; i < 3; i++) {
+    if (isSetWon(setScores.adversaire[i], setScores.famille[i], gameFormat)) adversaireSets++;
+    if (isSetWon(setScores.famille[i], setScores.adversaire[i], gameFormat)) familleSets++;
+  }
+  return adversaireSets === 1 && familleSets === 1;
+}
+
+function willWinGame(
+  gameScore: GameScore,
+  scoringPlayer: 'adversaire' | 'famille',
+  isTiebreak: boolean,
+  currentSet: number,
+  setScores: SetScores,
+  gameFormat: GameFormat,
+): boolean {
+  const opponent = scoringPlayer === 'adversaire' ? 'famille' : 'adversaire';
+  if (isTiebreak) {
+    const newScore = gameScore[scoringPlayer] + 1;
+    const opponentScore = gameScore[opponent];
+    const isSupertiebreak = shouldStartSupertiebreak(setScores, gameFormat) && currentSet === 2;
+    return isSupertiebreak
+      ? newScore >= 10 && (newScore - opponentScore) >= 2
+      : newScore >= 7 && (newScore - opponentScore) >= 2;
+  }
+  if (gameFormat?.noAd && gameScore[scoringPlayer] === 3 && gameScore[opponent] === 3) return true;
+  if (gameScore[scoringPlayer] === 3 && gameScore[opponent] < 3) return true;
+  if (gameScore[scoringPlayer] === 4 && gameScore[opponent] === 3) return true;
+  return false;
+}
+
+function isSetPoint(
+  gameScore: GameScore,
+  setScores: SetScores,
+  potentialWinner: 'adversaire' | 'famille',
+  currentSet: number,
+  isTiebreak: boolean,
+  gameFormat: GameFormat,
+): boolean {
+  const opponent = potentialWinner === 'adversaire' ? 'famille' : 'adversaire';
+  const opponentGames = setScores[opponent][currentSet];
+  if (!willWinGame(gameScore, potentialWinner, isTiebreak, currentSet, setScores, gameFormat)) return false;
+  if (isTiebreak) return true;
+  const gamesAfter = setScores[potentialWinner][currentSet] + 1;
+  return isSetWon(gamesAfter, opponentGames, gameFormat);
+}
+
+function isMatchPoint(
+  gameScore: GameScore,
+  setScores: SetScores,
+  potentialWinner: 'adversaire' | 'famille',
+  currentSet: number,
+  isTiebreak: boolean,
+  gameFormat: GameFormat,
+): boolean {
+  if (!isSetPoint(gameScore, setScores, potentialWinner, currentSet, isTiebreak, gameFormat)) return false;
+  const opponent = potentialWinner === 'famille' ? 'adversaire' : 'famille';
+  let setsWon = 0;
+  for (let i = 0; i < 3; i++) {
+    if (isSetWon(setScores[potentialWinner][i], setScores[opponent][i], gameFormat)) setsWon++;
+  }
+  return setsWon === 1;
+}
 
 export function LiveMatchPage({ matchId }: { matchId: string }) {
   const [match, setMatch] = useState<LiveMatch | null>(null);
@@ -231,6 +316,28 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
   const tiebreakScores = detectTiebreakSets();
   const isSupertiebreakSet = match.game_format?.supertiebreak && match.current_set === 2;
 
+  const winnerName = matchStatus.isFinished
+    ? (matchStatus.familleSetsWon || 0) > (matchStatus.adversaireSetsWon || 0)
+      ? (match.player_name || 'Joueur')
+      : 'Adversaire'
+    : null;
+
+  // Game/break/set/match point badges - same priority as LiveScoreModal:
+  // match point beats set point beats game/break point, deuce is independent.
+  const { game_score: gameScore, set_scores: setScores, is_tiebreak: isTiebreak, current_set: currentSet, current_server: currentServer, game_format: gameFormat } = match;
+
+  const advMatchPoint = isMatchPoint(gameScore, setScores, 'adversaire', currentSet, isTiebreak, gameFormat);
+  const advSetPoint = !advMatchPoint && isSetPoint(gameScore, setScores, 'adversaire', currentSet, isTiebreak, gameFormat);
+  const advGamePoint = !advSetPoint && currentServer === 'adversaire' && willWinGame(gameScore, 'adversaire', isTiebreak, currentSet, setScores, gameFormat);
+  const advBreakPoint = !advSetPoint && currentServer === 'famille' && willWinGame(gameScore, 'adversaire', isTiebreak, currentSet, setScores, gameFormat);
+
+  const famMatchPoint = isMatchPoint(gameScore, setScores, 'famille', currentSet, isTiebreak, gameFormat);
+  const famSetPoint = !famMatchPoint && isSetPoint(gameScore, setScores, 'famille', currentSet, isTiebreak, gameFormat);
+  const famGamePoint = !famSetPoint && currentServer === 'famille' && willWinGame(gameScore, 'famille', isTiebreak, currentSet, setScores, gameFormat);
+  const famBreakPoint = !famSetPoint && currentServer === 'adversaire' && willWinGame(gameScore, 'famille', isTiebreak, currentSet, setScores, gameFormat);
+
+  const showDeuce = !isTiebreak && (gameScore.totalAd ?? 0) > 1;
+
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050d1a]/80 backdrop-blur-md border-b border-white/5">
@@ -261,16 +368,24 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
                 <div className="flex items-center gap-2 mb-3">
                   <Trophy className="w-5 h-5 text-[#C8F135]" />
                   <span className="text-[#C8F135] text-sm font-medium tracking-widest uppercase">
-                    Live
+                    {matchStatus.isFinished ? 'Termin&eacute;' : 'Live'}
                   </span>
                 </div>
                 <h1 className="text-3xl lg:text-5xl font-black text-white leading-tight tracking-tight">
-                  Match en <span className="text-[#C8F135]">Direct</span>
+                  {matchStatus.isFinished
+                    ? <>Match <span className="text-[#C8F135]">Termin&eacute;</span></>
+                    : <>Match en <span className="text-[#C8F135]">Direct</span></>}
                 </h1>
                 {matchStatus.isFinished && (
-                  <p className="mt-2 text-[#C8F135] text-sm font-semibold">
-                    Match termin&eacute; - {matchStatus.familleSetsWon} set{(matchStatus.familleSetsWon || 0) > 1 ? 's' : ''} &agrave; {matchStatus.adversaireSetsWon}
-                  </p>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-white text-base sm:text-lg font-bold flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-[#C8F135] flex-shrink-0" />
+                      {winnerName} a gagn&eacute; le match
+                    </p>
+                    <p className="text-[#C8F135] text-sm font-semibold">
+                      {matchStatus.familleSetsWon} set{(matchStatus.familleSetsWon || 0) > 1 ? 's' : ''} &agrave; {matchStatus.adversaireSetsWon}
+                    </p>
+                  </div>
                 )}
               </div>
               <button
@@ -309,6 +424,31 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
                             </div>
                             {!matchStatus.isFinished && (
                               <div className="flex items-center gap-1">
+                                {showDeuce && (
+                                  <span className="px-1.5 py-0.5 bg-gray-400 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Deuce {gameScore.totalAd}
+                                  </span>
+                                )}
+                                {advMatchPoint && (
+                                  <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Match Point
+                                  </span>
+                                )}
+                                {advSetPoint && (
+                                  <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Set Point
+                                  </span>
+                                )}
+                                {advGamePoint && (
+                                  <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Game Point
+                                  </span>
+                                )}
+                                {advBreakPoint && (
+                                  <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Break Point
+                                  </span>
+                                )}
                                 <span className="w-10 h-6 sm:w-12 sm:h-7 flex items-center justify-center bg-red-500 text-white text-xs sm:text-sm font-bold rounded shadow flex-shrink-0">
                                   {getDisplayScore(match.game_score.adversaire)}
                                 </span>
@@ -344,6 +484,26 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
                             </div>
                             {!matchStatus.isFinished && (
                               <div className="flex items-center gap-1">
+                                {famMatchPoint && (
+                                  <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Match Point
+                                  </span>
+                                )}
+                                {famSetPoint && (
+                                  <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Set Point
+                                  </span>
+                                )}
+                                {famGamePoint && (
+                                  <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Game Point
+                                  </span>
+                                )}
+                                {famBreakPoint && (
+                                  <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                    Break Point
+                                  </span>
+                                )}
                                 <span className="w-10 h-6 sm:w-12 sm:h-7 flex items-center justify-center bg-green-500 text-white text-xs sm:text-sm font-bold rounded shadow flex-shrink-0">
                                   {getDisplayScore(match.game_score.famille)}
                                 </span>

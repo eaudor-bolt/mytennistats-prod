@@ -1,4 +1,4 @@
-import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, LogOut, Database, Share2, ExternalLink, HardDrive } from 'lucide-react';
+import { Bell, Globe, User, Mail, Shield, Users, Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, X, CreditCard, Check, Sparkles, LogOut, Database, Share2, ExternalLink, HardDrive, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase, UserPlayer } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
@@ -78,6 +78,7 @@ export function SettingsPage() {
     view_count: number;
   }>>([]);
   const [loadingSharedLinks, setLoadingSharedLinks] = useState(false);
+  const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
   const [videoUsage, setVideoUsage] = useState<{ totalBytes: number; totalSeconds: number; count: number } | null>(null);
   const [loadingVideoUsage, setLoadingVideoUsage] = useState(false);
 
@@ -627,6 +628,7 @@ export function SettingsPage() {
       confirmText: t('common.delete'),
       cancelText: t('common.cancel'),
       onConfirm: async () => {
+        setDeletingLinkId(id);
         try {
           if (type === 'Match History') {
             // There's no separate row for this share - the match itself
@@ -651,6 +653,8 @@ export function SettingsPage() {
         } catch (error) {
           console.error('Error deleting shared link:', error);
           showAlert(t('settings.sharedLinks.deleteError'), { type: 'error' });
+        } finally {
+          setDeletingLinkId(null);
         }
       }
     });
@@ -1180,10 +1184,15 @@ export function SettingsPage() {
                             </button>
                             <button
                               onClick={() => deleteSharedLink(link.id, link.type)}
-                              className="p-1 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                              disabled={deletingLinkId === link.id}
+                              className="p-1 text-red-400 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               title={t('common.delete')}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {deletingLinkId === link.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
                             </button>
                           </div>
                         </td>
