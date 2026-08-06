@@ -30,6 +30,7 @@ type LiveMatch = {
   game_format: GameFormat;
   scoring_history: any[];
   updated_at: string;
+  retirement_player: 'adversaire' | 'famille' | null;
 };
 
 /*
@@ -317,7 +318,11 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
   const isSupertiebreakSet = match.game_format?.supertiebreak && match.current_set === 2;
 
   const winnerName = matchStatus.isFinished
-    ? (matchStatus.familleSetsWon || 0) > (matchStatus.adversaireSetsWon || 0)
+    ? match.retirement_player === 'famille'
+      ? 'Adversaire'
+      : match.retirement_player === 'adversaire'
+      ? (match.player_name || 'Joueur')
+      : (matchStatus.familleSetsWon || 0) > (matchStatus.adversaireSetsWon || 0)
       ? (match.player_name || 'Joueur')
       : 'Adversaire'
     : null;
@@ -368,13 +373,16 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
                 <div className="flex items-center gap-2 mb-3">
                   <Trophy className="w-5 h-5 text-[#C8F135]" />
                   <span className="text-[#C8F135] text-sm font-medium tracking-widest uppercase">
-                    {matchStatus.isFinished ? 'Termin&eacute;' : 'Live'}
+                    Live
                   </span>
+                  {matchStatus.isFinished && (
+                    <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded uppercase tracking-wide">
+                      Match Termin&eacute;
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-3xl lg:text-5xl font-black text-white leading-tight tracking-tight">
-                  {matchStatus.isFinished
-                    ? <>Match <span className="text-[#C8F135]">Termin&eacute;</span></>
-                    : <>Match en <span className="text-[#C8F135]">Direct</span></>}
+                  Match en <span className="text-[#C8F135]">Direct</span>
                 </h1>
                 {matchStatus.isFinished && (
                   <div className="mt-2 space-y-1">
@@ -382,6 +390,11 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
                       <Trophy className="w-4 h-4 text-[#C8F135] flex-shrink-0" />
                       {winnerName} a gagn&eacute; le match
                     </p>
+                    {match.retirement_player && (
+                      <p className="text-red-400 text-sm font-semibold">
+                        {match.retirement_player === 'famille' ? (match.player_name || 'Joueur') : 'Adversaire'} a abandonn&eacute;
+                      </p>
+                    )}
                     <p className="text-[#C8F135] text-sm font-semibold">
                       {matchStatus.familleSetsWon} set{(matchStatus.familleSetsWon || 0) > 1 ? 's' : ''} &agrave; {matchStatus.adversaireSetsWon}
                     </p>
@@ -422,6 +435,11 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
                                 <img src="/tennis-ball.svg" alt="Serving" className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
                               )}
                             </div>
+                            {matchStatus.isFinished && match.retirement_player === 'adversaire' && (
+                              <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                Abandon
+                              </span>
+                            )}
                             {!matchStatus.isFinished && (
                               <div className="flex items-center gap-1">
                                 {showDeuce && (
@@ -482,6 +500,11 @@ export function LiveMatchPage({ matchId }: { matchId: string }) {
                                 <img src="/tennis-ball.svg" alt="Serving" className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
                               )}
                             </div>
+                            {matchStatus.isFinished && match.retirement_player === 'famille' && (
+                              <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                Abandon
+                              </span>
+                            )}
                             {!matchStatus.isFinished && (
                               <div className="flex items-center gap-1">
                                 {famMatchPoint && (

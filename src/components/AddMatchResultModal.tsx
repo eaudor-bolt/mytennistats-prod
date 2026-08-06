@@ -23,6 +23,7 @@ type AddMatchResultModalProps = {
     game_per_set?: 3 | 4 | 6;
     super_tiebreak?: boolean;
     no_ad?: boolean;
+    retirement_player?: 'adversaire' | 'famille' | null;
   };
 };
 
@@ -45,6 +46,7 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
     game_per_set: undefined as 3 | 4 | 6 | undefined,
     super_tiebreak: false,
     no_ad: false,
+    retirement_player: null as 'adversaire' | 'famille' | null,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [customEvents, setCustomEvents] = useState<CustomTournamentEvent[]>([]);
@@ -68,6 +70,7 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
         game_per_set: editingMatch.game_per_set,
         super_tiebreak: editingMatch.super_tiebreak || false,
         no_ad: editingMatch.no_ad || false,
+        retirement_player: editingMatch.retirement_player || null,
       });
     } else {
       setFormData({
@@ -86,6 +89,7 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
         game_per_set: initialData?.game_per_set,
         super_tiebreak: initialData?.super_tiebreak || false,
         no_ad: initialData?.no_ad || false,
+        retirement_player: initialData?.retirement_player || null,
       });
     }
     setIsAddingCustomEvent(false);
@@ -257,6 +261,7 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
         game_per_set: formData.game_per_set,
         super_tiebreak: formData.super_tiebreak,
         no_ad: formData.no_ad,
+        retirement_player: formData.retirement_player,
       });
       if (isAddingCustomEvent && formData.tournament_name.trim()) {
         await saveCustomEvent(formData.player_name, formData.tournament_name.trim());

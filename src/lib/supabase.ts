@@ -186,6 +186,7 @@ export type MatchResult = {
   no_ad?: boolean;
   shared_at?: string | null;
   view_count?: number;
+  retirement_player?: 'adversaire' | 'famille' | null;
   created_at: string;
   updated_at: string;
 };

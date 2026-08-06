@@ -34,6 +34,7 @@ type LiveScoreModalProps = {
     game_per_set?: 3 | 4 | 6;
     super_tiebreak?: boolean;
     no_ad?: boolean;
+    retirement_player?: 'adversaire' | 'famille' | null;
   }) => void;
   /**
    * Bumped by the parent once a match handed off via `onMatchFinished` is
@@ -117,6 +118,11 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
   const [uploadingEntries, setUploadingEntries] = useState<Set<number>>(new Set());
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+  // Set when the match is ended early (via "Terminer le Match" before either
+  // player has actually won) rather than reaching a natural conclusion - the
+  // player who did NOT retire is the winner. Null for a normal finish.
+  const [retirementPlayer, setRetirementPlayer] = useState<'adversaire' | 'famille' | null>(null);
+  const [showRetirementPrompt, setShowRetirementPrompt] = useState(false);
   const isClosingRef = useRef(false);
   const networkWarningShownRef = useRef(false);
   const skipNextResetRef = useRef(false);
@@ -153,6 +159,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
       elapsedTime,
       isMatchFinished,
       totalAdInGame,
+      retirementPlayer,
     };
     localStorage.setItem('liveMatchState', JSON.stringify(state));
   };
@@ -195,6 +202,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     setElapsedTime(state.elapsedTime || 0);
     setIsMatchFinished(state.isMatchFinished || false);
     setTotalAdInGame(state.totalAdInGame || 0);
+    setRetirementPlayer(state.retirementPlayer || null);
     sequenceNumberRef.current = state.scoringHistory ? state.scoringHistory.length : 0;
     if (state.scoringHistory && state.scoringHistory.length > 0) {
       const lastEntry = state.scoringHistory[state.scoringHistory.length - 1];
@@ -313,7 +321,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     if (!showSetupModal && !showRestorePrompt) {
       saveMatchState();
     }
-  }, [gameScore, setScores, currentSet, isTiebreak, isMatchFinished, scoringHistory]);
+  }, [gameScore, setScores, currentSet, isTiebreak, isMatchFinished, scoringHistory, retirementPlayer]);
 
   useEffect(() => {
     if (isOpen && !showSetupModal && !isCameraActive && !isClosingRef.current) {
@@ -475,6 +483,8 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     setMatchStartTime(null);
     setElapsedTime(0);
     setShowRestorePrompt(false);
+    setRetirementPlayer(null);
+    setShowRetirementPrompt(false);
     stopCamera();
     clearMatchState();
   };
@@ -1024,6 +1034,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         is_finished: isMatchFinished,
         current_server: currentServer,
         scoring_history: scoringHistory,
+        retirement_player: retirementPlayer,
         updated_at: new Date().toISOString(),
       })
       .eq('id', liveMatchId);
@@ -1516,21 +1527,29 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
     };
   };
 
-  const handleFinishMatch = async () => {
+  const handleFinishMatch = () => {
     if (!isMatchFinished) {
-      showAlert('La partie n\'est pas terminée. Voulez-vous vraiment y mettre fin ?', {
-        type: 'warning',
-        title: 'Terminer la partie ?',
-        confirmText: 'Terminer',
-        cancelText: 'Annuler',
-        onConfirm: () => finishMatch(),
-      });
+      // Ending before either player has actually won a match point is only
+      // ever a retirement/abandon - the prompt below both confirms that's
+      // really what's happening and records who retired, so the shared live
+      // page and the saved match can say who actually won.
+      setShowRetirementPrompt(true);
       return;
     }
-    await finishMatch();
+    finishMatch();
   };
 
-  const finishMatch = async () => {
+  const confirmRetirement = (retired: 'adversaire' | 'famille') => {
+    setShowRetirementPrompt(false);
+    setRetirementPlayer(retired);
+    setIsMatchFinished(true);
+    // React batches these, but finishMatch reads retirementPlayer/isMatchFinished
+    // synchronously right after - pass the value directly rather than relying
+    // on state that hasn't re-rendered yet.
+    finishMatch(retired);
+  };
+
+  const finishMatch = async (retirementOverride?: 'adversaire' | 'famille' | null) => {
     setIsSaving(true);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -1540,6 +1559,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
       return;
     }
 
+    const retirement = retirementOverride !== undefined ? retirementOverride : retirementPlayer;
     const score = generateScoreString();
     const skillAnalysis = analyzeSkills();
 
@@ -1559,6 +1579,7 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
       game_per_set: gamePerSet,
       super_tiebreak: gameFormat.supertiebreak,
       no_ad: gameFormat.noAd,
+      retirement_player: retirement,
     };
 
     setIsSaving(false);
@@ -2061,27 +2082,32 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
                             )}
                           </div>
                           <div className="flex items-center gap-1">
-                            {!isTiebreak && gameScore.totalAd !== undefined && gameScore.totalAd > 1 && (
+                            {isMatchFinished && retirementPlayer === 'adversaire' && (
+                              <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                Abandon
+                              </span>
+                            )}
+                            {!isMatchFinished && !isTiebreak && gameScore.totalAd !== undefined && gameScore.totalAd > 1 && (
                               <span className="px-1.5 py-0.5 bg-gray-400 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Deuce {gameScore.totalAd}
                               </span>
                             )}
-                            {isMatchPoint(gameScore, setScores, 'adversaire') && (
+                            {!isMatchFinished && isMatchPoint(gameScore, setScores, 'adversaire') && (
                               <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Match Point
                               </span>
                             )}
-                            {!isMatchPoint(gameScore, setScores, 'adversaire') && isSetPoint(gameScore, setScores, 'adversaire') && (
+                            {!isMatchFinished && !isMatchPoint(gameScore, setScores, 'adversaire') && isSetPoint(gameScore, setScores, 'adversaire') && (
                               <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Set Point
                               </span>
                             )}
-                            {!isSetPoint(gameScore, setScores, 'adversaire') && currentServer === 'adversaire' && willWinGame(gameScore, 'adversaire') && (
+                            {!isMatchFinished && !isSetPoint(gameScore, setScores, 'adversaire') && currentServer === 'adversaire' && willWinGame(gameScore, 'adversaire') && (
                               <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Game Point
                               </span>
                             )}
-                            {!isSetPoint(gameScore, setScores, 'adversaire') && currentServer === 'famille' && willWinGame(gameScore, 'adversaire') && (
+                            {!isMatchFinished && !isSetPoint(gameScore, setScores, 'adversaire') && currentServer === 'famille' && willWinGame(gameScore, 'adversaire') && (
                               <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Break Point
                               </span>
@@ -2117,22 +2143,27 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
                             )}
                           </div>
                           <div className="flex items-center gap-1">
-                            {isMatchPoint(gameScore, setScores, 'famille') && (
+                            {isMatchFinished && retirementPlayer === 'famille' && (
+                              <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
+                                Abandon
+                              </span>
+                            )}
+                            {!isMatchFinished && isMatchPoint(gameScore, setScores, 'famille') && (
                               <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Match Point
                               </span>
                             )}
-                            {!isMatchPoint(gameScore, setScores, 'famille') && isSetPoint(gameScore, setScores, 'famille') && (
+                            {!isMatchFinished && !isMatchPoint(gameScore, setScores, 'famille') && isSetPoint(gameScore, setScores, 'famille') && (
                               <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Set Point
                               </span>
                             )}
-                            {!isSetPoint(gameScore, setScores, 'famille') && currentServer === 'famille' && willWinGame(gameScore, 'famille') && (
+                            {!isMatchFinished && !isSetPoint(gameScore, setScores, 'famille') && currentServer === 'famille' && willWinGame(gameScore, 'famille') && (
                               <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Game Point
                               </span>
                             )}
-                            {!isSetPoint(gameScore, setScores, 'famille') && currentServer === 'adversaire' && willWinGame(gameScore, 'famille') && (
+                            {!isMatchFinished && !isSetPoint(gameScore, setScores, 'famille') && currentServer === 'adversaire' && willWinGame(gameScore, 'famille') && (
                               <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] sm:text-xs font-bold rounded whitespace-nowrap">
                                 Break Point
                               </span>
@@ -2504,27 +2535,32 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
                                 )}
                               </div>
                               <div className="flex items-center gap-1">
-                                {!isTiebreak && gameScore.totalAd !== undefined && gameScore.totalAd > 1 && (
+                                {isMatchFinished && retirementPlayer === 'adversaire' && (
+                                  <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded">
+                                    AB
+                                  </span>
+                                )}
+                                {!isMatchFinished && !isTiebreak && gameScore.totalAd !== undefined && gameScore.totalAd > 1 && (
                                   <span className="px-1.5 py-0.5 bg-gray-400 text-white text-[10px] sm:text-xs font-bold rounded">
                                     Deuce {gameScore.totalAd}
                                   </span>
                                 )}
-                                {isMatchPoint(gameScore, setScores, 'adversaire') && (
+                                {!isMatchFinished && isMatchPoint(gameScore, setScores, 'adversaire') && (
                                   <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded">
                                     MP
                                   </span>
                                 )}
-                                {!isMatchPoint(gameScore, setScores, 'adversaire') && isSetPoint(gameScore, setScores, 'adversaire') && (
+                                {!isMatchFinished && !isMatchPoint(gameScore, setScores, 'adversaire') && isSetPoint(gameScore, setScores, 'adversaire') && (
                                   <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] sm:text-xs font-bold rounded">
                                     SP
                                   </span>
                                 )}
-                                {!isSetPoint(gameScore, setScores, 'adversaire') && currentServer === 'adversaire' && willWinGame(gameScore, 'adversaire') && (
+                                {!isMatchFinished && !isSetPoint(gameScore, setScores, 'adversaire') && currentServer === 'adversaire' && willWinGame(gameScore, 'adversaire') && (
                                   <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] sm:text-xs font-bold rounded">
                                     GP
                                   </span>
                                 )}
-                                {!isSetPoint(gameScore, setScores, 'adversaire') && currentServer === 'famille' && willWinGame(gameScore, 'adversaire') && (
+                                {!isMatchFinished && !isSetPoint(gameScore, setScores, 'adversaire') && currentServer === 'famille' && willWinGame(gameScore, 'adversaire') && (
                                   <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] sm:text-xs font-bold rounded">
                                     BP
                                   </span>
@@ -2559,22 +2595,27 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
                                 )}
                               </div>
                               <div className="flex items-center gap-1">
-                                {isMatchPoint(gameScore, setScores, 'famille') && (
+                                {isMatchFinished && retirementPlayer === 'famille' && (
+                                  <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded">
+                                    AB
+                                  </span>
+                                )}
+                                {!isMatchFinished && isMatchPoint(gameScore, setScores, 'famille') && (
                                   <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded">
                                     MP
                                   </span>
                                 )}
-                                {!isMatchPoint(gameScore, setScores, 'famille') && isSetPoint(gameScore, setScores, 'famille') && (
+                                {!isMatchFinished && !isMatchPoint(gameScore, setScores, 'famille') && isSetPoint(gameScore, setScores, 'famille') && (
                                   <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] sm:text-xs font-bold rounded">
                                     SP
                                   </span>
                                 )}
-                                {!isSetPoint(gameScore, setScores, 'famille') && currentServer === 'famille' && willWinGame(gameScore, 'famille') && (
+                                {!isMatchFinished && !isSetPoint(gameScore, setScores, 'famille') && currentServer === 'famille' && willWinGame(gameScore, 'famille') && (
                                   <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] sm:text-xs font-bold rounded">
                                     GP
                                   </span>
                                 )}
-                                {!isSetPoint(gameScore, setScores, 'famille') && currentServer === 'adversaire' && willWinGame(gameScore, 'famille') && (
+                                {!isMatchFinished && !isSetPoint(gameScore, setScores, 'famille') && currentServer === 'adversaire' && willWinGame(gameScore, 'famille') && (
                                   <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] sm:text-xs font-bold rounded">
                                     BP
                                   </span>
@@ -2763,6 +2804,44 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
         onClose={() => setPlayingVideoUrl(null)}
         title="Video du Point"
       />
+    )}
+    {showRetirementPrompt && (
+      <div
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+        onClick={() => setShowRetirementPrompt(false)}
+      >
+        <div
+          className="bg-gradient-to-br from-[#0a1628] to-[#050d1a] rounded-xl shadow-2xl border border-white/10 max-w-md w-full p-6"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-xl font-bold text-white mb-2">Terminer la partie</h3>
+          <p className="text-gray-300 mb-6 text-sm">
+            La partie n'est pas terminée. Y mettre fin maintenant est un abandon - sélectionnez le joueur qui abandonne, l'autre sera déclaré vainqueur.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => confirmRetirement('famille')}
+              className="w-full px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-left transition-colors"
+            >
+              <span className="block text-sm font-semibold text-white">{selectedPlayer || 'Joueur'} abandonne</span>
+              <span className="block text-xs text-gray-400 mt-0.5">Adversaire remporte le match</span>
+            </button>
+            <button
+              onClick={() => confirmRetirement('adversaire')}
+              className="w-full px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-left transition-colors"
+            >
+              <span className="block text-sm font-semibold text-white">Adversaire abandonne</span>
+              <span className="block text-xs text-gray-400 mt-0.5">{selectedPlayer || 'Joueur'} remporte le match</span>
+            </button>
+          </div>
+          <button
+            onClick={() => setShowRetirementPrompt(false)}
+            className="w-full mt-4 px-4 py-2 text-gray-400 hover:text-white text-sm transition-colors"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
     )}
     </>
   );
