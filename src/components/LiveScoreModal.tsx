@@ -2201,7 +2201,15 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
 
               <div className="flex-shrink-0 px-3 sm:p-4">
                 <div className="max-w-md mx-auto w-full space-y-1">
-                  {['forehand', 'backhand', 'volley', 'service', 'return', 'opponent'].map((skill) => (
+                  {['forehand', 'backhand', 'volley', 'service', 'return', 'opponent'].map((skill) => {
+                    // The player can't be serving AND returning on the same
+                    // point - whichever of these two rows doesn't match who's
+                    // actually serving right now can't be toggled.
+                    const isIrrelevantServeRow =
+                      (skill === 'return' && currentServer === 'famille') ||
+                      (skill === 'service' && currentServer === 'adversaire');
+                    const isRowDisabled = !!pressedButton.skill || isMatchFinished || isIrrelevantServeRow;
+                    return (
                     <div
                       key={skill}
                       data-tour-id={skill === 'forehand' ? 'tour-skill-row-forehand' : skill === 'opponent' ? 'tour-skill-row-opponent' : undefined}
@@ -2211,19 +2219,19 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
                             ? 'bg-green-500/20 border-green-500/50'
                             : 'bg-red-500/20 border-red-500/50'
                           : 'bg-white/5 border-white/10'
-                      }`}
+                      } ${isIrrelevantServeRow ? 'opacity-40' : ''}`}
                     >
                       <span className="w-20 text-xs font-medium text-gray-300">{translateSkillLabel(skill)}</span>
                       <button
                         onClick={() => setFault(skill)}
-                        disabled={!!pressedButton.skill || isMatchFinished}
+                        disabled={isRowDisabled}
                         className="flex-1 px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         Faute
                       </button>
                       <button
                         onClick={() => setWon(skill)}
-                        disabled={!!pressedButton.skill || isMatchFinished}
+                        disabled={isRowDisabled}
                         className="flex-1 px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg font-medium hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         Gagne
@@ -2233,7 +2241,8 @@ export function LiveScoreModal({ isOpen, onClose, onMatchSaved, onMatchFinished,
                         <GaugeBar pct={liveSkillLossPct[skill] ?? 0} sizeClassName="h-1.5" color="#ef4444" />
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="max-w-md mx-auto w-full mt-3">
