@@ -5,6 +5,7 @@ type FinalScoreboardProps = {
   playerName: string;
   isWin: boolean;
   showWinnerIcon?: boolean;
+  retirementPlayer?: 'adversaire' | 'famille' | null;
 };
 
 type ParsedSet = {
@@ -14,7 +15,7 @@ type ParsedSet = {
   opponentTB: string | null;
 };
 
-export function FinalScoreboard({ score, playerName, isWin, showWinnerIcon = false }: FinalScoreboardProps) {
+export function FinalScoreboard({ score, playerName, isWin, showWinnerIcon = false, retirementPlayer = null }: FinalScoreboardProps) {
   const parseScore = (scoreString: string): { sets: ParsedSet[]; playerSetsWon: number; opponentSetsWon: number } => {
     const rawSets = scoreString.split(' - ');
     const sets: ParsedSet[] = [];
@@ -88,6 +89,11 @@ export function FinalScoreboard({ score, playerName, isWin, showWinnerIcon = fal
                     {showWinnerIcon && opponentWon && (
                       <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#C8F135]" />
                     )}
+                    {retirementPlayer === 'adversaire' && (
+                      <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded whitespace-nowrap">
+                        Abandon
+                      </span>
+                    )}
                   </div>
                 </td>
                 {sets.map((s, i) => (
@@ -113,6 +119,11 @@ export function FinalScoreboard({ score, playerName, isWin, showWinnerIcon = fal
                     <span className="truncate">{playerName}</span>
                     {showWinnerIcon && playerWon && (
                       <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#C8F135]" />
+                    )}
+                    {retirementPlayer === 'famille' && (
+                      <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded whitespace-nowrap">
+                        Abandon
+                      </span>
                     )}
                   </div>
                 </td>

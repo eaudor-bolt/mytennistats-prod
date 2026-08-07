@@ -177,7 +177,12 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
 
   const convertScoreToTennisFormat = (score: number | string): string => {
     if (typeof score === 'string') return score;
-    const scoreMap: Record<number, string> = { 0: '0', 1: '15', 2: '30', 3: '40' };
+    // 4 is advantage (post-deuce) - missing this mapping was the root cause
+    // of game/break/set point badges naming the wrong player: every AD-40 or
+    // 40-AD score fell through to String(score) ("4"), which is neither
+    // "40" nor "AD", so the "opponent isn't at 40/AD" checks below always
+    // passed for the player who was actually NOT the one with advantage.
+    const scoreMap: Record<number, string> = { 0: '0', 1: '15', 2: '30', 3: '40', 4: 'AD' };
     return scoreMap[score] || String(score);
   };
 
@@ -1182,6 +1187,7 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                 return playerSets > opponentSets;
               })()}
               showWinnerIcon={true}
+              retirementPlayer={match.retirement_player}
             />
           )}
 

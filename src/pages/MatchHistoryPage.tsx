@@ -216,6 +216,7 @@ export function MatchHistoryPage({ matchId }: MatchHistoryPageProps) {
               playerName={match.player_name}
               isWin={isWin}
               showWinnerIcon={true}
+              retirementPlayer={match.retirement_player}
             />
 
             {match.comments && (
