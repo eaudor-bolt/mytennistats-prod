@@ -38,10 +38,10 @@ const FORMAT_LABELS: Record<number, string> = {
 // Ported straight from LiveScoreModal.tsx's own isSetWon (as a plain function
 // taking gameFormat explicitly, same porting pattern used for
 // LiveMatchPage.tsx). The first branch is what makes a tiebreak-decided
-// score valid: e.g. for a six-game format (tiebreakAt=6), a set stepped up
-// to 7/6 or 6/7 is already a complete, correct final score on its own -
-// there's no separate "tiebreak points" concept to track, the two numbers
-// on the board ARE the finished result.
+// score valid: e.g. for a six-game format (tiebreakAt=6), 7/6 or 6/7 is a
+// complete, correct final score. The tiebreak's own points (see
+// isTiebreakDecided below) are extra detail shown alongside it, not
+// something this function needs to know about.
 function isSetWon(playerGames: number, opponentGames: number, gameFormat: GameFormat): boolean {
   if (gameFormat.tiebreakAt > 0 && playerGames === gameFormat.tiebreakAt + 1 && opponentGames === gameFormat.tiebreakAt) {
     return true;
@@ -64,6 +64,11 @@ function maxGamesForFormat(gameFormat: GameFormat): number {
 type SetEntry = {
   player: number;
   opponent: number;
+  // Only meaningful once (player, opponent) is a tiebreak-decided pair for
+  // this format (7/6, 5/4, 4/3, 3/2...) - the actual points the breaker was
+  // played to, e.g. 7-5 or 10-8, shown next to the set score once it applies.
+  tbPlayer: number;
+  tbOpponent: number;
 };
 
 type ScoreBuilderModalProps = {
@@ -84,16 +89,16 @@ type ScoreBuilderModalProps = {
 };
 
 const SANE_CEILING = 30;
-const emptySet = (): SetEntry => ({ player: 0, opponent: 0 });
+const emptySet = (): SetEntry => ({ player: 0, opponent: 0, tbPlayer: 0, tbOpponent: 0 });
 
 /**
  * Parses the same score string format LiveScoreModal's generateScoreString()
- * produces: sets joined by " - ", each "player/opponent" - already the
- * complete final numbers, tiebreak or not (e.g. "7/6", never "6/6") - with
- * an optional "(tbPlayer/tbOpponent)" detail some older/live-scored matches
- * carry, which is ignored here (the two main numbers are self-sufficient),
- * or "(p/o)" with no games number at all for a supertiebreak-only 3rd set.
- * Player's number always comes first, matching that convention app-wide.
+ * produces: sets joined by " - ", each "player/opponent" (already the
+ * complete final numbers, tiebreak or not - e.g. "7/6", never "6/6"),
+ * optionally followed by "(tbPlayer/tbOpponent)" when that set was
+ * tiebreak-decided, or "(p/o)" with no games number at all for a
+ * supertiebreak-only 3rd set. Player's number always comes first, matching
+ * that convention app-wide.
  */
 function parseScoreIntoSets(score: string): SetEntry[] {
   const sets: SetEntry[] = [emptySet(), emptySet(), emptySet()];
@@ -104,16 +109,32 @@ function parseScoreIntoSets(score: string): SetEntry[] {
 
     const superTbMatch = raw.match(/^\((\d+)\/(\d+)\)$/);
     if (superTbMatch) {
-      sets[i] = { player: parseInt(superTbMatch[1], 10), opponent: parseInt(superTbMatch[2], 10) };
+      sets[i] = { player: parseInt(superTbMatch[1], 10), opponent: parseInt(superTbMatch[2], 10), tbPlayer: 0, tbOpponent: 0 };
       return;
     }
 
+    const tbMatch = raw.match(/\((\d+)(?:\/(\d+))?\)/);
     const clean = raw.replace(/\s*\(.*?\)\s*/g, '').trim();
     const [playerRaw, opponentRaw] = clean.split('/').map((n) => parseInt(n, 10));
-    sets[i] = {
-      player: isNaN(playerRaw) ? 0 : playerRaw,
-      opponent: isNaN(opponentRaw) ? 0 : opponentRaw,
-    };
+    const player = isNaN(playerRaw) ? 0 : playerRaw;
+    const opponent = isNaN(opponentRaw) ? 0 : opponentRaw;
+
+    let tbPlayer = 0;
+    let tbOpponent = 0;
+    if (tbMatch) {
+      if (tbMatch[2] !== undefined) {
+        tbPlayer = parseInt(tbMatch[1], 10);
+        tbOpponent = parseInt(tbMatch[2], 10);
+      } else {
+        // Legacy single-number format: only the loser's tiebreak points.
+        const loserTb = parseInt(tbMatch[1], 10);
+        const winnerTb = Math.max(loserTb + 2, 7);
+        if (player > opponent) { tbPlayer = winnerTb; tbOpponent = loserTb; }
+        else { tbPlayer = loserTb; tbOpponent = winnerTb; }
+      }
+    }
+
+    sets[i] = { player, opponent, tbPlayer, tbOpponent };
   });
 
   return sets;
@@ -123,10 +144,12 @@ function Stepper({
   value,
   onIncrement,
   onDecrement,
+  size = 'normal',
 }: {
   value: number;
   onIncrement: () => void;
   onDecrement: () => void;
+  size?: 'normal' | 'small';
 }) {
   return (
     <div className="inline-flex flex-col items-center">
@@ -136,9 +159,9 @@ function Stepper({
         className="text-gray-400 hover:text-[#C8F135] transition-colors p-0.5"
         title="Augmenter"
       >
-        <ChevronUp className="w-4 h-4" />
+        <ChevronUp className={size === 'small' ? 'w-3 h-3' : 'w-4 h-4'} />
       </button>
-      <span className="font-bold text-white tabular-nums text-lg w-6 text-center">
+      <span className={`font-bold text-white tabular-nums text-center ${size === 'small' ? 'text-sm w-4' : 'text-lg w-6'}`}>
         {value}
       </span>
       <button
@@ -147,7 +170,7 @@ function Stepper({
         className="text-gray-400 hover:text-[#C8F135] transition-colors p-0.5"
         title="Diminuer"
       >
-        <ChevronDown className="w-4 h-4" />
+        <ChevronDown className={size === 'small' ? 'w-3 h-3' : 'w-4 h-4'} />
       </button>
     </div>
   );
@@ -188,6 +211,30 @@ export function ScoreBuilderModal({
     }));
   };
 
+  const stepTiebreak = (setIndex: number, side: 'tbPlayer' | 'tbOpponent', delta: number) => {
+    setSets((prev) => prev.map((s, i) => {
+      if (i !== setIndex) return s;
+      let value = s[side] + delta;
+      if (value < 0) value = SANE_CEILING;
+      else if (value > SANE_CEILING) value = 0;
+      return { ...s, [side]: value };
+    }));
+  };
+
+  /**
+   * Is this set's main score exactly a tiebreak-decided pair for the
+   * current format - 7/6 or 6/7 for a six-game format, 5/4 for Formats 3/7,
+   * 4/3 for Format 6, 3/2 for Format 5? The regular tiebreak game itself is
+   * always played to 7 points (win by 2) regardless of format - tiebreakAt
+   * only controls when it triggers within the set, not its own win
+   * condition - which is why the points check below doesn't vary by format.
+   */
+  const isTiebreakDecided = (setIndex: number, s: SetEntry) => {
+    if (!isNormalSet(setIndex)) return false;
+    const TB = gameFormat.tiebreakAt;
+    return (s.player === TB + 1 && s.opponent === TB) || (s.opponent === TB + 1 && s.player === TB);
+  };
+
   const validateSet = (setIndex: number, s: SetEntry): string | null => {
     if (!isPlayed(s)) return null;
 
@@ -198,6 +245,13 @@ export function ScoreBuilderModal({
       const higher = Math.max(s.player, s.opponent);
       const diff = Math.abs(s.player - s.opponent);
       if (higher < 10 || diff < 2) return 'Super TB : 10 points minimum, 2 points d\'écart.';
+      return null;
+    }
+
+    if (isTiebreakDecided(setIndex, s)) {
+      const higher = Math.max(s.tbPlayer, s.tbOpponent);
+      const diff = Math.abs(s.tbPlayer - s.tbOpponent);
+      if (higher < 7 || diff < 2) return 'Indiquez le score du tie-break (7 points minimum, 2 d\'écart).';
       return null;
     }
 
@@ -222,6 +276,8 @@ export function ScoreBuilderModal({
       if (!isPlayed(s)) return;
       if (!isNormalSet(i)) {
         parts.push(`(${s.player}/${s.opponent})`);
+      } else if (isTiebreakDecided(i, s) && (s.tbPlayer > 0 || s.tbOpponent > 0)) {
+        parts.push(`${s.player}/${s.opponent} (${s.tbPlayer}/${s.tbOpponent})`);
       } else {
         parts.push(`${s.player}/${s.opponent}`);
       }
@@ -244,15 +300,33 @@ export function ScoreBuilderModal({
     onClose();
   };
 
-  const renderSetCell = (setIndex: number, s: SetEntry, side: 'player' | 'opponent') => (
-    <td key={setIndex} className="px-1 py-2 text-center align-top">
-      <Stepper
-        value={s[side]}
-        onIncrement={() => stepGame(setIndex, side, 1)}
-        onDecrement={() => stepGame(setIndex, side, -1)}
-      />
-    </td>
-  );
+  const renderSetCell = (setIndex: number, s: SetEntry, side: 'player' | 'opponent') => {
+    const showTb = isTiebreakDecided(setIndex, s);
+    const tbSide = side === 'player' ? 'tbPlayer' : 'tbOpponent';
+
+    return (
+      <td key={setIndex} className="px-1 py-2 text-center align-top">
+        <div className="flex items-start justify-center gap-1.5">
+          <Stepper
+            value={s[side]}
+            onIncrement={() => stepGame(setIndex, side, 1)}
+            onDecrement={() => stepGame(setIndex, side, -1)}
+          />
+          {showTb && (
+            <div className="flex flex-col items-center border-l border-white/10 pl-1.5">
+              <span className="text-[8px] text-gray-500 uppercase tracking-wide leading-none mb-0.5">TB</span>
+              <Stepper
+                size="small"
+                value={s[tbSide]}
+                onIncrement={() => stepTiebreak(setIndex, tbSide, 1)}
+                onDecrement={() => stepTiebreak(setIndex, tbSide, -1)}
+              />
+            </div>
+          )}
+        </div>
+      </td>
+    );
+  };
 
   return (
     <div
@@ -268,7 +342,7 @@ export function ScoreBuilderModal({
       }}
     >
       <div
-        className="bg-gradient-to-br from-[#0a1628] to-[#050d1a] rounded-xl shadow-2xl border border-white/10 max-w-lg w-full p-6"
+        className="bg-gradient-to-br from-[#0a1628] to-[#050d1a] rounded-xl shadow-2xl border border-white/10 max-w-xl w-full p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -296,9 +370,9 @@ export function ScoreBuilderModal({
         {/* Same scoreboard look as the live scoreboard / FinalScoreboard:
             Adversaire row on top, player row below, one column per set. Each
             number steps straight to the real final value (7, 6, 5, 4, 3...
-            whatever this format's tiebreak makes valid) - there's no
-            separate "tiebreak points" widget, the two numbers on the board
-            are already the complete result. */}
+            whatever this format's tiebreak makes valid). Once a set lands on
+            a tiebreak-decided pair, a small "TB" stepper appears next to it
+            for the actual breaker points (e.g. 7/6 (7-5)). */}
         <div className="bg-gradient-to-br from-[#0f1e35]/50 to-[#0a1628]/50 rounded-xl p-2 sm:p-4 shadow-inner border border-white/5">
           <table className="w-full bg-white/5 backdrop-blur-sm rounded-lg shadow-sm overflow-hidden border border-white/10">
             <tbody>
