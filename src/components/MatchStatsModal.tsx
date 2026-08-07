@@ -1349,6 +1349,8 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               gamePointsTotal: number;
               breakPointsWon: number;
               breakPointsTotal: number;
+              breakPointsSaved: number;
+              breakPointsFaced: number;
               setPointsWon: number;
               setPointsTotal: number;
               totalWinners: number;
@@ -1369,6 +1371,7 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               aces: 0, doubleFaults: 0,
               gamePointsWon: 0, gamePointsTotal: 0,
               breakPointsWon: 0, breakPointsTotal: 0,
+              breakPointsSaved: 0, breakPointsFaced: 0,
               setPointsWon: 0, setPointsTotal: 0,
               totalWinners: 0, totalFaults: 0,
               forehandWon: 0, forehandTotal: 0,
@@ -1437,6 +1440,20 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
                 if (familleWon) { s.breakPointsWon++; totals.breakPointsWon++; }
               }
 
+              // Break points saved: the reverse case - famille is serving,
+              // so it's the adversaire's break point chance against our own
+              // serve. Faced = every one of those; Saved = the ones famille
+              // held serve through (adversaire did NOT convert the break).
+              if (entry.isBreakPoint && server === 'famille') {
+                s.breakPointsFaced++; totals.breakPointsFaced++;
+                const familleWon = entry.toggleValue && (
+                  (entry.toggleValue !== 'Score direct' && entry.toggleValue.split(': ')[1] === 'Gagne' && entry.toggleValue.split(': ')[0] !== 'opponent') ||
+                  (entry.toggleValue !== 'Score direct' && entry.toggleValue.split(': ')[1] === 'Faute' && entry.toggleValue.split(': ')[0] === 'opponent') ||
+                  entry.toggleValue === 'Score direct'
+                );
+                if (familleWon) { s.breakPointsSaved++; totals.breakPointsSaved++; }
+              }
+
               // Set points for famille
               if (entry.isSetPoint && familleHasGP) {
                 s.setPointsTotal++; totals.setPointsTotal++;
@@ -1458,6 +1475,7 @@ export function MatchStatsModal({ isOpen, onClose, match }: MatchStatsModalProps
               { label: 'Double Fautes', getValue: (s) => String(s.doubleFaults) },
               { label: 'Game Points Won', getValue: (s) => `${s.gamePointsWon}/${s.gamePointsTotal}` },
               { label: 'Break Points', getValue: (s) => `${s.breakPointsWon}/${s.breakPointsTotal}` },
+              { label: 'Balles de Break Sauvées', getValue: (s) => `${s.breakPointsSaved}/${s.breakPointsFaced}` },
               { label: 'Set Points', getValue: (s) => `${s.setPointsWon}/${s.setPointsTotal}` },
               { label: 'Total Winners', getValue: (s) => String(s.totalWinners) },
               { label: 'Total Fautes', getValue: (s) => String(s.totalFaults) },

@@ -28,3 +28,33 @@ export async function deleteVideoFromS3(videoId: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Deletes every point-clip video recorded for a match - the whole
+ * mytennistats/match-videos/{userId}/{matchId}/ folder, not just the clips
+ * scoring_history happens to reference. The edge function re-checks that the
+ * caller owns this match before touching anything.
+ */
+export async function deleteMatchVideos(matchId: string): Promise<boolean> {
+  try {
+    const response = await fetch(functionUrl('delete-match-videos'), {
+      method: 'POST',
+      headers: {
+        ...(await functionAuthHeaders()),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ matchId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.error('Error deleting match videos from S3:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting match videos from S3:', error);
+    return false;
+  }
+}

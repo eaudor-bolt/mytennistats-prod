@@ -324,14 +324,27 @@ Two deliberate behaviours worth knowing before you change anything:
 
 ### Deletion
 
-Three separate paths remove videos, and one known gap is not yet closed:
+Four separate paths remove videos, and one known gap is not yet closed:
 
 **1. Single video** — [`src/utils/s3Delete.ts`](src/utils/s3Delete.ts) sends a **`videoId`**,
 never a key. The `delete-video-from-s3` function looks the row up filtered by
 `user_id = auth.uid()` and derives the S3 key from the stored (`mytennistats/…`) URL, so the
-key is never client-supplied.
+key is never client-supplied. It also deletes the row's `poster_image` (`.jpg`) alongside the
+video itself, via the same `DeleteObjectsCommand` — a video's poster used to be left orphaned.
 
-**2. Account deletion** — `delete-account` (see [Edge functions](#edge-functions)) runs
+**2. Match deletion** — deleting a match from the Matches page (`MatchesPage.tsx`) now goes
+through a confirm modal (`useAlert`, same style as Settings → Shared Links, not a bare
+`confirm()`) that calls `deleteMatchVideos()` → the `delete-match-videos` edge function
+*before* deleting the `match_results` row. That function doesn't read `scoring_history` for
+known video URLs (a client-side bug could have failed to record one, or an upload could have
+landed under an unexpected key) — it looks up the match to confirm the caller owns it, then
+`ListObjectsV2` + batch-`DeleteObjectsCommand`s the **whole**
+`mytennistats/match-videos/{userId}/{matchId}/` folder, so nothing recorded for that match can
+be left behind. Ownership is re-checked against `match_results` at call time, which is why the
+S3 cleanup has to run *before* the DB row is deleted, not after. Best-effort, same as account
+deletion below: a failed S3 cleanup is logged but doesn't block removing the match.
+
+**3. Account deletion** — `delete-account` (see [Edge functions](#edge-functions)) runs
 *before* the account's rows are removed. It collects every video URL the user has — `videos`
 rows plus every `videoUrl` embedded in `live_matches`/`match_results` `scoring_history` — and
 batch-deletes them from S3 (`DeleteObjectsCommand`, up to 1000 keys per call) before handing
@@ -339,7 +352,7 @@ off to the `delete_user_account` Postgres RPC that removes the rows themselves. 
 delete is logged but never blocks the account deletion — losing a stray object is preferable
 to trapping a user who wants to leave.
 
-**3. `mytennistats-import/` staging objects are never deleted by the app.** The pre-transcode
+**4. `mytennistats-import/` staging objects are never deleted by the app.** The pre-transcode
 original stays in the bucket forever once its transcoded copy exists under `mytennistats/` —
 neither `delete-video-from-s3` nor `delete-account` know that key (they only ever learn the
 *post-transcode* URL, which is the only one ever stored in Postgres). **This should be closed
@@ -381,7 +394,8 @@ All live in `supabase/functions/`. Shared helpers are in `_shared/`.
 | Function | Auth | Purpose |
 | --- | --- | --- |
 | `presign-upload` | `requireUser` | Issues presigned S3 PUT URLs (single + multipart) |
-| `delete-video-from-s3` | `requireUser` | Deletes a single video the caller owns |
+| `delete-video-from-s3` | `requireUser` | Deletes a single video (+ poster) the caller owns |
+| `delete-match-videos` | `requireUser` | Deletes a whole match's video folder (`mytennistats/match-videos/{userId}/{matchId}/`) by S3 prefix |
 | `delete-account` | `requireUser` | Batch-deletes every video a user owns from S3, then calls `delete_user_account` |
 | `tennis-rules-chat` | `requireUser` + rate limit | RAG chat over the ITF rules via Mistral |
 | `transcribe-audio` | `requireUser` + rate limit | Groq Whisper transcription |
@@ -526,13 +540,14 @@ platform automatically.
 
 This is the **only** place the app is told which S3 bucket and CloudFront distribution to
 use — both are read exclusively by `presign-upload` (and its `AWS_S3_BUCKET` /
-`AWS_REGION` / credentials by `delete-video-from-s3` and `delete-account` too):
+`AWS_REGION` / credentials by `delete-video-from-s3`, `delete-match-videos` and
+`delete-account` too):
 
 | Secret | Value | Read by |
 | --- | --- | --- |
-| `AWS_S3_BUCKET` | the bucket name from the CDK stack (`s3BucketName` in `cdk-ffmpeg-lambda-stack.ts`) | `presign-upload`, `delete-video-from-s3`, `delete-account` |
-| `AWS_REGION` | that bucket's region, e.g. `eu-west-1` | same three |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | an IAM user scoped to that bucket (see permissions note below) | same three |
+| `AWS_S3_BUCKET` | the bucket name from the CDK stack (`s3BucketName` in `cdk-ffmpeg-lambda-stack.ts`) | `presign-upload`, `delete-video-from-s3`, `delete-match-videos`, `delete-account` |
+| `AWS_REGION` | that bucket's region, e.g. `eu-west-1` | same four |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | an IAM user scoped to that bucket (see permissions note below) | same four |
 | `CLOUDFRONT_HOST` | the distribution's domain, e.g. `d2g92movh621e9.cloudfront.net` | `presign-upload` only, to build the URL it hands back to the browser |
 
 Changing buckets, regions or CloudFront distributions is a `supabase secrets set` call —
@@ -540,9 +555,16 @@ nothing in the frontend or its Vercel config ever needs to change for that.
 
 The IAM user behind `AWS_ACCESS_KEY_ID` needs `s3:PutObject` and the multipart permissions on
 the `mytennistats-import/` prefix (where `presign-upload` writes), and `s3:DeleteObject` on
-the `mytennistats/` prefix (where `delete-video-from-s3` and `delete-account` delete from,
-since only the post-transcode URL is ever stored). Scope the policy to those two prefixes,
-not the whole bucket.
+the `mytennistats/` prefix (where `delete-video-from-s3`, `delete-match-videos` and
+`delete-account` delete from, since only the post-transcode URL is ever stored). Scope the
+policy to those two prefixes, not the whole bucket.
+
+`delete-match-videos` also needs **`s3:ListBucket`** (scoped to the `mytennistats/` prefix via
+an `s3:prefix` condition) — it's the only function that lists objects rather than deleting a
+key it already knows, since it removes a match's whole video folder rather than one video at a
+time. Add this permission before relying on match deletion to actually clear a match's videos;
+without it `ListObjectsV2` fails and the S3 side is silently skipped (best-effort, so the match
+still deletes — the videos just don't).
 
 ### Stripe
 

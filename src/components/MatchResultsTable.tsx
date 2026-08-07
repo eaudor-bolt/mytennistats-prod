@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, CreditCard as Edit, Trash2, BarChart3, Trophy, Share2 } from 'lucide-react';
+import { Plus, CreditCard as Edit, Trash2, BarChart3, Trophy, Share2, Loader2 } from 'lucide-react';
 import { MatchResult } from '../lib/supabase';
 import { MatchStatsModal } from './MatchStatsModal';
 import { useAlert } from '../hooks/useAlert';
@@ -13,9 +13,10 @@ type MatchResultsTableProps = {
   onLiveScore?: () => void;
   onShareResults?: () => void;
   onShareIndividual?: (matchId: string) => Promise<void>;
+  deletingMatchId?: string | null;
 };
 
-export function MatchResultsTable({ matchResults, onAddMatch, onEditMatch, onDeleteMatch, onLiveScore, onShareResults, onShareIndividual }: MatchResultsTableProps) {
+export function MatchResultsTable({ matchResults, onAddMatch, onEditMatch, onDeleteMatch, onLiveScore, onShareResults, onShareIndividual, deletingMatchId }: MatchResultsTableProps) {
   const { showAlert, AlertComponent } = useAlert();
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -439,10 +440,15 @@ export function MatchResultsTable({ matchResults, onAddMatch, onEditMatch, onDel
                       </button>
                       <button
                         onClick={() => onDeleteMatch(match.id)}
-                        className="p-1 text-red-400 hover:bg-red-400/20 rounded transition-all"
+                        disabled={deletingMatchId === match.id}
+                        className="p-1 text-red-400 hover:bg-red-400/20 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Delete"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {deletingMatchId === match.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </td>

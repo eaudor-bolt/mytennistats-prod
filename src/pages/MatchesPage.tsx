@@ -13,6 +13,7 @@ import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler,
 import { Radar } from 'react-chartjs-2';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAlert } from '../hooks/useAlert';
+import { deleteMatchVideos } from '../utils/s3Delete';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -29,6 +30,7 @@ export function MatchesPage() {
   const [editingMatch, setEditingMatch] = useState<MatchResult | null>(null);
   const [liveScoreData, setLiveScoreData] = useState<any>(null);
   const [discardLiveSessionToken, setDiscardLiveSessionToken] = useState(0);
+  const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
   const [radarDataTypes, setRadarDataTypes] = useState<Record<string, 'win' | 'loss'>>({});
   const [expandedRadars, setExpandedRadars] = useState<Record<string, boolean>>({});
   const justSavedLiveMatchRef = useRef(false);
@@ -125,21 +127,43 @@ export function MatchesPage() {
     setEditingMatch(null);
   };
 
-  const handleDeleteMatch = async (matchId: string) => {
-    if (!confirm(t('matches.confirmDelete'))) return;
+  const handleDeleteMatch = (matchId: string) => {
+    showAlert(t('matches.confirmDelete'), {
+      type: 'warning',
+      title: t('matches.deleteConfirmTitle'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      onConfirm: async () => {
+        setDeletingMatchId(matchId);
+        try {
+          // Videos first, and best-effort: the S3 folder-delete looks the
+          // match back up to confirm ownership, so it has to run while the
+          // match_results row still exists. A failed S3 cleanup shouldn't
+          // block the user from removing their own match record - it's
+          // logged, not surfaced as a hard error.
+          const videosDeleted = await deleteMatchVideos(matchId);
+          if (!videosDeleted) {
+            console.error('Error deleting match videos from S3 for match:', matchId);
+          }
 
-    const { error } = await supabase
-      .from('match_results')
-      .delete()
-      .eq('id', matchId);
+          const { error } = await supabase
+            .from('match_results')
+            .delete()
+            .eq('id', matchId);
 
-    if (error) {
-      console.error('Error deleting match:', error);
-      return;
-    }
+          if (error) {
+            console.error('Error deleting match:', error);
+            showAlert(t('matches.deleteError'), { type: 'error' });
+            return;
+          }
 
-    trackMatchAction('finish', matchId, { action_type: 'delete' });
-    await fetchMatchResults();
+          trackMatchAction('finish', matchId, { action_type: 'delete' });
+          await fetchMatchResults();
+        } finally {
+          setDeletingMatchId(null);
+        }
+      },
+    });
   };
 
   const handleEditMatch = (match: MatchResult) => {
@@ -568,6 +592,7 @@ export function MatchesPage() {
             }}
             onEditMatch={handleEditMatch}
             onDeleteMatch={handleDeleteMatch}
+            deletingMatchId={deletingMatchId}
             onShareResults={() => {
               trackMatchAction('share', undefined, { share_type: 'results' });
               setIsShareModalOpen(true);

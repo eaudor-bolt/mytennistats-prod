@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, Wand2 } from 'lucide-react';
 import { MatchResult, supabase, Tournament, CustomTournamentEvent } from '../lib/supabase';
 import { usePlayers } from '../contexts/PlayersContext';
 import { useTournamentData } from '../contexts/TournamentDataContext';
+import { ScoreBuilderModal } from './ScoreBuilderModal';
 
 type AddMatchResultModalProps = {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
   const [isSaving, setIsSaving] = useState(false);
   const [customEvents, setCustomEvents] = useState<CustomTournamentEvent[]>([]);
   const [isAddingCustomEvent, setIsAddingCustomEvent] = useState(false);
+  const [isScoreBuilderOpen, setIsScoreBuilderOpen] = useState(false);
 
   useEffect(() => {
     if (editingMatch) {
@@ -436,14 +438,43 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
               <label className="block text-sm font-semibold text-white mb-2">
                 Score :
               </label>
-              <input
-                type="text"
-                value={formData.score}
-                onChange={(e) => setFormData(prev => ({ ...prev, score: e.target.value }))}
-                placeholder="6/3 - 4/6 - 10/7"
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-transparent"
-                required
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={formData.score}
+                  onChange={(e) => setFormData(prev => ({ ...prev, score: e.target.value }))}
+                  placeholder="6/3 - 4/6 - 10/7"
+                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#C8F135] focus:border-transparent"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsScoreBuilderOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-gray-200 hover:text-white transition-colors flex-shrink-0"
+                  title="Assistant de score"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Assistant</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-white mb-2">
+                Abandon :
+              </label>
+              <select
+                value={formData.retirement_player ?? ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  retirement_player: (e.target.value || null) as 'adversaire' | 'famille' | null,
+                }))}
+                className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8F135] focus:border-[#C8F135] outline-none transition-all bg-white/5 border-white/10 text-gray-400 hover:border-white/20"
+              >
+                <option value="" className="bg-[#0a1628] text-gray-300">Aucun (match terminé normalement)</option>
+                <option value="famille" className="bg-[#0a1628] text-gray-300">{formData.player_name || 'Joueur'} a abandonné</option>
+                <option value="adversaire" className="bg-[#0a1628] text-gray-300">Adversaire a abandonné</option>
+              </select>
             </div>
 
             <div>
@@ -545,6 +576,21 @@ export function AddMatchResultModal({ isOpen, onClose, onSave, editingMatch, ini
           </div>
         </form>
       </div>
+
+      <ScoreBuilderModal
+        isOpen={isScoreBuilderOpen}
+        onClose={() => setIsScoreBuilderOpen(false)}
+        onConfirm={(score, format) => setFormData(prev => ({
+          ...prev,
+          score,
+          game_per_set: format.game_per_set,
+          super_tiebreak: format.super_tiebreak,
+          no_ad: format.no_ad,
+        }))}
+        playerName={formData.player_name}
+        initialScore={formData.score}
+        allowIncompleteLastSet={!!formData.retirement_player}
+      />
     </div>
   );
 }
